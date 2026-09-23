@@ -2935,21 +2935,30 @@ function lunesDeSemana(f){const d=new Date(f+'T00:00:00');const dow=(d.getDay()+
 
 function verAgenda(){selId=null;ocultarPanel();renderAgenda();}
 /* ---------- Google Calendar (un solo sentido: Mediks empuja las citas hacia allá) ---------- */
+let intentoManualGoogle=false;
 function inicializarGoogleCalendar(){
   if(!window.google||!window.gapi)return;
   try{
     googleTokenClient=google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_CLIENT_ID,scope:GOOGLE_SCOPE,
       callback:async(resp)=>{
-        if(resp.error){avisar('No se pudo conectar con Google Calendar');return;}
+        if(resp.error){
+          if(intentoManualGoogle)avisar('No se pudo conectar con Google Calendar');
+          intentoManualGoogle=false;return;
+        }
         gapi.client.setToken({access_token:resp.access_token});
-        googleConectado=true;
-        actualizarBotonGoogle();avisar('Google Calendar conectado');
+        googleConectado=true;localStorage.setItem('mediks-google-autorizado-antes','1');
+        actualizarBotonGoogle();
+        if(intentoManualGoogle)avisar('Google Calendar conectado');
+        intentoManualGoogle=false;
       }
     });
     gapi.load('client',async()=>{
       await gapi.client.init({discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest']});
       googleListoParaUsar=true;
+      if(localStorage.getItem('mediks-google-autorizado-antes')==='1'){
+        googleTokenClient.requestAccessToken({prompt:''});
+      }
     });
   }catch(e){console.error(e);}
 }
@@ -2957,11 +2966,12 @@ function actualizarBotonGoogle(){ if(document.getElementById('agGrid'))renderAge
 function alternarGoogleCalendar(){
   if(googleConectado){
     if(!confirm('¿Desconectar Google Calendar? Las citas dejarán de copiarse allá hasta que vuelvas a conectar.'))return;
-    googleConectado=false;
+    googleConectado=false;localStorage.removeItem('mediks-google-autorizado-antes');
     actualizarBotonGoogle();avisar('Google Calendar desconectado');return;
   }
   if(!googleTokenClient){avisar('Google Calendar todavía está cargando, intenta de nuevo en un segundo');return;}
-  googleTokenClient.requestAccessToken({prompt:'consent'});
+  intentoManualGoogle=true;
+  googleTokenClient.requestAccessToken();
 }
 function eventoGoogleDesdeCita(c){
   const inicio=`${c.fecha}T${c.hora}:00`;
