@@ -2995,13 +2995,7 @@ function alternarGoogleCalendar(){
     actualizarBotonGoogle();avisar('Google Calendar desconectado');return;
   }
   if(!googleTokenClient){
-    avisar('Google Calendar todavía está cargando, un momento…');
-    let intentos=0;
-    const esperar=setInterval(()=>{
-      intentos++;
-      if(googleTokenClient){clearInterval(esperar);intentoManualGoogle=true;googleTokenClient.requestAccessToken();}
-      else if(intentos>15){clearInterval(esperar);avisar('No se pudo cargar Google Calendar. Revisa tu conexión e intenta de nuevo.');}
-    },400);
+    avisar('Google Calendar todavía está cargando — vuelve a tocar «Conectar» en un par de segundos');
     return;
   }
   intentoManualGoogle=true;
