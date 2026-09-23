@@ -908,12 +908,12 @@ function tabOdonto(p,c){
     let contenido,titulo;
     if(d.general&&SIMB_GENERAL[d.general]){
       const g=SIMB_GENERAL[d.general];
-      contenido=`<span class="sim" ${verInicial?'':`data-gen="${n}"`} style="color:${g.c}">${g.s}</span>`;titulo=g.n;
+      contenido=`<span class="sim" data-gen="${n}" style="color:${g.c}">${g.s}</span>`;titulo=g.n;
     }else{
       const caras=d.caras||{};
       const col=k=>caras[k]&&SIMB_CARA[caras[k]]?SIMB_CARA[caras[k]].c:'#fff';
       const sim=k=>caras[k]&&SIMB_CARA[caras[k]]&&SIMB_CARA[caras[k]].s?`<span>${SIMB_CARA[caras[k]].s}</span>`:'';
-      const atr=k=>verInicial?'':`data-d="${n}" data-cara="${k}"`;
+      const atr=k=>`data-d="${n}" data-cara="${k}"`;
       contenido=`<div class="carasmini">
         <i class="cara-v" ${atr('V')} style="background:${col('V')}">${sim('V')}</i>
         <i class="cara-m" ${atr('M')} style="background:${col('M')}">${sim('M')}</i>
@@ -923,9 +923,9 @@ function tabOdonto(p,c){
       </div>`;
       titulo=Object.values(caras).some(Boolean)?'Con caras marcadas':'Sano';
     }
-    return `<div class="diente" title="${titulo}" style="${verInicial?'cursor:default':''}">
+    return `<div class="diente" title="${titulo}">
       ${contenido}<span class="numd">${n}</span><span class="mr">${mr}</span>
-      ${verInicial?'':`<span class="editar" data-detalle="${n}" title="Movilidad, recesión y nota">···</span>`}</div>`;}).join('')}</div>`).join('');
+      <span class="editar" data-detalle="${n}" title="Movilidad, recesión y nota">···</span></div>`;}).join('')}</div>`).join('');
   const i=cpo({odontograma:datosOdonto});
   const prom=campo=>{let s=0,n=0;IHOS.forEach((_,k)=>{const v=I.filas[k]?.[campo];
     if(v!==undefined&&v!==''){s+=Number(v);n++;}});return n?(s/n).toFixed(2):'—';};
@@ -940,7 +940,7 @@ function tabOdonto(p,c){
       <button class="btn chico" onclick="guardarOdontogramaInicial(pac(selId))">Guardar odontograma actual como «inicial»</button>
     </div>
     ${verInicial?`<div class="bloque" style="background:var(--porcelana);border-style:dashed">
-      <p class="mini" style="margin:0">Estás viendo el <b>odontograma inicial</b>, congelado el ${fechaCorta(p.odontogramaInicial.fecha)}. Es de solo lectura — cambia a «Actual» para seguir registrando.</p></div>`:`
+      <p class="mini" style="margin:0">Estás viendo y editando el <b>odontograma inicial</b>, congelado el ${fechaCorta(p.odontogramaInicial.fecha)}. Los cambios aquí no afectan al odontograma «Actual» — es útil si necesitas corregir una confusión al cargarlo.</p></div>`:''}
     <div class="bloque"><div class="barra-tit"><h3>Herramienta activa</h3>
       <span class="der mini">${herramientaOdonto?'Toca las caras del diente para pintar':'Elige qué marcar, luego toca en el diente'}</span></div>
       <p class="mini" style="margin-top:0">Por cara del diente (rojo = patología actual · azul = tratamiento ya realizado):</p>
@@ -956,10 +956,10 @@ function tabOdonto(p,c){
           <i style="background:#fff"></i>Ninguna (borrar)</button>
         ${Object.entries(SIMB_GENERAL).map(([k,v])=>`<button data-tool='${JSON.stringify({tipo:'general',valor:k,n:v.n}).replace(/'/g,"&#39;")}' aria-pressed="${activo({tipo:'general',valor:k})}">
           <i style="background:${v.c}"></i>${v.s} ${v.n}</button>`).join('')}
-      </div></div>`}
+      </div></div>
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
       <button class="btn chico" id="cambiarSet">Ver dentición ${p.odontoLeche?'permanente':'temporal'}</button>
-      ${verInicial?'':'<span class="mini">El botón «···» de cada diente abre movilidad, recesión y notas.</span>'}</div>
+      <span class="mini">El botón «···» de cada diente abre movilidad, recesión y notas.</span></div>
     <div class="bloque"><div class="barra-tit"><b>6</b><h3>Odontograma</h3></div>
       <div class="odonto"><div class="arcada">${fila([set[0],set[1]])}</div><div class="arcada">${fila([set[2],set[3]])}</div></div>
       <div class="grid" style="margin-top:16px">
@@ -999,7 +999,6 @@ function tabOdonto(p,c){
         <tr><td>CPOD (permanentes)</td><td class="der">${i.C}</td><td class="der">${i.P}</td><td class="der">${i.O}</td><td class="der"><b>${i.C+i.P+i.O}</b></td></tr>
         <tr><td>ceod (temporales)</td><td class="der">${i.c}</td><td class="der">${i.e}</td><td class="der">${i.o}</td><td class="der"><b>${i.c+i.e+i.o}</b></td></tr></table></div>`;
   $('#cambiarSet').onclick=()=>{p.odontoLeche=!p.odontoLeche;guardar();pintarVista();};
-  if(verInicial)return;
   c.querySelectorAll('[data-ihos]').forEach(el=>el.onchange=()=>{const [k,campo]=el.dataset.ihos.split('-');
     I.filas[k]=I.filas[k]||{};I.filas[k][campo]=el.value;guardar();pintarVista();});
   c.querySelectorAll('[data-ik]').forEach(el=>el.onchange=()=>{I[el.dataset.ik]=el.value;guardar();});
@@ -1013,32 +1012,42 @@ function tabOdonto(p,c){
   });
   c.querySelectorAll('[data-cara]').forEach(el=>el.onclick=()=>{
     const n=el.dataset.d;
+    if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
+    const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
     if(herramientaOdonto&&herramientaOdonto.tipo==='general'){
-      const nd=p.odontograma[n]||{};
+      const nd=objetivo[n]||{};
       if(herramientaOdonto.valor)nd.general=herramientaOdonto.valor;else delete nd.general;
-      p.odontograma[n]=nd;guardar();pintarVista();return;
+      objetivo[n]=nd;guardar();pintarVista();return;
     }
     if(!herramientaOdonto||herramientaOdonto.tipo!=='cara'){avisar('Primero elige qué marcar en la paleta de arriba');return;}
-    const cara=el.dataset.cara,nd=p.odontograma[n]||{};nd.caras=nd.caras||{};
+    const cara=el.dataset.cara,nd=objetivo[n]||{};nd.caras=nd.caras||{};
     if(herramientaOdonto.valor)nd.caras[cara]=herramientaOdonto.valor;else delete nd.caras[cara];
-    p.odontograma[n]=nd;guardar();pintarVista();
+    objetivo[n]=nd;guardar();pintarVista();
   });
   c.querySelectorAll('[data-gen]').forEach(el=>el.onclick=()=>{
     const n=el.dataset.gen;
+    if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
+    const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
     if(herramientaOdonto&&herramientaOdonto.tipo==='general'){
-      const nd=p.odontograma[n]||{};
+      const nd=objetivo[n]||{};
       if(herramientaOdonto.valor)nd.general=herramientaOdonto.valor;else delete nd.general;
-      p.odontograma[n]=nd;guardar();pintarVista();
+      objetivo[n]=nd;guardar();pintarVista();
     }else{
-      detalleDiente(p,n);
+      detalleDiente(p,n,verInicial);
     }
   });
-  c.querySelectorAll('[data-detalle]').forEach(b=>b.onclick=()=>detalleDiente(p,b.dataset.detalle));
+  c.querySelectorAll('[data-detalle]').forEach(b=>b.onclick=()=>detalleDiente(p,b.dataset.detalle,verInicial));
 }
-function detalleDiente(p,n){
-  const d=p.odontograma[n]||{};
+function asegurarInicialAntesDePrimerCambio(p){
+  if(!p.odontogramaInicial){
+    p.odontogramaInicial={dientes:JSON.parse(JSON.stringify(p.odontograma)),fecha:hoy()};
+  }
+}
+function detalleDiente(p,n,verInicial){
+  const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
+  const d=objetivo[n]||{};
   const perm=+n<51||+n>85;
-  abrirModal(`Pieza ${n} — detalles`,
+  abrirModal(`Pieza ${n} — detalles${verInicial?' (odontograma inicial)':''}`,
     (perm?`<div class="grid">
       <label class="campo"><span>Movilidad (Miller)</span><select id="d_mov">
         ${['','1','2','3'].map(x=>`<option ${String(d.mov||'')===x?'selected':''}>${x}</option>`).join('')}</select></label>
@@ -1048,11 +1057,12 @@ function detalleDiente(p,n){
     `<label class="campo"><span>Nota de la pieza</span><input type="text" id="d_nota" value="${esc(d.nota||'')}"></label>
     <p class="mini">Para marcar caries, obturados o la condición general, usa la paleta y toca directo el diente en el gráfico.</p>`,
   ()=>{
-    const nd=p.odontograma[n]||{};
+    if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
+    const nd=objetivo[n]||{};
     if(perm){nd.mov=$('#d_mov').value;nd.rec=$('#d_rec').value;}
     nd.nota=$('#d_nota').value;
     if(!nd.mov)delete nd.mov;if(!nd.rec)delete nd.rec;if(!nd.nota)delete nd.nota;
-    p.odontograma[n]=nd;guardar();pintarVista();
+    objetivo[n]=nd;guardar();pintarVista();
   });
 }
 
@@ -3036,6 +3046,7 @@ async function sincronizarDesdeGoogle(forzar){
       timeMin:new Date(desde+'T00:00:00').toISOString(),timeMax:new Date(hasta+'T23:59:59').toISOString(),
       singleEvents:true,maxResults:250});
     const eventos=(r.result.items||[]).filter(ev=>ev.start&&ev.start.dateTime&&ev.status!=='cancelled');
+    const idsVistos=new Set(eventos.map(ev=>ev.id));
     const pad=n=>String(n).padStart(2,'0');
     let cambios=false;
     for(const ev of eventos){
@@ -3063,6 +3074,13 @@ async function sincronizarDesdeGoogle(forzar){
             resource:{extendedProperties:{private:{mediksCitaId:nueva.id}}}});}catch(e){}
         }
       }
+    }
+    // citas que sí tienen evento en Google pero ese evento ya no aparece en este rango: se borró en Google, se borra aquí también
+    const paraBorrar=(datos.citas||[]).filter(c=>c.googleEventId&&!idsVistos.has(c.googleEventId)&&c.fecha>=desde&&c.fecha<=hasta);
+    if(paraBorrar.length){
+      const idsBorrar=new Set(paraBorrar.map(c=>c.id));
+      datos.citas=(datos.citas||[]).filter(c=>!idsBorrar.has(c.id));
+      cambios=true;
     }
     if(cambios){guardar();if(document.getElementById('agGrid'))renderAgenda();}
   }catch(e){console.error('Google Calendar (traer cambios):',e);}
