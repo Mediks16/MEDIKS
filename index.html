@@ -2947,7 +2947,7 @@ function inicializarGoogleCalendar(){
           intentoManualGoogle=false;return;
         }
         gapi.client.setToken({access_token:resp.access_token});
-        googleConectado=true;localStorage.setItem('mediks-google-autorizado-antes','1');
+        googleConectado=true;
         actualizarBotonGoogle();
         if(intentoManualGoogle)avisar('Google Calendar conectado');
         intentoManualGoogle=false;
@@ -2956,9 +2956,6 @@ function inicializarGoogleCalendar(){
     gapi.load('client',async()=>{
       await gapi.client.init({discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest']});
       googleListoParaUsar=true;
-      if(localStorage.getItem('mediks-google-autorizado-antes')==='1'){
-        googleTokenClient.requestAccessToken({prompt:''});
-      }
     });
   }catch(e){console.error(e);}
 }
@@ -2966,7 +2963,7 @@ function actualizarBotonGoogle(){ if(document.getElementById('agGrid'))renderAge
 function alternarGoogleCalendar(){
   if(googleConectado){
     if(!confirm('¿Desconectar Google Calendar? Las citas dejarán de copiarse allá hasta que vuelvas a conectar.'))return;
-    googleConectado=false;localStorage.removeItem('mediks-google-autorizado-antes');
+    googleConectado=false;
     actualizarBotonGoogle();avisar('Google Calendar desconectado');return;
   }
   if(!googleTokenClient){avisar('Google Calendar todavía está cargando, intenta de nuevo en un segundo');return;}
