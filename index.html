@@ -1491,7 +1491,264 @@ const PLANTILLAS={
     desc:'Las imágenes forman parte de la historia clínica. Su uso fuera de ella es voluntario y puede revocarse en cualquier momento por escrito, sin que ello afecte la atención recibida.',
     riesgos:['Posibilidad de ser reconocido en imágenes donde aparezca el rostro completo.','Una vez publicadas en internet, las imágenes pueden ser copiadas por terceros fuera del control del profesional.'],
     alt:'Autorizar únicamente el uso interno dentro de la historia clínica, sin difusión.',
-    cuidados:'Puede solicitar en cualquier momento el retiro de las imágenes de los medios de difusión del consultorio.'}
+    cuidados:'Puede solicitar en cualquier momento el retiro de las imágenes de los medios de difusión del consultorio.'},
+  ortopediaGallegos:{t:'Ortopedia maxilar (Dra. Gallegos)',d:'Contrato y consentimiento — Dra. Lourdes Gallegos',
+    generarTexto:p=>`CONTRATO Y CONSENTIMIENTO INFORMADO PARA TRATAMIENTO DE ORTOPEDIA MAXILAR
+Dra. Lourdes Gallegos Muñoz
+Especialista en Ortodoncia y Ortopedia Maxilar
+
+En la ciudad de ________________________, a los ______ días del mes de __________________ del año ________, comparecen libre y voluntariamente las siguientes partes:
+
+PACIENTE
+Nombre: ${p.nombre||'________________________'}
+Cédula: ${p.cedula||'________________________'}
+Teléfono: ${p.telefono||'________________________'}
+
+En caso de ser menor de edad:
+REPRESENTANTE LEGAL
+Nombre: __________________________________________
+Cédula: __________________________________________
+
+PRIMERA. OBJETO DEL CONTRATO
+La Dra. Lourdes Gallegos Muñoz se compromete a realizar el tratamiento de Ortopedia Maxilar indicado para el paciente, cuyo objetivo es guiar y modificar el crecimiento de los maxilares, mejorar la función masticatoria, respiratoria y el desarrollo armónico facial, dentro de las posibilidades biológicas propias de cada paciente en crecimiento.
+
+SEGUNDA. DIAGNÓSTICO Y PLAN DE TRATAMIENTO
+El representante legal/paciente declara haber recibido información clara sobre:
+- El diagnóstico esqueletal y funcional
+- El plan de tratamiento ortopédico
+- El tipo de aparato a utilizar
+- La duración aproximada del tratamiento
+Se entiende que la duración del tratamiento es estimada y depende en gran medida del crecimiento del paciente y del uso correcto y constante del aparato.
+
+TERCERA. COSTO Y FORMA DE PAGO
+Costo total del tratamiento: USD $____________
+Pago inicial: USD $____________
+Controles: USD $____________ durante __________ meses (aprox.)
+Procedimientos adicionales:
+- Reposición del aparato: USD $____________
+- Tornillos de expansión adicionales: USD $____________
+- Aparatos nuevos por crecimiento o pérdida: USD $____________
+El representante legal se compromete a cumplir con los pagos en las fechas acordadas.
+
+CUARTA. SERVICIOS INCLUIDOS EN EL TRATAMIENTO
+- Confección e instalación del aparato ortopédico
+- Controles periódicos
+- Activaciones del aparato
+- Seguimiento del crecimiento maxilar
+
+QUINTA. SERVICIOS NO INCLUIDOS
+No están incluidos dentro del costo:
+- Reposición por pérdida, daño o fractura del aparato
+- Aparatos nuevos por falta de uso o daño
+- Tratamientos restauradores, periodontales o quirúrgicos necesarios
+- Tratamientos ortodónticos posteriores (brackets)
+- Procedimientos derivados de la falta de colaboración del paciente
+
+SEXTA. FACTOR CRECIMIENTO Y COLABORACIÓN
+El representante legal/paciente entiende y acepta que:
+- La Ortopedia Maxilar depende directamente del crecimiento del paciente.
+- El éxito del tratamiento depende principalmente del uso correcto del aparato el número de horas indicadas diariamente.
+- Si el paciente no usa el aparato como se indica, el tratamiento no funcionará.
+- La Dra. Lourdes Gallegos Muñoz no puede garantizar resultados si no existe colaboración adecuada.
+
+SÉPTIMA. OBLIGACIONES DEL PACIENTE / REPRESENTANTE
+Se comprometen a:
+- Usar el aparato las horas indicadas
+- Asistir puntualmente a los controles
+- Mantener adecuada higiene del aparato
+- Evitar dañarlo o perderlo
+- Cumplir con los pagos
+Si el paciente falta a tres controles consecutivos o abandona el tratamiento, este podrá darse por finalizado sin derecho a reclamo o devolución de valores.
+
+OCTAVA. POSIBLES MOLESTIAS Y EFECTOS NORMALES
+El paciente puede presentar:
+- Molestias o presión los primeros días
+- Dificultad al hablar temporalmente
+- Exceso de saliva
+- Irritación leve en mucosas
+- Sensación de movimiento dental
+Estos efectos son normales y temporales.
+
+NOVENA. LIMITACIONES BIOLÓGICAS Y RESULTADOS
+No es posible garantizar resultados exactos, ya que estos dependen de:
+- Patrón de crecimiento individual
+- Edad del paciente
+- Nivel de colaboración
+- Respuesta biológica
+
+DÉCIMA. NECESIDAD POSTERIOR DE ORTODONCIA
+El representante legal entiende que:
+- La Ortopedia Maxilar no reemplaza el tratamiento de ortodoncia con brackets.
+- Posteriormente será necesario un tratamiento ortodóntico para alinear los dientes.
+
+DÉCIMA PRIMERA. REGISTROS CLÍNICOS
+Se autoriza la toma de fotografías, radiografías y modelos para fines diagnósticos, académicos y científicos, respetando la confidencialidad.
+
+DÉCIMA SEGUNDA. ACEPTACIÓN
+Las partes declaran haber leído, comprendido y aceptado el presente consentimiento informado.
+
+_______________________________
+Firma del paciente / representante legal
+
+_______________________________
+Dra. Lourdes Gallegos Muñoz`},
+  ortodonciaGallegos:{t:'Ortodoncia (Dra. Gallegos)',d:'Contrato y consentimiento — Dra. Lourdes Gallegos',
+    generarTexto:p=>`CONTRATO Y CONSENTIMIENTO INFORMADO PARA TRATAMIENTO DE ORTODONCIA
+Dra. Lourdes Gallegos Muñoz
+Especialista en Ortodoncia y Ortopedia Maxilar
+
+En la ciudad de ________________________, a los ______ días del mes de __________________ del año ________, comparecen libre y voluntariamente las siguientes partes:
+
+PACIENTE
+Nombre: ${p.nombre||'________________________'}
+Cédula: ${p.cedula||'________________________'}
+Teléfono: ${p.telefono||'________________________'}
+
+En caso de ser menor de edad:
+REPRESENTANTE LEGAL
+Nombre: __________________________________________
+Cédula: __________________________________________
+
+PRIMERA. OBJETO DEL CONTRATO
+La Dra. Lourdes Gallegos Muñoz, especialista en Ortodoncia y Ortopedia Maxilar, se compromete a realizar el tratamiento de ortodoncia indicado para el paciente con el objetivo de mejorar la alineación dental, la función masticatoria y la estética dentofacial, dentro de las posibilidades biológicas y clínicas propias de cada caso.
+
+SEGUNDA. DIAGNÓSTICO Y PLAN DE TRATAMIENTO
+El paciente declara haber recibido información clara sobre su diagnóstico, plan de tratamiento, procedimientos necesarios y duración aproximada del tratamiento.
+Se entiende que la duración del tratamiento es estimada y puede variar dependiendo de la respuesta biológica individual, la complejidad del caso y la colaboración del paciente.
+
+TERCERA. COSTO Y FORMA DE PAGO
+Costo total del tratamiento: USD $____________
+Pago inicial: USD $____________
+Mensualidades: USD $____________ durante __________ meses (aprox.)
+Procedimientos adicionales:
+Microimplantes: USD $____________
+Reposición de brackets convencionales: USD $____________
+Reposición de brackets autoligados: USD $____________
+Contenciones finales: USD $____________
+El paciente se compromete a cumplir con los pagos establecidos en las fechas acordadas.
+
+CUARTA. SERVICIOS INCLUIDOS EN EL TRATAMIENTO
+• Colocación de brackets
+• Controles periódicos
+• Arcos y ligaduras estándar
+• Ajustes ortodónticos
+• Retiro de brackets
+• Colocación de contención final
+
+QUINTA. SERVICIOS NO INCLUIDOS
+No están incluidos dentro del costo del tratamiento:
+• Reposición de brackets desprendidos o dañados
+• Elásticos intermaxilares especiales
+• Microimplantes o aditamentos especiales
+• Aparatos adicionales
+• Procedimientos derivados de complicaciones
+• Retratamientos
+• Tratamientos restauradores, periodontales o quirúrgicos necesarios
+
+SEXTA. VARIACIÓN DEL COSTO
+El costo del tratamiento podrá variar si durante el proceso clínico se requiere la utilización de microimplantes, aditamentos especiales o procedimientos adicionales derivados de la complejidad del caso. Dichos procedimientos serán informados previamente al paciente.
+
+SÉPTIMA. OBLIGACIONES DEL PACIENTE
+El paciente se compromete a:
+• Asistir puntualmente a los controles programados
+• Mantener una adecuada higiene oral
+• Seguir las indicaciones del profesional
+• Cuidar los aparatos ortodónticos
+• Cumplir con los pagos establecidos
+La falta de colaboración puede afectar los resultados del tratamiento y prolongar su duración.
+Si el paciente falta a tres controles consecutivos o abandona el tratamiento sin justificación, el tratamiento podrá darse por finalizado por parte del profesional sin derecho a reclamo o devolución de valores.
+
+OCTAVA. CASOS QUE REQUIEREN CIRUGÍA ORTOGNÁTICA
+En ciertos pacientes con discrepancias óseas maxilares o mandibulares, el tratamiento ideal puede requerir cirugía ortognática en conjunto con ortodoncia para lograr una adecuada función masticatoria, estabilidad oclusal y armonía estética facial.
+En caso de que el paciente decida no realizar la cirugía ortognática recomendada, entiende y acepta que:
+• El tratamiento ortodóntico se limitará únicamente a la alineación y nivelación dental dentro de las limitaciones existentes.
+• Los resultados obtenidos podrían no corregir completamente la relación esqueletal, funcional o estética.
+• La Dra. Lourdes Gallegos Muñoz no será responsable por las limitaciones del resultado final derivadas de la negativa del paciente a realizar el tratamiento quirúrgico indicado.
+
+NOVENA. LIMITACIONES BIOLÓGICAS Y RESULTADOS
+El paciente comprende que la ortodoncia depende de factores biológicos individuales, por lo que no es posible garantizar resultados exactos o perfectos.
+
+DÉCIMA. RETENCIÓN Y POSIBLES RECAÍDAS
+Una vez finalizado el tratamiento de ortodoncia, es obligatorio el uso de aparatos de contención para mantener los resultados obtenidos.
+El paciente entiende y acepta que:
+• Los dientes tienen tendencia natural a moverse con el tiempo.
+• El uso adecuado y constante de las contenciones es responsabilidad del paciente.
+• La falta de uso, pérdida o daño de las contenciones puede provocar recaídas o movimientos dentales.
+• La Dra. Lourdes Gallegos Muñoz no será responsable por recaídas derivadas del incumplimiento en el uso de las contenciones.
+La reposición de contenciones tendrá un costo adicional.
+
+DÉCIMA PRIMERA. DAÑOS EN LOS APARATOS
+Si el paciente rompe, despega o pierde brackets, tubos, ligaduras u otros elementos del aparato, deberá asumir el costo de reposición correspondiente.
+
+DÉCIMA SEGUNDA. REGISTROS CLÍNICOS
+El paciente autoriza la toma de fotografías, radiografías, modelos digitales o físicos y otros registros necesarios para diagnóstico, seguimiento y fines académicos o científicos, garantizando la confidencialidad de su identidad.
+
+DÉCIMA TERCERA. ACEPTACIÓN
+Las partes declaran haber leído, comprendido y aceptado voluntariamente el presente contrato y consentimiento informado.
+
+_______________________________            _______________________________
+Firma del paciente / representante legal    Firma de la ortodoncista
+                                              Dra. Lourdes Gallegos Muñoz`},
+  exodonciaLlanos:{t:'Exodoncia terceros molares (Dr. Llanos)',d:'Cirugía oral — Dr. José Luis Llanos',
+    generarTexto:p=>{const e=edad(p.nacimiento);return `CONSENTIMIENTO INFORMADO PARA EXODONCIA DE TERCEROS MOLARES
+Dr. José Luis Llanos
+Pg. Cirugía Oral
+
+DATOS DEL PACIENTE
+Nombre del paciente: ${p.nombre||'________________________'}
+Edad: ${e!==null?e:'________'}   Cédula/Pasaporte: ${p.cedula||'________________________'}
+Fecha: ____ /____ /________
+
+PROCEDIMIENTO
+Por medio del presente documento, yo, ${p.nombre||'________________________'}, declaro que he sido informado(a) de manera clara y comprensible acerca del procedimiento quirúrgico denominado exodoncia de terceros molares (extracción de cordales o muelas del juicio), el cual será realizado por el Dr. José Luis Llanos — Pg. Cirugía Oral.
+El procedimiento consiste en la extracción de uno o más terceros molares mediante técnicas quirúrgicas que pueden incluir anestesia local, incisión de encía, osteotomía (remoción de hueso), odontosección (sección del diente) y sutura.
+
+BENEFICIOS DEL PROCEDIMIENTO
+• Eliminar dolor, infección o inflamación.
+• Prevenir daños a dientes vecinos.
+• Tratar o prevenir quistes y otras patologías asociadas.
+• Mejorar la salud bucal y funcionalidad oral.
+• Facilitar tratamientos odontológicos posteriores si fueran necesarios.
+
+RIESGOS Y POSIBLES COMPLICACIONES
+Comprendo que, como en todo procedimiento quirúrgico, pueden presentarse complicaciones, entre ellas:
+• Dolor, inflamación y sangrado postoperatorio.
+• Infección.
+• Trismus (limitación para abrir la boca).
+• Alveolitis seca.
+• Hematomas.
+• Lesión temporal o permanente de nervios cercanos, causando adormecimiento de labios, lengua o mentón.
+• Comunicación con el seno maxilar en molares superiores.
+• Fractura dental, radicular o ósea.
+• Reacciones adversas a medicamentos o anestesia.
+• Necesidad de tratamientos complementarios o reintervención quirúrgica.
+Se me ha informado que, aunque se tomen todas las medidas necesarias, no es posible garantizar resultados absolutos.
+
+INDICACIONES POSTOPERATORIAS
+Me comprometo a seguir las indicaciones entregadas por el profesional, incluyendo:
+• Tomar correctamente la medicación prescrita.
+• Mantener reposo relativo.
+• Aplicar frío local.
+• Evitar fumar, ingerir alcohol o alimentos calientes durante las primeras horas.
+• Acudir a controles posteriores.
+Entiendo que el incumplimiento de estas indicaciones puede afectar mi recuperación.
+
+AUTORIZACIÓN
+Declaro que he podido realizar todas las preguntas necesarias y que las mismas han sido respondidas satisfactoriamente. Comprendo la naturaleza del procedimiento, sus beneficios, riesgos y posibles complicaciones.
+Por lo tanto, autorizo libre y voluntariamente al Dr. José Luis Llanos — Pg. Cirugía Oral a realizar la exodoncia de terceros molares y los procedimientos complementarios que sean necesarios durante el acto quirúrgico.
+
+FIRMAS
+
+Firma del paciente: _______________________________
+Nombre del paciente: ${p.nombre||'________________________'}
+
+Firma del representante legal (si aplica): _______________________________
+
+Firma del profesional: _______________________________
+Dr. José Luis Llanos
+Pg. Cirugía Oral
+
+Fecha: ____ /____ /________`}}
 };
 function textoConsentimiento(clave,p){
   const T=PLANTILLAS[clave],cfg=datos.config||{},e=edad(p.nacimiento);
@@ -1548,7 +1805,8 @@ function tabCons(p,c){
 }
 function crearConsentimiento(clave){
   const p=pac(selId),T=PLANTILLAS[clave];
-  const doc={id:uid(),clave,titulo:T.t,fecha:hoy(),pieza:'',texto:textoConsentimiento(clave,p)};
+  const texto=T.generarTexto?T.generarTexto(p):textoConsentimiento(clave,p);
+  const doc={id:uid(),clave,titulo:T.t,fecha:hoy(),pieza:'',texto};
   p.consentimientos=p.consentimientos||[];p.consentimientos.push(doc);guardar();verConsentimiento(doc.id);
 }
 function verConsentimiento(id){
@@ -1741,10 +1999,19 @@ function editarControlOrto(id){
       <label class="campo"><span>Arco / calibre</span><input type="text" id="o_arco" value="${esc(x.arco||'')}" placeholder=".014 NiTi, .018 acero…"></label>
       <label class="campo"><span>Elástico</span><input type="text" id="o_elastico" value="${esc(x.elastico||'')}" placeholder="Clase II derecha, cadena…"></label>
     </div>
-    <label class="campo"><span>Nota</span><textarea id="o_nota">${esc(x.nota||'')}</textarea></label>`,
+    <label class="campo"><span>Nota</span><textarea id="o_nota">${esc(x.nota||'')}</textarea></label>
+    <details class="opcional"><summary>Honorario a la especialista — <span class="mini" style="margin-left:4px">${x.honorarioMonto?('Acordado '+usd(x.honorarioMonto)):'opcional'}</span></summary>
+      <div class="cont">
+        <p class="mini" style="margin-top:0">No se muestra al paciente, solo en «Gastos».</p>
+        <div class="grid">
+          <label class="campo"><span>Honorario acordado (USD)</span><input type="number" step="0.01" min="0" id="o_honMonto" value="${x.honorarioMonto??''}"></label>
+          <label class="campo"><span>Ya pagado (USD)</span><input type="number" step="0.01" min="0" id="o_honPagado" value="${x.honorarioPagado??''}"></label>
+        </div>
+      </div></details>`,
   ()=>{const d={id:x.id||uid(),fecha:$('#o_fecha').value,proxima:$('#o_prox').value,proximaHora:$('#o_proxHora').value||'09:00',
       procedimiento:$('#o_proc').value.trim(),arco:$('#o_arco').value.trim(),
-      elastico:$('#o_elastico').value.trim(),nota:$('#o_nota').value.trim()};
+      elastico:$('#o_elastico').value.trim(),nota:$('#o_nota').value.trim(),
+      honorarioMonto:Number($('#o_honMonto').value)||0,honorarioPagado:Number($('#o_honPagado').value)||0};
     const profSel=document.getElementById('o_prof');
     if(profSel){const info=profSel.value?datos.profesionales.find(k=>k.id===profSel.value):null;
       d.profesionalId=profSel.value||null;d.profesionalNombre=info?info.nombre:'';}
@@ -2534,15 +2801,26 @@ function listaLabPendientes(){
 }
 function listaHonorariosPendientes(){
   const filas=[];
-  datos.pacientes.forEach(p=>(p.tratamientos||[]).forEach(t=>{
-    const monto=Number(t.honorarioMonto)||0;
-    if(monto>0){
-      const saldo=monto-(Number(t.honorarioPagado)||0);
-      filas.push({pacienteId:p.id,pacienteNombre:p.nombre,tratamientoId:t.id,
-        profesionalNombre:t.profesionalNombre||'Sin asignar',
-        fecha:t.fecha,monto,pagado:Number(t.honorarioPagado)||0,saldo,proc:t.proc||t.dx||t.sesion||''});
-    }
-  }));
+  datos.pacientes.forEach(p=>{
+    (p.tratamientos||[]).forEach(t=>{
+      const monto=Number(t.honorarioMonto)||0;
+      if(monto>0){
+        const saldo=monto-(Number(t.honorarioPagado)||0);
+        filas.push({pacienteId:p.id,pacienteNombre:p.nombre,tipo:'tratamiento',origenId:t.id,
+          profesionalNombre:t.profesionalNombre||'Sin asignar',
+          fecha:t.fecha,monto,pagado:Number(t.honorarioPagado)||0,saldo,proc:t.proc||t.dx||t.sesion||''});
+      }
+    });
+    ((p.orto&&p.orto.controles)||[]).forEach(x=>{
+      const monto=Number(x.honorarioMonto)||0;
+      if(monto>0){
+        const saldo=monto-(Number(x.honorarioPagado)||0);
+        filas.push({pacienteId:p.id,pacienteNombre:p.nombre,tipo:'ortoControl',origenId:x.id,
+          profesionalNombre:x.profesionalNombre||'Sin asignar',
+          fecha:x.fecha,monto,pagado:Number(x.honorarioPagado)||0,saldo,proc:'Control de ortodoncia — '+(x.procedimiento||'')});
+      }
+    });
+  });
   return filas.sort((a,b)=>(b.saldo>0.004)-(a.saldo>0.004)||(b.fecha||'').localeCompare(a.fecha||''));
 }
 function renderGastos(){
@@ -2580,7 +2858,7 @@ function renderGastos(){
           <td>${esc(x.profesionalNombre)}<br><span class="mini">${fechaCorta(x.fecha)}</span></td>
           <td class="der">${usd(x.monto)}</td><td class="der">${usd(x.pagado)}</td>
           <td class="der" style="color:${x.saldo>0.004?'var(--alerta)':'inherit'}">${usd(x.saldo)}</td>
-          <td class="der"><button class="btn chico" onclick="abonarHonorario('${x.pacienteId}','${x.tratamientoId}')">Abonar</button></td></tr>`).join('')}
+          <td class="der"><button class="btn chico" onclick="abonarHonorario('${x.pacienteId}','${x.tipo}','${x.origenId}')">Abonar</button></td></tr>`).join('')}
         </tbody></table>`:'<p class="mini">No hay honorarios por sesión registrados todavía. Se agregan desde el formulario de cada sesión, en la pestaña Tratamientos de un paciente.</p>'}</div>
     <div class="bloque"><div class="barra-tit"><h3>Otros pagos a profesionales</h3>
       <button class="btn chico der" onclick="abrirGastoProfesional()">Registrar pago</button></div>
@@ -2593,8 +2871,9 @@ function renderGastos(){
           <button class="btn chico peligro" onclick="borrarGastoProfesional('${x.id}')">×</button></td></tr>`).join('')}
         </tbody></table>`:'<p class="mini">Sin otros pagos registrados. Usa esto para honorarios fijos, mensuales, o cualquier pago que no venga de una sesión específica.</p>'}</div>`;
 }
-function abonarHonorario(pacienteId,tratamientoId){
-  const p=pac(pacienteId),t=(p.tratamientos||[]).find(x=>x.id===tratamientoId);
+function abonarHonorario(pacienteId,tipo,origenId){
+  const p=pac(pacienteId);
+  const t=tipo==='ortoControl'?((p.orto&&p.orto.controles)||[]).find(x=>x.id===origenId):(p.tratamientos||[]).find(x=>x.id===origenId);
   if(!t)return;
   abrirModal(`Pago a ${t.profesionalNombre||'profesional'}`,`
     <p class="mini" style="margin-top:0">Paciente: ${esc(p.nombre)} — Honorario acordado: ${usd(t.honorarioMonto)}</p>
@@ -3469,13 +3748,15 @@ Educacional: ${esc(h.planEdu||'')}</div>`)}
 }
 function imprimirConsentimiento(id){
   const p=pac(selId),d=p.consentimientos.find(x=>x.id===id),g=datos.config;
+  const T=PLANTILLAS[d.clave],propiaFirma=T&&T.generarTexto;
   $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
     <section><div class="texto">${esc(d.texto)}${d.pieza?`\n\nDetalle / pieza(s): ${esc(d.pieza)}`:''}
 Fecha: ${fechaCorta(d.fecha)}</div>
-    <div class="firma" style="margin-top:46px">
+    ${propiaFirma?(d.firma?`<div style="text-align:center;margin-top:10px"><img src="${d.firma}" style="max-height:48px"><p class="mini">Firmado electrónicamente el ${new Date(d.firmaFecha).toLocaleString('es-EC')}</p></div>`:'')
+    :`<div class="firma" style="margin-top:46px">
       <div>${d.firma?`<img src="${d.firma}" style="max-height:48px;display:block;margin:0 auto 3px">`:''}${d.rep?esc(d.repdato||'Representante legal'):esc(p.nombre||'')}<br>${d.rep?'Representante legal':'Paciente'} — C.I. ${d.rep?'':esc(p.cedula||'')}
       ${d.firma?`<br><span style="font-size:8.5px;color:#555">Firmado electrónicamente el ${new Date(d.firmaFecha).toLocaleString('es-EC')}</span>`:''}</div>
-      <div>${esc(g.profesional||'')}<br>Odontólogo/a — Código ${esc(g.codigo||'')}</div></div>
+      <div>${esc(g.profesional||'')}<br>Odontólogo/a — Código ${esc(g.codigo||'')}</div></div>`}
     </section></div>`;
   lanzarImpresion();
 }
