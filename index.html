@@ -2952,10 +2952,14 @@ function tokenGoogleGuardado(){
     return (g&&g.token&&g.vence>Date.now())?g:null;
   }catch(e){return null;}
 }
-function inicializarGoogleCalendar(){
+function inicializarGoogleCalendar(intentos){
+  intentos=intentos||0;
   const guardadoInicial=tokenGoogleGuardado();
   if(guardadoInicial)googleConectado=true; // se ve conectado de inmediato, sin esperar a que Google termine de cargar
-  if(!window.google||!window.gapi)return;
+  if(!window.google||!window.gapi){
+    if(intentos<25)setTimeout(()=>inicializarGoogleCalendar(intentos+1),300); // reintenta hasta ~7.5s en vez de rendirse
+    return;
+  }
   try{
     googleTokenClient=google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_CLIENT_ID,scope:GOOGLE_SCOPE,
