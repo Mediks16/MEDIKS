@@ -153,6 +153,13 @@ details.bloque>summary span.res{font-size:12.5px;color:var(--tinta-suave);font-w
 .chks{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:2px 12px}
 .chk{display:flex;align-items:center;gap:7px;font-size:14px;padding:2px 0}
 .chk input{width:15px;height:15px;accent-color:var(--clinico);flex:none}
+.switch-wrap{display:flex;align-items:center;gap:9px;font-size:14px;white-space:nowrap}
+.switch{position:relative;display:inline-block;width:40px;height:23px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch .slider{position:absolute;inset:0;background:#D5D9DE;border-radius:999px;cursor:pointer;transition:.18s}
+.switch .slider::before{content:"";position:absolute;height:17px;width:17px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.18s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.switch input:checked+.slider{background:var(--clinico)}
+.switch input:checked+.slider::before{transform:translateX(17px)}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:12.5px;color:var(--tinta-suave);font-weight:600;padding:0 8px 7px 0;border-bottom:1px solid var(--linea)}
 td{padding:8px 8px 8px 0;border-bottom:1px solid var(--linea);vertical-align:top}
@@ -2919,11 +2926,14 @@ function borrarGastoProfesional(id){
 /* ---------- lista de pacientes (tabla) ---------- */
 let filtroListaPac='';
 let ordenPacientes='nombre';
+let filtroSoloOrto=false;
+function esPacienteOrto(p){return !!(p.orto&&(p.orto.tipo||p.orto.inicio)&&!p.orto.altaRealizada);}
 function verListaPacientes(){
   selId=null;ocultarPanel();renderListaPacientes();
 }
 function renderListaPacientes(){
   pintarLista();
+  const totalOrto=datos.pacientes.filter(esPacienteOrto).length;
   $('#vista').innerHTML=`<div class="cabecera"><div><h2>Pacientes</h2>
       <div class="sub">${datos.pacientes.length} paciente${datos.pacientes.length===1?'':'s'}</div></div>
       <div class="spacer"></div><button class="btn primario" onclick="nuevoPaciente()">+ Nuevo paciente</button></div>
@@ -2934,15 +2944,18 @@ function renderListaPacientes(){
         <option value="fecha" ${ordenPacientes==='fecha'?'selected':''}>Ordenar por fecha de registro</option>
         <option value="saldo" ${ordenPacientes==='saldo'?'selected':''}>Ordenar por saldo pendiente</option>
       </select>
+      <label class="switch-wrap"><span class="switch"><input type="checkbox" id="lp_orto" ${filtroSoloOrto?'checked':''}><span class="slider"></span></span>Solo ortodoncia (${totalOrto})</label>
     </div>
     <div id="lpTabla"></div>`;
   $('#lp_buscar').oninput=(e)=>{filtroListaPac=e.target.value;actualizarTablaPacientes();};
   $('#lp_orden').onchange=(e)=>{ordenPacientes=e.target.value;actualizarTablaPacientes();};
+  $('#lp_orto').onchange=(e)=>{filtroSoloOrto=e.target.checked;actualizarTablaPacientes();};
   actualizarTablaPacientes();
 }
 function actualizarTablaPacientes(){
   const q=filtroListaPac.trim().toLowerCase();
   let ps=datos.pacientes.filter(p=>!q||(p.nombre||'').toLowerCase().includes(q)||(p.cedula||'').includes(q)||(p.telefono||'').includes(q));
+  if(filtroSoloOrto)ps=ps.filter(esPacienteOrto);
   if(ordenPacientes==='nombre')ps=[...ps].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
   else if(ordenPacientes==='fecha')ps=[...ps].sort((a,b)=>(b.apertura||'').localeCompare(a.apertura||''));
   else if(ordenPacientes==='saldo')ps=[...ps].sort((a,b)=>saldo(b)-saldo(a));
@@ -2951,13 +2964,13 @@ function actualizarTablaPacientes(){
       <th>Nombre</th><th>Fecha de registro</th><th>Teléfono</th><th class="der">Por cobrar</th><th class="der">Total pagado</th></tr></thead><tbody>
       ${ps.map(p=>{const d=saldo(p);
         return `<tr class="fila-pac" onclick="abrir('${p.id}')">
-          <td><span class="avatar">${esc(inicial(p.nombre))}</span>${esc(p.nombre||'Sin nombre')}</td>
+          <td><span class="avatar">${esc(inicial(p.nombre))}</span>${esc(p.nombre||'Sin nombre')}${esPacienteOrto(p)?' <span class="mini" style="color:var(--clinico)">🦷 Ortodoncia</span>':''}</td>
           <td class="num">${p.apertura?fechaCorta(p.apertura):'—'}</td>
           <td class="num">${esc(p.telefono||'—')}</td>
           <td class="der" style="color:${d>0.004?'var(--alerta)':'inherit'}">${usd(d)}</td>
           <td class="der">${usd(totalAbon(p))}</td></tr>`;}).join('')}
     </tbody></table>`
-    :`<div class="bloque"><p class="mini">${datos.pacientes.length?'Ningún paciente coincide con la búsqueda.':'Aún no hay pacientes registrados. Usa «+ Nuevo paciente» para agregar el primero.'}</p></div>`;
+    :`<div class="bloque"><p class="mini">${filtroSoloOrto?'Ningún paciente en ortodoncia coincide con la búsqueda.':(datos.pacientes.length?'Ningún paciente coincide con la búsqueda.':'Aún no hay pacientes registrados. Usa «+ Nuevo paciente» para agregar el primero.')}</p></div>`;
 }
 
 /* ---------- tareas y seguimiento ---------- */
