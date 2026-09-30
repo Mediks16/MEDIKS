@@ -3251,7 +3251,7 @@ const CLASE_ESTADO={Agendada:'agendada',Confirmada:'confirmada',Atendida:'atendi
 const COLOR_ESTADO={Agendada:'#0E7C6B',Confirmada:'#0b6759',Atendida:'#5A706A','No asistió':'#B24A35',Cancelada:'#9aa6a3'};
 const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-let agendaFecha=hoy(), agendaVista='dia';
+let agendaFecha=hoy(), agendaVista='semana';
 
 function minutos(hhmm){const [h,m]=(hhmm||'0:0').split(':').map(Number);return h*60+(m||0);}
 function horaLabel(mins){const h=Math.floor(mins/60),m=((mins%60)+60)%60;return `${h}:${String(m).padStart(2,'0')}`;}
