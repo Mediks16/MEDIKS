@@ -361,6 +361,11 @@ body.imprimiendo #impresion{display:block;padding:8px}
 .hoja .firma{margin-top:26px;display:flex;gap:40px;text-align:center;font-size:10px}
 .hoja .firma div{flex:1;border-top:1px solid #000;padding-top:3px}
 .hoja .texto{white-space:pre-wrap;line-height:1.45;font-size:11.5px;text-align:justify}
+.hoja-receta{max-width:1000px}
+.receta-dos{display:flex;gap:0;align-items:stretch}
+.receta-copia{flex:1;min-width:0;font-size:9px;line-height:1.35}
+.receta-copia:first-child{border-right:1px dashed #999;padding-right:12px;margin-right:12px}
+.receta-barra{height:7px;background:linear-gradient(90deg,#0C1B33,#1F5FA8);margin-bottom:4px}
 @media (max-width:760px){
   aside{position:absolute;z-index:5;height:calc(100% - 56px);bottom:0;box-shadow:0 0 40px rgba(0,0,0,.12)}
   aside.oculto{display:none}
@@ -2405,40 +2410,79 @@ function imprimirPlanOrto(p){
     </div>`;
   lanzarImpresion();
 }
+function copiaReceta(r,p,g,numeroMostrar){
+  const meds=(r.medicamentos||[]).filter(m=>m.dci);
+  const filasMed=meds.length?meds.map((m,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #000">
+      <div style="padding:4px 6px;border-right:1px solid #000">${i+1}. ${esc((m.dci||'').toUpperCase())}${m.conc?(' '+esc(m.conc)):''}${m.forma?(' — '+esc(m.forma)):''}
+        ${m.cantidad?`<br><span>x ${esc(m.cantidad)}</span>`:''}</div>
+      <div style="padding:4px 6px">${[m.via&&('Vía '+m.via),m.dosis&&(m.dosis+(m.duracion?' por '+m.duracion:''))].filter(Boolean).map(esc).join('. ')}</div>
+    </div>`).join(''):'<div style="padding:8px 6px;border-top:1px solid #000;color:#777">Sin medicamentos registrados.</div>';
+  const redes=[
+    ['📘',g.facebook||'N/A'],
+    ['📷',g.instagram||'N/A'],
+    ['💬',g.telefono||'N/A'],
+    ['📍',g.direccion||''],
+    ['✉',g.email||'']
+  ].filter(x=>x[1]);
+  return `<div class="receta-copia">
+    <div class="receta-barra"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:8px 4px 6px">
+      <div>
+        <div style="font-weight:700">${esc(g.profesional||'')}</div>
+        ${g.codigo?`<div>Reg. ${esc(g.codigo)}</div>`:''}
+        <div style="text-transform:uppercase">${esc(g.especialidad||'Odontología General')}</div>
+      </div>
+      ${g.logo?`<img src="${g.logo}" style="height:46px;object-fit:contain">`:''}
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid #000;border-bottom:1px solid #000;padding:3px 4px;font-weight:700">
+      <span>Receta N.: ${esc(numeroMostrar)}</span>
+      <span style="font-weight:400">Fecha de Atención: ${g.ciudad?esc(g.ciudad)+', ':''}${fechaCorta(r.fecha)}</span>
+    </div>
+    <div style="padding:5px 4px;font-weight:700">DATOS DEL PACIENTE:</div>
+    <div style="padding:0 4px 6px">
+      <div>Nombres y Apellidos: <b>${esc((p.nombre||'').toUpperCase())}</b></div>
+      <div>Documento de Identidad: ${esc(p.cedula||'')}</div>
+      <div>Edad: <b>${esc(edadTexto(p.nacimiento))}</b> &nbsp; Sexo: <b>${esc(p.sexo||'')}</b></div>
+      <div>Alergias: <b style="color:#B24A35">${esc(r.alergias||'No refiere')}</b></div>
+      <div>Código CIE-10: ${esc(r.cie||'')} ${esc(r.diagnostico||'')}</div>
+    </div>
+    <div style="border:1px solid #000;display:grid;grid-template-columns:2fr 1fr">
+      <div style="border-right:1px solid #000">
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #000">
+          <div style="padding:4px 6px;font-weight:700;border-right:1px solid #000">Datos de medicamento (concentración y forma farmacéutica). Cantidad del medicamento (en números y letras)</div>
+          <div style="padding:4px 6px;font-weight:700">Indicaciones Farmacológicas</div>
+        </div>
+        ${filasMed}
+      </div>
+      <div>
+        <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Indicaciones no Farmacológicas</div>
+        <div style="padding:5px 6px;min-height:46px">${esc(r.indicaciones||'')}</div>
+        <div style="padding:4px 6px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000">Signos de Alarma</div>
+        <div style="min-height:46px"></div>
+      </div>
+    </div>
+    <div style="padding:6px 4px 0;font-weight:700">Datos del Prescriptor:</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:4px 4px 2px">
+      <div>
+        ${g.firma?`<img src="${g.firma}" style="max-width:150px;max-height:60px;object-fit:contain;display:block;margin-bottom:2px">`
+          :'<div style="height:40px;border-bottom:1px solid #000;width:150px;margin-bottom:2px"></div>'}
+        <div style="font-weight:700">${esc(g.profesional||'')}</div>
+        ${g.codigo?`<div>Reg. ${esc(g.codigo)}</div>`:''}
+        <div>${esc(g.especialidad||'Odontología General')}</div>
+      </div>
+      <div style="text-align:right">
+        ${redes.map(x=>`<div>${x[0]} ${esc(x[1])}</div>`).join('')}
+      </div>
+    </div>
+    <p style="margin-top:6px">Esta receta tiene validez para la entrega de medicamento, de 5 días en casos crónicos y 2 días en casos agudos.</p>
+  </div>`;
+}
 function hojaReceta(r,p){
   const g=datos.config;
   const numeroMostrar=r.numero||`${(r.fecha||hoy()).slice(0,4)}-${String(((p.recetas||[]).findIndex(x=>x.id===r.id)+1)||1).padStart(4,'0')}`;
-  const meds=(r.medicamentos||[]).filter(m=>m.dci).map((m,i)=>`
-    <div style="margin-bottom:12px">
-      <b>${i+1}. ${esc((m.dci||'').toUpperCase())}${m.conc?(' '+esc(m.conc)):''}${m.forma?(' — '+esc(m.forma)):''}.</b>
-      ${[m.via&&('Vía '+m.via),m.dosis&&(m.dosis+(m.duracion?' por '+m.duracion:''))].filter(Boolean).map(esc).join('. ')}.
-      ${m.cantidad?`<br><span style="font-size:10px">Cantidad a dispensar: ${esc(m.cantidad)}</span>`:''}
-    </div>`).join('')||'<p>Sin medicamentos registrados.</p>';
-  return `<div class="hoja">
-    <div style="text-align:center;margin-bottom:10px">
-      ${g.logo?`<img src="${g.logo}" style="height:64px;display:block;margin:0 auto 6px">`:''}
-      <div style="font-size:19px;font-weight:700;color:var(--clinico)">${esc(g.establecimiento||'CONSULTORIO ODONTOLÓGICO')}</div>
-      <div style="font-size:11px;color:var(--tinta-suave);margin-top:2px">${esc(g.profesional||'')}${g.profesional&&(g.especialidad||true)?' — ':''}${esc(g.especialidad||'Odontología General')}</div>
-      ${g.codigo?`<div style="font-size:10px">REG. NO. ${esc(g.codigo)}</div>`:''}
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px">
-      <tr><td style="border:1px solid #999;padding:4px 8px;width:20%"><b>FECHA:</b></td><td style="border:1px solid #999;padding:4px 8px" colspan="3">${g.ciudad?esc(g.ciudad)+', ':''}${fechaCorta(r.fecha)}</td></tr>
-      <tr><td style="border:1px solid #999;padding:4px 8px"><b>NOMBRE:</b></td><td style="border:1px solid #999;padding:4px 8px">${esc(p.nombre||'')}</td>
-        <td style="border:1px solid #999;padding:4px 8px;width:16%"><b>CÉDULA:</b></td><td style="border:1px solid #999;padding:4px 8px;width:22%">${esc(p.cedula||'')}</td></tr>
-      <tr><td style="border:1px solid #999;padding:4px 8px"><b>EDAD:</b></td><td style="border:1px solid #999;padding:4px 8px">${esc(edadTexto(p.nacimiento))}</td>
-        <td style="border:1px solid #999;padding:4px 8px"><b>ALERGIA:</b></td><td style="border:1px solid #999;padding:4px 8px">${esc(r.alergias||'No refiere')}</td></tr>
-      <tr><td style="border:1px solid #999;padding:4px 8px"><b>DIAGNÓSTICO:</b></td><td style="border:1px solid #999;padding:4px 8px">${esc(r.diagnostico||'')}</td>
-        <td style="border:1px solid #999;padding:4px 8px"><b>CIE-10:</b></td><td style="border:1px solid #999;padding:4px 8px">${esc(r.cie||'')}</td></tr>
-      <tr><td style="border:1px solid #999;padding:4px 8px"><b>CADUCIDAD:</b></td><td style="border:1px solid #999;padding:4px 8px">${esc(r.vigencia||'')}</td>
-        <td style="border:1px solid #999;padding:4px 8px"><b>RECETA #</b></td><td style="border:1px solid #999;padding:4px 8px">${esc(numeroMostrar)}</td></tr>
-    </table>
-    <section><h4>Rp.</h4>${meds}</section>
-    ${r.indicaciones?`<section><h4>INDICACIONES</h4><div class="texto">${esc(r.indicaciones)}</div></section>`:''}
-    <p style="font-size:9.5px;color:#555;margin-top:16px"><b>Recomendaciones:</b> siga las indicaciones médicas, respetando dosis, horarios y duración del tratamiento. No suspenda ni modifique la medicación sin autorización del profesional. Acuda a control en caso de presentar efectos adversos o si los síntomas persisten o empeoran.</p>
-    <div class="firma" style="margin-top:40px">
-      <div>${esc(p.nombre||'')}<br>Paciente</div>
-      <div>${esc(g.profesional||'')}<br>Cód. MSP ${esc(g.codigo||'')}${g.email?'<br>'+esc(g.email):''}${g.telefono?' — '+esc(g.telefono):''}<br>Firma y sello</div>
-    </div></div>`;
+  const copia=copiaReceta(r,p,g,numeroMostrar);
+  return `<div class="hoja hoja-receta"><div class="receta-dos">${copia}${copia}</div></div>`;
 }
 function imprimirReceta(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
@@ -3609,7 +3653,8 @@ function aplicarTema(){
   const marca=document.getElementById('marcaTexto');
   if(marca)marca.innerHTML=cfg.establecimiento?esc(cfg.establecimiento):'Historia clínica <em>033</em>';
 }
-function comprimirLogo(file){
+function comprimirLogo(file,maxLado){
+  maxLado=maxLado||200;
   return new Promise((resolve,reject)=>{
     const lector=new FileReader();
     lector.onerror=()=>reject(new Error('lectura'));
@@ -3617,7 +3662,6 @@ function comprimirLogo(file){
       const img=new Image();
       img.onerror=()=>reject(new Error('imagen'));
       img.onload=()=>{
-        const maxLado=200;
         let w=img.width,h=img.height;
         if(w>maxLado||h>maxLado){const esc=maxLado/Math.max(w,h);w=Math.round(w*esc);h=Math.round(h*esc);}
         const cv=document.createElement('canvas');cv.width=w;cv.height=h;
@@ -3703,11 +3747,25 @@ function verConfig(){
       <label class="campo"><span>Especialidad (para recetas)</span><input type="text" id="g_esp" value="${esc(g.especialidad||'')}" placeholder="Odontología General"></label>
       <label class="campo"><span>Código MSP / registro</span><input type="text" id="g_cod" value="${esc(g.codigo||'')}"></label>
       <label class="campo"><span>RUC</span><input type="text" id="g_ruc" value="${esc(g.ruc||'')}"></label>
-      <label class="campo"><span>Teléfono</span><input type="text" id="g_tel" value="${esc(g.telefono||'')}"></label>
+      <label class="campo"><span>Teléfono / WhatsApp</span><input type="text" id="g_tel" value="${esc(g.telefono||'')}"></label>
       <label class="campo"><span>Correo</span><input type="email" id="g_email" value="${esc(g.email||'')}"></label>
     </div>
     <label class="campo"><span>Dirección</span><input type="text" id="g_dir" value="${esc(g.direccion||'')}"></label>
     <label class="campo"><span>Ciudad (para recetas)</span><input type="text" id="g_ciudad" value="${esc(g.ciudad||'')}" placeholder="Quito"></label>
+    <div class="grid">
+      <label class="campo"><span>Instagram (para recetas)</span><input type="text" id="g_insta" value="${esc(g.instagram||'')}" placeholder="N/A"></label>
+      <label class="campo"><span>Facebook (para recetas)</span><input type="text" id="g_fb" value="${esc(g.facebook||'')}" placeholder="N/A"></label>
+    </div>
+    <p class="mini" style="margin-top:4px">Firma para la receta impresa</p>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <img class="logo-actual" id="g_firmaPrev" src="${g.firma||''}" style="${g.firma?'':'display:none'};width:110px;height:56px;object-fit:contain">
+      <div>
+        <label class="subir" style="padding:10px 14px;display:inline-block">
+          Subir firma<input type="file" id="g_firmaFile" accept="image/*">
+        </label>
+        ${g.firma?'<button class="btn chico" type="button" id="g_firmaQuitar" style="margin-left:8px">Quitar</button>':''}
+      </div>
+    </div>
     <div class="grid">
       <label class="campo"><span>Agenda — hora de inicio</span><input type="time" id="g_hini" value="${esc(g.horaInicio||'08:00')}"></label>
       <label class="campo"><span>Agenda — hora de fin</span><input type="time" id="g_hfin" value="${esc(g.horaFin||'19:00')}"></label>
@@ -3716,8 +3774,22 @@ function verConfig(){
     </div>`,
   ()=>{Object.assign(datos.config,{establecimiento:$('#g_est').value,profesional:$('#g_prof').value,especialidad:$('#g_esp').value,
       codigo:$('#g_cod').value,ruc:$('#g_ruc').value,telefono:$('#g_tel').value,email:$('#g_email').value,direccion:$('#g_dir').value,ciudad:$('#g_ciudad').value,
+      instagram:$('#g_insta').value,facebook:$('#g_fb').value,
       horaInicio:$('#g_hini').value||'08:00',horaFin:$('#g_hfin').value||'19:00',intervalo:Number($('#g_int').value)||30});
     guardar();avisar('Datos guardados');aplicarTema();if(document.getElementById('agGrid'))renderAgenda();});
+  $('#g_firmaFile').onchange=async(e)=>{
+    const f=e.target.files[0];if(!f)return;
+    try{
+      const dataUrl=await comprimirLogo(f,400);
+      datos.config.firma=dataUrl;guardar();
+      $('#g_firmaPrev').src=dataUrl;$('#g_firmaPrev').style.display='';
+      avisar('Firma guardada');
+    }catch(err){avisar('No se pudo procesar esa imagen');}
+  };
+  const btnQuitarFirma=document.getElementById('g_firmaQuitar');
+  if(btnQuitarFirma)btnQuitarFirma.onclick=()=>{
+    delete datos.config.firma;guardar();$('#modal').close();verConfig();
+  };
 }
 
 /* ---------- impresión ---------- */
