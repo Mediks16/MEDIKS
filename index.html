@@ -2151,23 +2151,20 @@ function tabReceta(p,c){
 }
 function siguienteNumeroReceta(){
   datos.config=datos.config||{};
-  const anioActual=new Date().getFullYear();
-  let seq=datos.config.recetaSeq;
-  if(!seq||seq.anio!==anioActual)seq={anio:anioActual,n:0};
-  seq.n++;
-  datos.config.recetaSeq=seq;
-  return `${anioActual}-${String(seq.n).padStart(4,'0')}`;
+  let n=Number(datos.config.recetaConsecutivo)||0;
+  n++;
+  datos.config.recetaConsecutivo=n;
+  return String(n).padStart(4,'0');
 }
 function inicializarSecuenciaRecetas(){
   datos.config=datos.config||{};
-  if(datos.config.recetaSeq)return;
-  const anioActual=new Date().getFullYear();
+  if(datos.config.recetaConsecutivo)return;
   let maxN=0;
   (datos.pacientes||[]).forEach(p=>(p.recetas||[]).forEach(r=>{
-    const m=/^(\d{4})-(\d+)$/.exec(r.numero||'');
-    if(m&&+m[1]===anioActual)maxN=Math.max(maxN,+m[2]);
+    const m=/(\d+)\s*$/.exec(r.numero||'');
+    if(m)maxN=Math.max(maxN,+m[1]);
   }));
-  datos.config.recetaSeq={anio:anioActual,n:maxN};
+  datos.config.recetaConsecutivo=maxN;
 }
 function nuevaReceta(){
   const p=pac(selId);
@@ -2464,18 +2461,16 @@ function imprimirPlanOrto(p){
     </div>`;
   lanzarImpresion();
 }
-function copiaReceta(r,p,g,numeroMostrar,completa){
-  if(completa===undefined)completa=true;
+function copiaReceta(r,p,g,numeroMostrar,modo){
+  modo=modo||'medicamento';
   const meds=(r.medicamentos||[]).filter(m=>m.dci);
   const detalleMed=m=>[m.via&&('Vía '+m.via),m.dosis&&(m.dosis+(m.duracion?' por '+m.duracion:''))].filter(Boolean).map(esc).join('. ');
-  const filasMed=meds.length?meds.map((m,i)=>completa?`
-    <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #000">
-      <div style="padding:4px 6px;border-right:1px solid #000">${i+1}. ${esc((m.dci||'').toUpperCase())}${m.conc?(' '+esc(m.conc)):''}${m.forma?(' — '+esc(m.forma)):''}
-        ${m.cantidad?`<br><span>x ${esc(m.cantidad)}</span>`:''}</div>
-      <div style="padding:4px 6px">${detalleMed(m)}</div>
-    </div>`:`
+  const filasMed=meds.length?meds.map((m,i)=>`
     <div style="padding:4px 6px;border-top:1px solid #000">${i+1}. ${esc((m.dci||'').toUpperCase())}${m.conc?(' '+esc(m.conc)):''}${m.forma?(' — '+esc(m.forma)):''}
-      ${m.cantidad?`<br><span>x ${esc(m.cantidad)}</span>`:''}${detalleMed(m)?`<br><span>${detalleMed(m)}</span>`:''}</div>`
+      ${m.cantidad?`<br><span>x ${esc(m.cantidad)}</span>`:''}</div>`
+    ).join(''):'<div style="padding:8px 6px;border-top:1px solid #000;color:#777">Sin medicamentos registrados.</div>';
+  const filasIndicFarm=meds.length?meds.map((m,i)=>`
+    <div style="padding:4px 6px;border-top:1px solid #000">${i+1}. ${detalleMed(m)||'—'}</div>`
     ).join(''):'<div style="padding:8px 6px;border-top:1px solid #000;color:#777">Sin medicamentos registrados.</div>';
   const redes=[
     ['📘',g.facebook||'N/A'],
@@ -2506,23 +2501,16 @@ function copiaReceta(r,p,g,numeroMostrar,completa){
       <div>Alergias: <b style="color:#B24A35">${esc(r.alergias||'No refiere')}</b></div>
       <div>Código CIE-10: ${esc(r.cie||'')} ${esc(r.diagnostico||'')}</div>
     </div>
-    ${completa?`<div style="border:1px solid #000;display:grid;grid-template-columns:2fr 1fr">
-      <div style="border-right:1px solid #000">
-        <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #000">
-          <div style="padding:4px 6px;font-weight:700;border-right:1px solid #000">Datos de medicamento (concentración y forma farmacéutica). Cantidad del medicamento (en números y letras)</div>
-          <div style="padding:4px 6px;font-weight:700">Indicaciones Farmacológicas</div>
-        </div>
-        ${filasMed}
-      </div>
-      <div>
-        <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Indicaciones no Farmacológicas</div>
-        <div style="padding:5px 6px;min-height:46px">${esc(r.indicaciones||'')}</div>
-        <div style="padding:4px 6px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000">Signos de Alarma</div>
-        <div style="min-height:46px"></div>
-      </div>
-    </div>`:`<div style="border:1px solid #000">
+    ${modo==='medicamento'?`<div style="border:1px solid #000">
       <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Datos de medicamento (concentración y forma farmacéutica). Cantidad del medicamento (en números y letras)</div>
       ${filasMed}
+    </div>`:`<div style="border:1px solid #000">
+      <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Indicaciones Farmacológicas</div>
+      ${filasIndicFarm}
+      <div style="padding:4px 6px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000">Indicaciones no Farmacológicas</div>
+      <div style="padding:5px 6px;min-height:46px">${esc(r.indicaciones||'')}</div>
+      <div style="padding:4px 6px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000">Signos de Alarma</div>
+      <div style="min-height:46px"></div>
     </div>`}
     <div style="padding:6px 4px 0;font-weight:700">Datos del Prescriptor:</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:4px 4px 2px">
@@ -2542,10 +2530,10 @@ function copiaReceta(r,p,g,numeroMostrar,completa){
 }
 function hojaReceta(r,p){
   const g=datos.config;
-  const numeroMostrar=r.numero||`${(r.fecha||hoy()).slice(0,4)}-${String(((p.recetas||[]).findIndex(x=>x.id===r.id)+1)||1).padStart(4,'0')}`;
-  const copiaCompleta=copiaReceta(r,p,g,numeroMostrar,true);
-  const copiaSimple=copiaReceta(r,p,g,numeroMostrar,false);
-  return `<div class="hoja hoja-receta"><div class="receta-dos">${copiaCompleta}${copiaSimple}</div></div>`;
+  const numeroMostrar=r.numero||String(((p.recetas||[]).findIndex(x=>x.id===r.id)+1)||1).padStart(4,'0');
+  const copiaMed=copiaReceta(r,p,g,numeroMostrar,'medicamento');
+  const copiaIndic=copiaReceta(r,p,g,numeroMostrar,'indicaciones');
+  return `<div class="hoja hoja-receta"><div class="receta-dos">${copiaMed}${copiaIndic}</div></div>`;
 }
 function imprimirReceta(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
