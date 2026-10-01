@@ -2156,8 +2156,16 @@ function siguienteNumeroReceta(){
   datos.config.recetaConsecutivo=n;
   return String(n).padStart(4,'0');
 }
+function migrarNumerosReceta(){
+  (datos.pacientes||[]).forEach(p=>(p.recetas||[]).forEach(r=>{
+    if(r.numero&&/^\d{4}-\d+$/.test(r.numero)){
+      r.numero=r.numero.split('-')[1];
+    }
+  }));
+}
 function inicializarSecuenciaRecetas(){
   datos.config=datos.config||{};
+  migrarNumerosReceta();
   if(datos.config.recetaConsecutivo)return;
   let maxN=0;
   (datos.pacientes||[]).forEach(p=>(p.recetas||[]).forEach(r=>{
@@ -2246,33 +2254,49 @@ const CATALOGO_CIE=[
 ];
 const CATALOGO_MEDICAMENTOS={
   'Antibióticos':[
+    {dci:'Amoxicilina',conc:'250 mg',forma:'Cápsulas',dosis:'1 cápsula cada 8 horas',via:'Oral',duracion:'7 días',vecesPorDia:3,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
     {dci:'Amoxicilina',conc:'500 mg',forma:'Cápsulas',dosis:'1 cápsula cada 8 horas',via:'Oral',duracion:'7 días',vecesPorDia:3,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Amoxicilina',conc:'250 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
     {dci:'Amoxicilina + Ácido clavulánico',conc:'875/125 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Amoxicilina + Ácido clavulánico',conc:'400/57 mg por 5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Clindamicina',conc:'150 mg',forma:'Cápsulas',dosis:'1 cápsula cada 6 horas',via:'Oral',duracion:'7 días',vecesPorDia:4,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
     {dci:'Clindamicina',conc:'300 mg',forma:'Cápsulas',dosis:'1 cápsula cada 8 horas',via:'Oral',duracion:'7 días',vecesPorDia:3,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
     {dci:'Azitromicina',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'3 días',vecesPorDia:1,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Metronidazol',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'7 días',vecesPorDia:3,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Penicilina V potásica',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 6 horas',via:'Oral',duracion:'7 días',vecesPorDia:4,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Cefalexina',conc:'500 mg',forma:'Cápsulas',dosis:'1 cápsula cada 6 horas',via:'Oral',duracion:'7 días',vecesPorDia:4,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Cefadroxilo',conc:'500 mg',forma:'Cápsulas',dosis:'1 cápsula cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Cefadroxilo',conc:'250 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
     {dci:'Eritromicina',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 6 horas',via:'Oral',duracion:'7 días',vecesPorDia:4,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'}
   ],
   'Antiinflamatorios y analgésicos':[
     {dci:'Ibuprofeno',conc:'400 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Ibuprofeno',conc:'600 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ibuprofeno',conc:'100 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'3 a 5 días',cantidadSugerida:'1 (uno) frasco'},
     {dci:'Diclofenaco',conc:'50 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Naproxeno',conc:'550 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:2,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Naproxeno sódico',conc:'275 mg',forma:'Tabletas',dosis:'1 tableta cada 8 a 12 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:2,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Paracetamol',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 6 a 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:4,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Paracetamol',conc:'120 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'3 a 5 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Paracetamol',conc:'100 mg/ml',forma:'Gotas orales (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'3 a 5 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Ácido mefenámico',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Ketorolaco',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Dexametasona',conc:'4 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'2 a 3 días',vecesPorDia:2,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Prednisona',conc:'20 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Meloxicam',conc:'15 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Metamizol sódico',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Ácido tranexámico',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'}
   ],
   'Otros (tópicos y enjuagues)':[
     {dci:'Clorhexidina',conc:'0.12%',forma:'Enjuague bucal',dosis:'Enjuagar 15 ml por 30 segundos, 2 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) frasco de 120 ml'},
+    {dci:'Clorhexidina',conc:'0.2%',forma:'Enjuague bucal',dosis:'Enjuagar 15 ml por 30 segundos, 2 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) frasco de 120 ml'},
     {dci:'Nistatina',conc:'100 000 UI/ml',forma:'Suspensión oral',dosis:'1 ml, 4 veces al día',via:'Oral (tópica)',duracion:'7 a 14 días',cantidadSugerida:'1 (uno) frasco'},
     {dci:'Lidocaína',conc:'2%',forma:'Gel tópico',dosis:'Aplicar en la zona afectada según necesidad',via:'Tópica',duracion:'Según necesidad',cantidadSugerida:'1 (uno) tubo'},
     {dci:'Triamcinolona',conc:'0.1%',forma:'Pasta oral (orabase)',dosis:'Aplicar una capa fina 2 a 3 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) tubo'},
-    {dci:'Benzocaína',conc:'20%',forma:'Gel tópico',dosis:'Aplicar en la zona afectada antes del procedimiento',via:'Tópica',duracion:'Según necesidad',cantidadSugerida:'1 (uno) tubo'}
+    {dci:'Benzocaína',conc:'20%',forma:'Gel tópico',dosis:'Aplicar en la zona afectada antes del procedimiento',via:'Tópica',duracion:'Según necesidad',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Fluoruro de sodio',conc:'0.05%',forma:'Enjuague tópico',dosis:'Enjuagar 10 ml por 1 minuto, 1 vez al día',via:'Tópica (bucal)',duracion:'14 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Fluoruro de sodio',conc:'1.23%',forma:'Gel tópico (aplicación en consultorio)',dosis:'Aplicación profesional según indicación',via:'Tópica',duracion:'Según control',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Povidona yodada',conc:'1%',forma:'Colutorio bucal',dosis:'Enjuagar 10 ml por 30 segundos antes del procedimiento',via:'Tópica (bucal)',duracion:'Según necesidad',cantidadSugerida:'1 (uno) frasco'}
   ]
 };
 const MEDICAMENTOS_FLAT=Object.values(CATALOGO_MEDICAMENTOS).flat();
@@ -2504,13 +2528,17 @@ function copiaReceta(r,p,g,numeroMostrar,modo){
     ${modo==='medicamento'?`<div style="border:1px solid #000">
       <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Datos de medicamento (concentración y forma farmacéutica). Cantidad del medicamento (en números y letras)</div>
       ${filasMed}
-    </div>`:`<div style="border:1px solid #000">
-      <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Indicaciones Farmacológicas</div>
-      ${filasIndicFarm}
-      <div style="padding:4px 6px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000">Indicaciones no Farmacológicas</div>
-      <div style="padding:5px 6px;min-height:46px">${esc(r.indicaciones||'')}</div>
-      <div style="padding:4px 6px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000">Signos de Alarma</div>
-      <div style="min-height:46px"></div>
+    </div>`:`<div style="border:1px solid #000;display:grid;grid-template-columns:1fr 1fr">
+      <div style="border-right:1px solid #000">
+        <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Indicaciones Farmacológicas</div>
+        ${filasIndicFarm}
+      </div>
+      <div>
+        <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Indicaciones no Farmacológicas</div>
+        <div style="padding:5px 6px;min-height:46px">${esc(r.indicaciones||'')}</div>
+        <div style="padding:4px 6px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000">Signos de Alarma</div>
+        <div style="min-height:46px"></div>
+      </div>
     </div>`}
     <div style="padding:6px 4px 0;font-weight:700">Datos del Prescriptor:</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:4px 4px 2px">
