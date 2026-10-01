@@ -411,6 +411,7 @@ body.imprimiendo #impresion{display:block;padding:8px}
         <button id="btnProfesionales">Profesionales</button>
         <button id="btnGastos">Gastos</button>
         <button id="btnInventario">Inventario</button>
+        <button id="btnRecetas">Recetas emitidas</button>
         <hr>
         <button id="btnPersonalizar">Personalizar</button>
         <button id="btnConfig">Consultorio</button>
@@ -510,6 +511,7 @@ async function cargar(){try{const r=await almacen.get(CLAVE);if(r&&r.value)datos
   datos.pacientes=datos.pacientes||[];datos.config=datos.config||{};datos.citas=datos.citas||[];
   datos.tareas=datos.tareas||[];datos.inventario=datos.inventario||[];datos.profesionales=datos.profesionales||[];
   datos.gastosProfesionales=datos.gastosProfesionales||[];
+  inicializarSecuenciaRecetas();
   // migración: el sellante pasó de marcarse por cara a marcarse como condición general del diente
   const migrarSellante=o=>{if(!o)return;Object.keys(o).forEach(n=>{const d=o[n];
     if(d&&d.caras){['V','M','O','D','L'].forEach(k=>{const v=d.caras[k];
@@ -2147,10 +2149,30 @@ function tabReceta(p,c){
     }).join(''):'<p class="mini">Este paciente aún no tiene recetas.</p>'}</div>
     <p class="mini">Según el reglamento del MSP, el nombre genérico (DCI) del medicamento va siempre primero y es obligatorio; el nombre comercial es opcional.</p>`;
 }
+function siguienteNumeroReceta(){
+  datos.config=datos.config||{};
+  const anioActual=new Date().getFullYear();
+  let seq=datos.config.recetaSeq;
+  if(!seq||seq.anio!==anioActual)seq={anio:anioActual,n:0};
+  seq.n++;
+  datos.config.recetaSeq=seq;
+  return `${anioActual}-${String(seq.n).padStart(4,'0')}`;
+}
+function inicializarSecuenciaRecetas(){
+  datos.config=datos.config||{};
+  if(datos.config.recetaSeq)return;
+  const anioActual=new Date().getFullYear();
+  let maxN=0;
+  (datos.pacientes||[]).forEach(p=>(p.recetas||[]).forEach(r=>{
+    const m=/^(\d{4})-(\d+)$/.exec(r.numero||'');
+    if(m&&+m[1]===anioActual)maxN=Math.max(maxN,+m[2]);
+  }));
+  datos.config.recetaSeq={anio:anioActual,n:maxN};
+}
 function nuevaReceta(){
   const p=pac(selId);
   p.recetas=p.recetas||[];
-  const numero=`${new Date().getFullYear()}-${String(p.recetas.length+1).padStart(4,'0')}`;
+  const numero=siguienteNumeroReceta();
   const r={id:uid(),fecha:hoy(),numero,diagnostico:'',cie:'',alergias:p.alergias||'',
     medicamentos:[{}],indicaciones:'',vigencia:'30 días',proximoControl:''};
   p.recetas.push(r);guardar();
@@ -2160,6 +2182,38 @@ function editarRecetaId(id){recetaEditando=id;pintarVista();}
 function cerrarEditorReceta(){recetaEditando=null;pintarVista();}
 function borrarRecetaLista(id){if(!confirm('¿Eliminar esta receta?'))return;
   const p=pac(selId);p.recetas=p.recetas.filter(x=>x.id!==id);guardar();pintarVista();}
+function todasLasRecetas(){
+  const filas=[];
+  (datos.pacientes||[]).forEach(p=>(p.recetas||[]).forEach(r=>{
+    filas.push({pacienteId:p.id,pacienteNombre:p.nombre||'Sin nombre',recetaId:r.id,numero:r.numero||'',
+      fecha:r.fecha||'',diagnostico:r.diagnostico||'',meds:(r.medicamentos||[]).map(m=>m.dci).filter(Boolean).join(', ')});
+  }));
+  return filas.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')||(b.numero||'').localeCompare(a.numero||''));
+}
+function abrirReceta(pacienteId,recetaId){
+  selId=pacienteId;pestana='receta';recetaEditando=recetaId;vistaOdontoInicial=false;ocultarPanel();pintar();
+}
+function verRecetas(){
+  selId=null;ocultarPanel();renderRecetas();
+}
+function renderRecetas(){
+  pintarLista();
+  const filas=todasLasRecetas();
+  $('#vista').innerHTML=`<div class="cabecera"><div><h2>Recetas emitidas</h2>
+      <div class="sub">Todas las recetas generadas en el consultorio, de todos los pacientes</div></div></div>
+    <div class="bloque" style="margin-top:16px">
+      ${filas.length?`<table><thead><tr><th>N.º</th><th>Fecha</th><th>Paciente</th><th>Diagnóstico</th><th>Medicamentos</th><th></th></tr></thead><tbody>
+        ${filas.map(f=>`<tr>
+          <td>${esc(f.numero)}</td>
+          <td>${fechaCorta(f.fecha)}</td>
+          <td><button class="btn chico" onclick="abrirReceta('${f.pacienteId}','${f.recetaId}')">${esc(f.pacienteNombre)}</button></td>
+          <td>${esc(f.diagnostico||'—')}</td>
+          <td class="mini">${f.meds?esc(f.meds):'Sin medicamentos'}</td>
+          <td class="der"><button class="btn chico" onclick="abrirReceta('${f.pacienteId}','${f.recetaId}')">Ver / imprimir</button></td>
+        </tr>`).join('')}
+        </tbody></table>`:'<p class="mini">Todavía no se ha generado ninguna receta.</p>'}
+    </div>`;
+}
 const CATALOGO_CIE=[
   {c:'K02.0',n:'Caries limitada al esmalte'},
   {c:'K02.1',n:'Caries de la dentina'},
@@ -2410,14 +2464,19 @@ function imprimirPlanOrto(p){
     </div>`;
   lanzarImpresion();
 }
-function copiaReceta(r,p,g,numeroMostrar){
+function copiaReceta(r,p,g,numeroMostrar,completa){
+  if(completa===undefined)completa=true;
   const meds=(r.medicamentos||[]).filter(m=>m.dci);
-  const filasMed=meds.length?meds.map((m,i)=>`
+  const detalleMed=m=>[m.via&&('Vía '+m.via),m.dosis&&(m.dosis+(m.duracion?' por '+m.duracion:''))].filter(Boolean).map(esc).join('. ');
+  const filasMed=meds.length?meds.map((m,i)=>completa?`
     <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #000">
       <div style="padding:4px 6px;border-right:1px solid #000">${i+1}. ${esc((m.dci||'').toUpperCase())}${m.conc?(' '+esc(m.conc)):''}${m.forma?(' — '+esc(m.forma)):''}
         ${m.cantidad?`<br><span>x ${esc(m.cantidad)}</span>`:''}</div>
-      <div style="padding:4px 6px">${[m.via&&('Vía '+m.via),m.dosis&&(m.dosis+(m.duracion?' por '+m.duracion:''))].filter(Boolean).map(esc).join('. ')}</div>
-    </div>`).join(''):'<div style="padding:8px 6px;border-top:1px solid #000;color:#777">Sin medicamentos registrados.</div>';
+      <div style="padding:4px 6px">${detalleMed(m)}</div>
+    </div>`:`
+    <div style="padding:4px 6px;border-top:1px solid #000">${i+1}. ${esc((m.dci||'').toUpperCase())}${m.conc?(' '+esc(m.conc)):''}${m.forma?(' — '+esc(m.forma)):''}
+      ${m.cantidad?`<br><span>x ${esc(m.cantidad)}</span>`:''}${detalleMed(m)?`<br><span>${detalleMed(m)}</span>`:''}</div>`
+    ).join(''):'<div style="padding:8px 6px;border-top:1px solid #000;color:#777">Sin medicamentos registrados.</div>';
   const redes=[
     ['📘',g.facebook||'N/A'],
     ['📷',g.instagram||'N/A'],
@@ -2447,7 +2506,7 @@ function copiaReceta(r,p,g,numeroMostrar){
       <div>Alergias: <b style="color:#B24A35">${esc(r.alergias||'No refiere')}</b></div>
       <div>Código CIE-10: ${esc(r.cie||'')} ${esc(r.diagnostico||'')}</div>
     </div>
-    <div style="border:1px solid #000;display:grid;grid-template-columns:2fr 1fr">
+    ${completa?`<div style="border:1px solid #000;display:grid;grid-template-columns:2fr 1fr">
       <div style="border-right:1px solid #000">
         <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #000">
           <div style="padding:4px 6px;font-weight:700;border-right:1px solid #000">Datos de medicamento (concentración y forma farmacéutica). Cantidad del medicamento (en números y letras)</div>
@@ -2461,7 +2520,10 @@ function copiaReceta(r,p,g,numeroMostrar){
         <div style="padding:4px 6px;font-weight:700;border-top:1px solid #000;border-bottom:1px solid #000">Signos de Alarma</div>
         <div style="min-height:46px"></div>
       </div>
-    </div>
+    </div>`:`<div style="border:1px solid #000">
+      <div style="padding:4px 6px;font-weight:700;border-bottom:1px solid #000">Datos de medicamento (concentración y forma farmacéutica). Cantidad del medicamento (en números y letras)</div>
+      ${filasMed}
+    </div>`}
     <div style="padding:6px 4px 0;font-weight:700">Datos del Prescriptor:</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:4px 4px 2px">
       <div>
@@ -2481,8 +2543,9 @@ function copiaReceta(r,p,g,numeroMostrar){
 function hojaReceta(r,p){
   const g=datos.config;
   const numeroMostrar=r.numero||`${(r.fecha||hoy()).slice(0,4)}-${String(((p.recetas||[]).findIndex(x=>x.id===r.id)+1)||1).padStart(4,'0')}`;
-  const copia=copiaReceta(r,p,g,numeroMostrar);
-  return `<div class="hoja hoja-receta"><div class="receta-dos">${copia}${copia}</div></div>`;
+  const copiaCompleta=copiaReceta(r,p,g,numeroMostrar,true);
+  const copiaSimple=copiaReceta(r,p,g,numeroMostrar,false);
+  return `<div class="hoja hoja-receta"><div class="receta-dos">${copiaCompleta}${copiaSimple}</div></div>`;
 }
 function imprimirReceta(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
@@ -3922,6 +3985,7 @@ function abrirModal(titulo,html,onGuardar){
 /* ---------- arranque ---------- */
 $('#btnAgenda').onclick=()=>verAgenda();
 $('#btnTareas').onclick=()=>verTareas();
+$('#btnRecetas').onclick=()=>verRecetas();
 $('#btnGestion').onclick=(ev)=>{ev.stopPropagation();$('#gestionLista').classList.toggle('abierto');};
 $('#gestionLista').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>$('#gestionLista').classList.remove('abierto')));
 document.addEventListener('click',()=>$('#gestionLista').classList.remove('abierto'));
