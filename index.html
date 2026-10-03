@@ -78,12 +78,26 @@ aside{width:310px;flex:none;background:var(--papel);border-right:1px solid var(-
 .kpi-morado{background:linear-gradient(135deg,#EEE6FB,#F8F5FD)}.kpi-morado b{color:#7A4FB5}.kpi-morado::before{content:"🆕"}
 .kpi-teal{background:linear-gradient(135deg,#E2F0ED,#F3F9F8)}.kpi-teal b{color:#0E7C6B}.kpi-teal::before{content:"📋"}
 .kpi-rosa{background:linear-gradient(135deg,#FBE4EF,#FDF3F8)}.kpi-rosa b{color:#B5457E}.kpi-rosa::before{content:"💰"}
+.kpi-indigo{background:linear-gradient(135deg,#E6E9FB,#F6F7FD)}.kpi-indigo b{color:#45539E}.kpi-indigo::before{content:"👥"}
+/* portada de inicio */
+.hero-inicio{position:relative;overflow:hidden;border-radius:var(--r-lg);color:#fff;padding:42px 36px;
+  background:radial-gradient(circle at 92% -25%,rgba(62,123,224,.38),transparent 55%),linear-gradient(135deg,#0C1B33,#132A52);
+  box-shadow:var(--sombra-navy)}
+.hero-inicio h1{font-family:Newsreader,serif;font-weight:500;font-size:29px;line-height:1.24;margin-bottom:10px;max-width:26ch}
+.hero-inicio p{color:#B9C8E0;max-width:48ch;margin:0 0 18px;font-size:15px}
+.hero-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.hero-tags span{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.07);
+  color:#D9E3F5;padding:5px 13px;border-radius:999px;font-size:12.5px;font-weight:500}
+.hero-acciones{display:flex;gap:10px;flex-wrap:wrap}
+.btn.btn-fantasma{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff}
+.btn.btn-fantasma:hover{background:rgba(255,255,255,.12);border-color:#fff;color:#fff}
+@media (max-width:560px){.hero-inicio{padding:30px 22px}.hero-inicio h1{font-size:25px;max-width:100%}}
 .panel-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:760px){.panel-2col{grid-template-columns:1fr}}
 .rango-fechas{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .rango-fechas input[type=date]{width:auto}
 main{flex:1;overflow:auto;min-width:0;padding:20px 32px 70px}
-.centro{max-width:1400px;margin:0 auto}
+.centro{max-width:1560px;margin:0 auto}
 input[type=text],input[type=date],input[type=number],input[type=tel],input[type=email],select,textarea{
   width:100%;padding:7px 9px;background:var(--papel);border:1px solid var(--linea);border-radius:8px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--clinico);box-shadow:0 0 0 3px var(--clinico-claro)}
@@ -184,19 +198,23 @@ td{padding:8px 8px 8px 0;border-bottom:1px solid var(--linea);vertical-align:top
 td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums}
 .mini{font-size:13px;color:var(--tinta-suave)}
 /* odontograma */
-.odonto{display:flex;flex-direction:column;gap:10px;align-items:center;overflow-x:auto;padding:4px 0}
-.arcada{display:flex;gap:14px}
-.cuadrante{display:flex;gap:3px}
-.diente{width:38px;text-align:center;font-size:9.5px;color:var(--tinta-suave);font-variant-numeric:tabular-nums}
-.diente .sim{display:block;height:30px;line-height:30px;font-size:17px;font-weight:700;cursor:pointer;
-  border:1px solid var(--linea);border-radius:6px;background:var(--papel)}
-.diente .sim:hover{border-color:var(--clinico)}
-.diente .numd{display:block;margin-top:3px;font-weight:600}
-.diente .mr{display:block;height:10px;font-size:8px;letter-spacing:.1px;color:var(--alerta)}
+.odonto{display:flex;flex-direction:column;gap:26px;align-items:center;overflow-x:auto;padding:10px 4px 6px;width:100%}
+.arcada{display:flex;gap:22px;position:relative;padding:0 2px 6px;flex-wrap:wrap;justify-content:center;max-width:100%}
+.arcada::after{content:"";position:absolute;left:50%;top:-4px;bottom:2px;width:1px;background:var(--linea)}
+.cuadrante{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.diente{width:46px;text-align:center;font-size:10px;color:var(--tinta-suave);font-variant-numeric:tabular-nums;
+  background:var(--papel);border:1px solid var(--linea);border-radius:10px;padding:6px 2px 7px;
+  box-shadow:var(--sombra-sm);transition:transform .12s,box-shadow .12s,border-color .12s}
+.diente:hover{transform:translateY(-2px);box-shadow:var(--sombra-md);border-color:var(--clinico)}
+.diente .sim{display:flex;align-items:center;justify-content:center;height:36px;width:36px;margin:0 auto;
+  font-size:18px;font-weight:700;cursor:pointer;border-radius:9px;background:var(--porcelana);color:var(--tinta-suave)}
+.diente .sim:hover{outline:2px solid var(--clinico);outline-offset:1px}
+.diente .numd{display:block;margin-top:4px;font-weight:700;color:var(--tinta)}
+.diente .mr{display:block;height:11px;font-size:8px;letter-spacing:.1px;color:var(--alerta)}
 .carasmini{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
-  width:30px;height:30px;margin:0 auto;border:1.5px solid var(--tinta);border-radius:6px;overflow:hidden;background:var(--porcelana)}
+  width:36px;height:36px;margin:0 auto;border:1.5px solid var(--tinta);border-radius:9px;overflow:hidden;background:var(--porcelana)}
 .carasmini i{display:flex;align-items:center;justify-content:center;background:#fff;cursor:pointer;
-  border:1px solid #B9C4C1;font-size:7.5px;font-weight:700;font-style:normal;line-height:1;color:#fff}
+  border:1px solid #B9C4C1;font-size:8.5px;font-weight:700;font-style:normal;line-height:1;color:#fff}
 .carasmini i:hover{outline:1.5px solid var(--clinico);outline-offset:-1.5px;position:relative;z-index:1}
 .cara-v{grid-column:2;grid-row:1}
 .cara-m{grid-column:1;grid-row:2}
@@ -216,6 +234,62 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .leyenda{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:3px 14px;margin-top:14px;font-size:13px}
 .leyenda span b{font-size:15px;display:inline-block;width:18px}
 .leyenda-titulo{grid-column:1/-1;font-size:13px;font-weight:600;color:var(--tinta);margin-bottom:2px}
+/* odontograma — vista general anatómica */
+.odonto-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;background:var(--porcelana);padding:4px;border-radius:11px;width:fit-content}
+.odonto-tabs button{border:1px solid transparent;background:transparent;border-radius:8px;padding:7px 14px;
+  font-size:13px;font-weight:500;cursor:pointer;color:var(--tinta-suave);display:inline-flex;align-items:center}
+.odonto-tabs button[aria-pressed="true"]{background:var(--tinta);color:#fff;box-shadow:var(--sombra-sm)}
+.odonto2{display:flex;gap:18px;align-items:flex-start}
+.odonto2-arcos{flex:1;min-width:0}
+.arco-titulo{text-align:center;font-size:11px;letter-spacing:.12em;color:var(--tinta-suave);font-weight:700;margin-bottom:12px}
+.pieza-card{width:64px;text-align:center;font-size:11px;color:var(--tinta-suave);cursor:pointer;
+  border-radius:12px;padding:7px 2px 9px;border:1.5px solid transparent;transition:border-color .12s,transform .12s,background .12s,box-shadow .12s}
+.pieza-card:hover{transform:translateY(-2px);background:var(--porcelana);box-shadow:var(--sombra-sm)}
+.pieza-card.sel{border-color:var(--acento);background:var(--clinico-claro);box-shadow:var(--sombra-sm)}
+.pieza-card svg{display:block;margin:4px auto}
+.pieza-card .numd{display:block;font-weight:700;color:var(--tinta);font-size:12px}
+.occ-grid{width:44px;height:44px;position:relative;margin:2px auto 0;border-radius:8px;overflow:hidden;
+  border:1.5px solid var(--linea);background:#fff;cursor:pointer;display:grid;
+  grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+.occ-grid i{display:block;border:.5px solid var(--linea);transition:background .12s}
+.occ-grid i:hover{filter:brightness(.93)}
+.occ-grid i.og-esquina{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+.occ-grid.ausente{opacity:.6}
+.occ-grid .og-x{position:absolute;inset:0;pointer-events:none}
+.occ-grid .og-x s{position:absolute;top:50%;left:50%;width:150%;height:2px;background:#8C97A3;text-decoration:none}
+.occ-grid .og-x s:first-child{transform:translate(-50%,-50%) rotate(45deg)}
+.occ-grid .og-x s:last-child{transform:translate(-50%,-50%) rotate(-45deg)}
+.estado-dot{display:block;width:10px;height:10px;border-radius:50%;margin:4px auto 0;border:1.6px solid var(--linea);background:#fff}
+.panel-pieza{width:280px;flex:none;border:1px solid var(--linea);border-radius:var(--r-lg);background:var(--papel);
+  padding:16px;box-shadow:var(--sombra-sm);position:sticky;top:12px;max-height:85vh;overflow-y:auto}
+.panel-pieza h4{font-size:24px;font-family:Newsreader,serif;margin:0 0 1px}
+.pieza-avatar{width:44px;height:44px;border-radius:50%;background:var(--porcelana);border:1px solid var(--linea);
+  flex:none;display:flex;align-items:center;justify-content:center;overflow:visible;position:relative}
+.pieza-avatar svg{width:24px;height:auto}
+.pieza-badge{position:absolute;width:12px;height:12px;border-radius:50%;border:2px solid var(--papel);
+  top:-2px;right:-2px;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.estado-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0 14px}
+.estado-grid button{display:flex;align-items:center;gap:7px;border:1px solid var(--linea);border-radius:10px;
+  padding:7px 8px;background:var(--papel);font-size:11.5px;cursor:pointer;text-align:left;line-height:1.2}
+.estado-grid button[aria-pressed="true"]{border-color:var(--clinico);background:var(--clinico-claro);font-weight:600}
+.estado-grid button i{width:11px;height:11px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.15)}
+.cara-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0}
+.cara-grid button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--linea);border-radius:10px;padding:7px 2px;cursor:pointer;background:var(--papel)}
+.cara-grid button b{font-size:13px;font-weight:700}
+.cara-grid button small{font-size:8.5px;color:var(--tinta-suave);font-weight:500}
+.cara-grid button[aria-pressed="true"]{border-color:var(--acento)}
+.cara-grid button[style*="background"] small{color:rgba(255,255,255,.85)}
+.acciones-rapidas{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px;padding-top:16px;border-top:1px solid var(--linea)}
+.accion-rapida{display:flex;flex-direction:column;align-items:center;gap:5px;border:1px solid var(--linea);background:var(--papel);
+  border-radius:10px;padding:9px 11px;font-size:10.5px;color:var(--tinta-suave);cursor:pointer;min-width:66px}
+.accion-rapida:hover:not(:disabled){background:var(--porcelana)}
+.accion-rapida:disabled{opacity:.4;cursor:not-allowed}
+.accion-rapida span{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+.hist-pieza-item{border-top:1px solid var(--linea);padding:8px 0;font-size:12.5px;display:flex;align-items:flex-start;gap:8px}
+.hist-pieza-item i{width:7px;height:7px;border-radius:50%;background:var(--acento);flex:none;margin-top:5px}
+.hist-pieza-item b{display:block;color:var(--tinta)}
+.hist-pieza-item .chev{margin-left:auto;color:var(--tinta-suave)}
+@media (max-width:900px){.odonto2{flex-direction:column}.panel-pieza{width:100%;position:static;max-height:none}}
 /* agenda */
 .ag-topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .ag-topbar input[type=date]{width:auto}
@@ -663,35 +737,62 @@ const TRAT_A_ODONTO={
   'Sellante':{tipo:'general',estado:'sellante_real'},
   'Colocación de implante':{tipo:'general',estado:'corona_real'},'Corona sobre implante':{tipo:'general',estado:'corona_real'}
 };
+/* 'cara' = tratamiento que se aplica sobre una o más superficies de la pieza (ej. resina, sellante).
+   'general' = tratamiento que afecta a la pieza completa (ej. corona, exodoncia, endodoncia).
+   null = no está en el catálogo mapeado (tratamiento libre); se deja la cara como opcional. */
+function tipoTratamiento(nombre){
+  return nombre&&TRAT_A_ODONTO[nombre]?TRAT_A_ODONTO[nombre].tipo:null;
+}
 const SIMB_CARA={
-  caries:{s:'',c:'#B24A35',n:'Caries'},
-  obturado:{s:'',c:'#1F5FA8',n:'Obturado'},
-  provisional:{s:'P',c:'#B98A2E',n:'Obturación provisional'}
+  caries:{s:'',c:'#E0564A',n:'Caries'},
+  obturado:{s:'',c:'#3E7BE0',n:'Obturado'},
+  provisional:{s:'P',c:'#C9962B',n:'Obturación provisional'}
 };
 const CARAS=[['V','Vestibular/Bucal'],['M','Mesial'],['O','Oclusal / Incisal'],['D','Distal'],['L','Lingual/Palatino']];
 const SIMB_GENERAL={
-  extraccion:{s:'✕',c:'#B24A35',n:'Extracción indicada'},
-  perdida_caries:{s:'✕',c:'#1F5FA8',n:'Pérdida por caries'},
-  perdida_otra:{s:'⊗',c:'#1F5FA8',n:'Pérdida (otra causa)'},
-  endo_nec:{s:'▲',c:'#B24A35',n:'Endodoncia necesaria'},
-  endo_real:{s:'▲',c:'#1F5FA8',n:'Endodoncia realizada'},
-  corona_ind:{s:'⌂',c:'#B24A35',n:'Corona indicada'},
-  corona_real:{s:'⌂',c:'#1F5FA8',n:'Corona realizada'},
-  puente_ind:{s:'≡',c:'#B24A35',n:'Prótesis fija indicada'},
-  puente_real:{s:'≡',c:'#1F5FA8',n:'Prótesis fija realizada'},
-  removible_ind:{s:'( )',c:'#B24A35',n:'Prótesis removible indicada'},
-  removible_real:{s:'( )',c:'#1F5FA8',n:'Prótesis removible realizada'},
-  total_ind:{s:'PT',c:'#B24A35',n:'Prótesis total indicada'},
-  total_real:{s:'PT',c:'#1F5FA8',n:'Prótesis total realizada'},
-  implante_ind:{s:'IM',c:'#B24A35',n:'Implante indicado'},
-  implante_real:{s:'IM',c:'#1F5FA8',n:'Implante realizado'},
-  fractura:{s:'Fx',c:'#B24A35',n:'Fractura'},
-  retenido:{s:'RT',c:'#B24A35',n:'Diente retenido'},
-  lesion:{s:'◉',c:'#B24A35',n:'Lesión'},
-  sellante_nec:{s:'✳',c:'#B24A35',n:'Sellante necesario'},
-  sellante_real:{s:'✳',c:'#1F5FA8',n:'Sellante realizado'},
+  extraccion:{s:'✕',c:'#E0564A',n:'Extracción indicada'},
+  perdida_caries:{s:'✕',c:'#3E7BE0',n:'Pérdida por caries'},
+  perdida_otra:{s:'⊗',c:'#3E7BE0',n:'Pérdida (otra causa)'},
+  endo_nec:{s:'▲',c:'#E0564A',n:'Endodoncia necesaria'},
+  endo_real:{s:'▲',c:'#3E7BE0',n:'Endodoncia realizada'},
+  corona_ind:{s:'⌂',c:'#E0564A',n:'Corona indicada'},
+  corona_real:{s:'⌂',c:'#3E7BE0',n:'Corona realizada'},
+  puente_ind:{s:'≡',c:'#E0564A',n:'Prótesis fija indicada'},
+  puente_real:{s:'≡',c:'#3E7BE0',n:'Prótesis fija realizada'},
+  removible_ind:{s:'( )',c:'#E0564A',n:'Prótesis removible indicada'},
+  removible_real:{s:'( )',c:'#3E7BE0',n:'Prótesis removible realizada'},
+  total_ind:{s:'PT',c:'#E0564A',n:'Prótesis total indicada'},
+  total_real:{s:'PT',c:'#3E7BE0',n:'Prótesis total realizada'},
+  implante_ind:{s:'IM',c:'#E0564A',n:'Implante indicado'},
+  implante_real:{s:'IM',c:'#3E7BE0',n:'Implante realizado'},
+  fractura:{s:'Fx',c:'#E0564A',n:'Fractura'},
+  retenido:{s:'RT',c:'#E0564A',n:'Diente retenido'},
+  lesion:{s:'◉',c:'#E0564A',n:'Lesión'},
+  sellante_nec:{s:'✳',c:'#E0564A',n:'Sellante necesario'},
+  sellante_real:{s:'✳',c:'#3E7BE0',n:'Sellante realizado'},
   otro:{s:'?',c:'#5A706A',n:'Otro (ver nota de la pieza)'}
 };
+const ESTADO_GRUPOS=[
+  {clave:'ausente',nombre:'Ausente',color:'#8C97A3',ind:'extraccion',real:'perdida_caries'},
+  {clave:'endodoncia',nombre:'Endodoncia',color:'#D9B23C',ind:'endo_nec',real:'endo_real'},
+  {clave:'corona',nombre:'Corona',color:'#8B6FC7',ind:'corona_ind',real:'corona_real'},
+  {clave:'puente',nombre:'Prótesis fija',color:'#B79AE0',ind:'puente_ind',real:'puente_real'},
+  {clave:'removible',nombre:'Prótesis removible',color:'#B79AE0',ind:'removible_ind',real:'removible_real'},
+  {clave:'total',nombre:'Prótesis total',color:'#B79AE0',ind:'total_ind',real:'total_real'},
+  {clave:'implante',nombre:'Implante',color:'#3FAE6B',ind:'implante_ind',real:'implante_real'},
+  {clave:'sellante',nombre:'Sellante',color:'#49B6C9',ind:'sellante_nec',real:'sellante_real'},
+  {clave:'fractura',nombre:'Fractura',color:'#E0564A',ind:'fractura',real:'fractura'},
+  {clave:'lesion',nombre:'Lesión',color:'#E0564A',ind:'lesion',real:'lesion'},
+  {clave:'otro',nombre:'Otro / Preexistencia',color:'#5A706A',ind:'otro',real:'otro'}
+];
+function grupoDeEstado(codigo){
+  if(!codigo)return null;
+  return ESTADO_GRUPOS.find(g=>g.ind===codigo||g.real===codigo)||null;
+}
+function esPendienteSegunCodigo(codigo){
+  const g=grupoDeEstado(codigo);
+  return g?codigo===g.ind:false;
+}
 const FDI={adulto:[[18,17,16,15,14,13,12,11],[21,22,23,24,25,26,27,28],[48,47,46,45,44,43,42,41],[31,32,33,34,35,36,37,38]],
   leche:[[55,54,53,52,51],[61,62,63,64,65],[85,84,83,82,81],[71,72,73,74,75]]};
 const IHOS=[['16','17','55'],['11','21','51'],['26','27','65'],['36','37','75'],['31','41','71'],['46','47','85']];
@@ -746,13 +847,30 @@ function pintar(){pintarLista();pintarVista();}
 /* ================= vista ================= */
 function pintarVista(){
   const v=$('#vista'),p=pac(selId);
-  if(!p){v.innerHTML=`<div class="bloque" style="text-align:center;padding:46px 22px">
-    <h2 style="font-family:Newsreader,serif;font-size:25px;font-weight:500;margin-bottom:6px">Historia clínica única de odontología</h2>
-    <p style="color:var(--tinta-suave);max-width:50ch;margin:0 auto 16px">Formulario 033 del MSP, consentimientos informados y control de cobros, por paciente.</p>
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-      <button class="btn primario" onclick="nuevoPaciente()">Registrar paciente</button>
-      <button class="btn" onclick="verListaPacientes()">Ver pacientes</button>
-    </div></div>`;return;}
+  if(!p){
+    const totalPac=datos.pacientes.length;
+    const citasHoyN=(datos.citas||[]).filter(c=>c.fecha===hoy()).length;
+    const porCobrar=datos.pacientes.reduce((s,pt)=>s+Math.max(0,saldo(pt)),0);
+    v.innerHTML=`<div class="hero-inicio">
+      <h1>${esc((datos.config&&datos.config.establecimiento)||'Historia clínica única de odontología')}</h1>
+      <p>Lleva el formulario 033 del MSP, los consentimientos informados y el control de cobros de cada paciente, todo en un solo lugar.</p>
+      <div class="hero-tags">
+        <span>Formulario 033 del MSP</span>
+        <span>Consentimientos informados</span>
+        <span>Control de cobros</span>
+      </div>
+      <div class="hero-acciones">
+        <button class="btn primario" onclick="nuevoPaciente()">Registrar paciente</button>
+        <button class="btn btn-fantasma" onclick="verListaPacientes()">Ver pacientes</button>
+      </div>
+    </div>
+    <div class="kpi-grid" style="margin-top:18px">
+      <div class="kpi-card kpi-indigo"><span>Pacientes totales</span><b class="num">${totalPac}</b></div>
+      <div class="kpi-card kpi-verde"><span>Citas de hoy</span><b class="num">${citasHoyN}</b></div>
+      <div class="kpi-card kpi-rosa"><span>Por cobrar</span><b class="num">${usd(porCobrar)}</b></div>
+    </div>`;
+    return;
+  }
   const e=edad(p.nacimiento);
   const inicial=(p.nombre||'?').trim().charAt(0).toUpperCase();
   v.innerHTML=`<button class="btn chico" style="margin-bottom:12px" onclick="verListaPacientes()">← Volver a pacientes</button>
@@ -780,8 +898,16 @@ function pintarVista(){
 }
 function ligar(cont,obj,extra){
   cont.querySelectorAll('[data-k]').forEach(el=>{
-    const ev=el.type==='checkbox'?'change':'change';
-    el.addEventListener(ev,()=>{obj[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;guardar();if(extra)extra(el);});
+    const guardarValor=()=>{obj[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;guardar();};
+    el.addEventListener('change',guardarValor);
+    // En <input type="date">, el navegador dispara "change" en cada tecla una vez el año tiene
+    // 4 dígitos (no solo al salir del campo). Si extra() repinta la pestaña completa (pintarVista),
+    // el campo se reconstruye a mitad de la escritura y se pierde el foco/cursor — por eso no se
+    // podía terminar de escribir el año. Para fechas, el repintado pesado se difiere hasta blur.
+    if(extra){
+      if(el.type==='date')el.addEventListener('blur',()=>extra(el));
+      else el.addEventListener('change',()=>extra(el));
+    }
   });
 }
 
@@ -896,8 +1022,172 @@ function agregarDx(prefill){const h=pac(selId).hc033;h.dx=h.dx||[];
 function quitarDx(i){const h=pac(selId).hc033;h.dx.splice(i,1);guardar();pintarVista();}
 
 /* ---------- odontograma (barras 6, 7, 8 y 9) ---------- */
-let herramientaOdonto=null; // {tipo:'cara'|'general', valor:''}
 let vistaOdontoInicial=false;
+const ICO_GRID='<svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:3px"><g fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></g></svg>';
+const ICO_LISTA='<svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:3px" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="4.5" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.4" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/></svg>';
+let vistaOdontoTab='general'; // 'general' | 'leyenda'
+let piezaSeleccionada=null;
+let panelCaraActiva=null;
+let ultimoPacienteOdontoId=null;
+function tipoPieza(n){
+  const u=+String(n).slice(-1);
+  if(u===1||u===2)return 'incisivo';
+  if(u===3)return 'canino';
+  if(u===4||u===5)return 'premolar';
+  return 'molar';
+}
+function esSuperiorPieza(n){const c=+String(n)[0];return c===1||c===2||c===5||c===6;}
+function ladoPieza(n){const c=+String(n)[0];return (c===1||c===4||c===5||c===8)?'derecha':'izquierda';}
+function nombrePieza(n){
+  const tipo=tipoPieza(n);
+  return `${esSuperiorPieza(n)?'Superior':'Inferior'} ${ladoPieza(n)} · ${tipo.charAt(0).toUpperCase()+tipo.slice(1)}`;
+}
+let _svgGradCounter=0;
+const PIEZA_PATHS={
+  molar:'M8 3 Q20 -3 32 3 Q35 14 31 24 Q35 34 30 44 Q26 56 20 58 Q14 56 10 44 Q5 34 9 24 Q5 14 8 3 Z',
+  premolar:'M11 3 Q20 -2 29 3 Q31 14 27 25 Q29 36 24 47 Q21 56 20 58 Q19 56 16 47 Q11 36 13 25 Q9 14 11 3 Z',
+  canino:'M13 3 Q20 -2 27 3 Q28 16 24 30 Q25 42 20 58 Q15 42 16 30 Q12 16 13 3 Z',
+  incisivo:'M12 3 Q20 -2 28 3 Q29 16 26 30 Q27 42 24 52 Q22 57 20 58 Q18 57 16 52 Q13 42 14 30 Q11 16 12 3 Z'
+};
+/* Línea amelocementaria aproximada (límite corona/raíz) de cada forma, en coordenadas locales del path (y=0 arriba) */
+const PIEZA_LIMITE_CORONA={molar:24,premolar:25,canino:18,incisivo:21};
+function svgPiezaHTML(n,badgeColor,w,pendiente,ausente){
+  w=w||34;
+  const tipo=tipoPieza(n);
+  const path=PIEZA_PATHS[tipo];
+  const gid='tg'+(_svgGradCounter++);
+  // La corona siempre está "arriba" en el path local; según el cuadrante se voltea para que
+  // la corona quede junto al círculo oclusal (al centro) y la raíz apunte hacia el número (hacia afuera).
+  const flip=esSuperiorPieza(n)?'transform:scaleY(-1)':'';
+  if(ausente){
+    return `<svg width="${w}" height="${Math.round(w*60/40)}" viewBox="0 0 40 60" style="${flip}">
+      <path d="${path}" fill="#F1F0EB" stroke="#BDB6A6" stroke-width="1.3" stroke-dasharray="3 2.2"/>
+      <line x1="10" y1="10" x2="30" y2="50" stroke="${badgeColor||'#8C97A3'}" stroke-width="3.2" stroke-linecap="round"/>
+      <line x1="30" y1="10" x2="10" y2="50" stroke="${badgeColor||'#8C97A3'}" stroke-width="3.2" stroke-linecap="round"/>
+    </svg>`;
+  }
+  const limCorona=PIEZA_LIMITE_CORONA[tipo];
+  const relleno=badgeColor&&!pendiente?`<rect x="0" y="0" width="40" height="${limCorona}" fill="${badgeColor}" clip-path="url(#${gid}c)"/>`:'';
+  const anillo=badgeColor&&pendiente?`<path d="${path}" fill="none" stroke="${badgeColor}" stroke-width="2.8" clip-path="url(#${gid}r)"/>`:'';
+  return `<svg width="${w}" height="${Math.round(w*60/40)}" viewBox="0 0 40 60" style="${flip}">
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#FFFFFF"/><stop offset="34%" stop-color="#FBF6E9"/>
+        <stop offset="66%" stop-color="#EFE0BE"/><stop offset="100%" stop-color="#D9C194"/>
+      </linearGradient>
+      <clipPath id="${gid}c"><path d="${path}"/></clipPath>
+      <clipPath id="${gid}r"><rect x="0" y="0" width="40" height="${limCorona}"/></clipPath>
+    </defs>
+    <path d="${path}" fill="url(#${gid})" stroke="#C7BCA3" stroke-width="1.2"/>
+    ${relleno}
+    ${anillo}
+    <path d="${path}" fill="none" stroke="#C7BCA3" stroke-width="1.2"/>
+    <line x1="3" y1="${limCorona}" x2="37" y2="${limCorona}" stroke="#BCAE8C" stroke-width="0.8" stroke-dasharray="1.6 1.4" clip-path="url(#${gid}c)" opacity=".55"/>
+  </svg>`;
+}
+function estadoVisualPieza(d){
+  const grupo=grupoDeEstado(d.general);
+  if(grupo){
+    const pendiente=esPendienteSegunCodigo(d.general);
+    const ausenteReal=grupo.clave==='ausente'&&!pendiente;
+    return {color:grupo.color,ausente:ausenteReal,pendiente,nombre:grupo.nombre+(pendiente?' (pendiente)':'')};
+  }
+  if(d.general&&SIMB_GENERAL[d.general]){
+    const g=SIMB_GENERAL[d.general];
+    return {color:g.c,ausente:['extraccion','perdida_caries','perdida_otra'].includes(d.general),pendiente:false,nombre:g.n};
+  }
+  return {color:null,ausente:false,pendiente:false,nombre:null};
+}
+function cuerpoPiezaHTML(n,d,size){
+  const est=estadoVisualPieza(d);
+  size=size||34;
+  const svg=svgPiezaHTML(n,est.color,size,est.pendiente,est.ausente);
+  return `<div style="width:${size}px;margin:0 auto">${svg}</div>`;
+}
+const NOMBRE_CARA=Object.fromEntries(CARAS.map(([k,n])=>[k,n]));
+function occlusalHTML(n,d,ausente){
+  const caras=d.caras||{};
+  const col=k=>caras[k]&&SIMB_CARA[caras[k]]?SIMB_CARA[caras[k]].c:'#fff';
+  const esquina=()=>`<i class="og-esquina"></i>`;
+  const cara=k=>`<i data-ofcara="${k}" style="background:${col(k)}" title="${esc(NOMBRE_CARA[k]||k)}"></i>`;
+  return `<div class="occ-grid${ausente?' ausente':''}" data-pieza="${n}" title="Toca una cara para marcarla">
+    ${esquina()}${cara('V')}${esquina()}
+    ${cara('M')}${cara('O')}${cara('D')}
+    ${esquina()}${cara('L')}${esquina()}
+    ${ausente?'<div class="og-x"><s></s><s></s></div>':''}
+  </div>`;
+}
+function tarjetaPieza(n,d,seleccionada){
+  const est=estadoVisualPieza(d);
+  const occ=occlusalHTML(n,d,est.ausente);
+  const numero=`<span class="numd">${n}</span>`;
+  const puntoGeneral=est.color
+    ?`<span class="estado-dot" style="background:${est.pendiente?'#fff':est.color};border-color:${est.color};border-style:${est.pendiente?'dashed':'solid'}" title="${esc(est.nombre||'')}"></span>`
+    :`<span class="estado-dot" title="Sano"></span>`;
+  return `<div class="pieza-card ${seleccionada?'sel':''}" data-pieza="${n}" title="${esc(est.nombre||'Sana')}">${occ}${numero}${puntoGeneral}</div>`;
+}
+function panelPiezaHTML(p,n,verInicial){
+  const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
+  const d=objetivo[n]||{};
+  const perm=+n<51||+n>85;
+  const historial=(p.tratamientos||[]).filter(t=>new RegExp(`(^|\\D)${n}(\\D|$)`).test(t.pieza||''))
+    .sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  const est=estadoVisualPieza(d);
+  const pendienteInicial=d.pendiente!==undefined?d.pendiente:(d.general?esPendienteSegunCodigo(d.general):true);
+  return `<div class="panel-pieza">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="pieza-avatar">${svgPiezaHTML(n,est.color,24,est.pendiente,est.ausente)}</div>
+        <div><span class="mini">PIEZA SELECCIONADA · FDI</span><h4>${esc(n)}</h4>
+        <span class="mini">${esc(nombrePieza(n))}</span></div>
+      </div>
+      <button class="btn chico" data-cerrarpieza title="Cerrar" style="padding:3px 7px">✕</button>
+    </div>
+    <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Estado</p>
+    <div class="estado-grid">
+      <button data-estgen2="" aria-pressed="${!d.general}"><i style="background:#fff;border-color:var(--linea)"></i>Sano</button>
+      <button data-estcaries aria-pressed="${Object.values(d.caras||{}).includes('caries')}"><i style="background:#E0564A"></i>Caries</button>
+      <button data-estrestauracion aria-pressed="${Object.values(d.caras||{}).includes('obturado')}"><i style="background:#3E7BE0"></i>Restauración</button>
+      ${ESTADO_GRUPOS.map(g=>`<button data-estgen2="${g.clave}" aria-pressed="${d.general===g.ind||d.general===g.real}"><i style="background:${g.color}"></i>${esc(g.nombre)}</button>`).join('')}
+    </div>
+    <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Superficie</p>
+    <div class="cara-grid">
+      ${CARAS.map(([k,nombreLargo])=>{
+        const col=d.caras&&d.caras[k]&&SIMB_CARA[d.caras[k]]?SIMB_CARA[d.caras[k]].c:null;
+        return `<button data-caratog="${k}" aria-pressed="${panelCaraActiva===k}" style="${col?`background:${col};color:#fff;border-color:${col}`:''}">
+          <b>${k}</b><small>${esc(nombreLargo.split('/')[0].split(' ')[0])}</small></button>`;
+      }).join('')}
+    </div>
+    ${panelCaraActiva?`<div class="paleta" style="margin-bottom:12px">
+      <button data-carafija=""><i style="background:#fff"></i>Sana</button>
+      ${Object.entries(SIMB_CARA).map(([k,v])=>`<button data-carafija="${k}"><i style="background:${v.c};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px">${v.s}</i>${esc(v.n)}</button>`).join('')}
+    </div>`:'<p class="mini" style="margin-top:0">Toca una superficie para marcarla.</p>'}
+    ${perm?`<div class="grid" style="margin-bottom:10px">
+      <label class="campo"><span>Movilidad</span><select id="pz_mov">${['','1','2','3'].map(x=>`<option ${String(d.mov||'')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+      <label class="campo"><span>Recesión</span><select id="pz_rec">${['','1','2','3','4'].map(x=>`<option ${String(d.rec||'')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+    </div>`:''}
+    <label class="campo" style="margin-bottom:10px"><span>Diagnóstico</span>
+      <input id="pz_diag" list="dl_diag" value="${esc(d.diagnostico||'')}" placeholder="Ej. Caries oclusal">
+      <datalist id="dl_diag">${['Caries oclusal','Caries interproximal','Pulpitis','Fractura coronaria','Enfermedad periodontal','Diente erupcionado sano','Agenesia'].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+    </label>
+    <label class="campo" style="margin-bottom:10px"><span>Observación</span><textarea id="pz_nota" rows="2" placeholder="Detalle clínico de la pieza">${esc(d.nota||'')}</textarea></label>
+    <label class="campo" style="margin-bottom:8px"><span>Tratamiento</span>
+      <input id="pz_trat" list="dl_trat" value="${esc(d.tratamientoPlan||'')}" placeholder="Ej. Restauración con resina">
+      <datalist id="dl_trat">${['Restauración con resina','Endodoncia','Exodoncia','Corona','Sellante','Profilaxis','Control'].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+    </label>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--tinta-suave)">
+        <input type="checkbox" id="pz_pendiente" ${pendienteInicial?'checked':''}> Tratamiento pendiente</label>
+      <input type="date" id="pz_fecha" value="${esc(d.fechaPendiente||'')}" style="${d.pendiente?'':'visibility:hidden'}">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn chico" data-cancelarpieza style="flex:1">Cancelar</button>
+      <button class="btn primario chico" data-guardarpieza style="flex:1">Guardar</button>
+    </div>
+    <p class="mini" style="font-weight:600;color:var(--tinta);border-top:1px solid var(--linea);padding-top:10px;margin-bottom:4px">Historial de la pieza</p>
+    ${historial.length?historial.map(t=>`<div class="hist-pieza-item"><i></i><div><b>${fechaCorta(t.fecha)} — ${esc(t.proc||t.dx||'Tratamiento')}</b>${t.profesionalNombre?esc(t.profesionalNombre):''}</div><span class="chev">›</span></div>`).join(''):'<p class="mini" style="margin:0">Sin tratamientos registrados en esta pieza.</p>'}
+  </div>`;
+}
 
 function guardarOdontogramaInicial(p){
   const tieneAlgo=Object.keys(p.odontograma||{}).length>0;
@@ -910,13 +1200,13 @@ function generarPresupuestoDesdeOdontograma(p){
   const items=[],o=p.odontograma||{};
   Object.keys(o).sort((a,b)=>+a-+b).forEach(n=>{
     const d=o[n];
-    if(d.general&&SIMB_GENERAL[d.general]&&SIMB_GENERAL[d.general].c==='#B24A35'){
+    if(d.general&&SIMB_GENERAL[d.general]&&SIMB_GENERAL[d.general].c==='#E0564A'){
       items.push({tratamiento:SIMB_GENERAL[d.general].n,pieza:n,precio:''});
     }
     if(d.caras){
       const porEstado={};
       Object.entries(d.caras).forEach(([cara,est])=>{
-        if(SIMB_CARA[est]&&SIMB_CARA[est].c==='#B24A35')porEstado[est]=(porEstado[est]||[]).concat(cara);
+        if(SIMB_CARA[est]&&SIMB_CARA[est].c==='#E0564A')porEstado[est]=(porEstado[est]||[]).concat(cara);
       });
       Object.entries(porEstado).forEach(([est,caras])=>{
         items.push({tratamiento:`${SIMB_CARA[est].n} (${caras.join('')})`,pieza:n,precio:''});
@@ -935,37 +1225,44 @@ function generarPresupuestoDesdeOdontograma(p){
 function tabOdonto(p,c){
   p.odontograma=p.odontograma||{};
   p.indic=p.indic||{filas:{}};const I=p.indic;
+  if(ultimoPacienteOdontoId!==p.id){piezaSeleccionada=null;panelCaraActiva=null;ultimoPacienteOdontoId=p.id;}
   const set=p.odontoLeche?FDI.leche:FDI.adulto;
   const verInicial=vistaOdontoInicial&&p.odontogramaInicial;
   const datosOdonto=verInicial?p.odontogramaInicial.dientes:p.odontograma;
-  const activo=t=>herramientaOdonto&&herramientaOdonto.tipo===t.tipo&&herramientaOdonto.valor===t.valor;
-  const fila=qs=>qs.map(q=>`<div class="cuadrante">${q.map(n=>{
-    const d=datosOdonto[n]||{};
-    const mr=[d.mov?'M'+d.mov:'',d.rec?'R'+d.rec:''].filter(Boolean).join(' ');
-    let contenido,titulo;
-    if(d.general&&SIMB_GENERAL[d.general]){
-      const g=SIMB_GENERAL[d.general];
-      contenido=`<span class="sim" data-gen="${n}" style="color:${g.c}">${g.s}</span>`;titulo=g.n;
-    }else{
-      const caras=d.caras||{};
-      const col=k=>caras[k]&&SIMB_CARA[caras[k]]?SIMB_CARA[caras[k]].c:'#fff';
-      const sim=k=>caras[k]&&SIMB_CARA[caras[k]]&&SIMB_CARA[caras[k]].s?`<span>${SIMB_CARA[caras[k]].s}</span>`:'';
-      const atr=k=>`data-d="${n}" data-cara="${k}"`;
-      contenido=`<div class="carasmini">
-        <i class="cara-v" ${atr('V')} style="background:${col('V')}">${sim('V')}</i>
-        <i class="cara-m" ${atr('M')} style="background:${col('M')}">${sim('M')}</i>
-        <i class="cara-o" ${atr('O')} style="background:${col('O')}">${sim('O')}</i>
-        <i class="cara-d" ${atr('D')} style="background:${col('D')}">${sim('D')}</i>
-        <i class="cara-l" ${atr('L')} style="background:${col('L')}">${sim('L')}</i>
-      </div>`;
-      titulo=Object.values(caras).some(Boolean)?'Con caras marcadas':'Sano';
-    }
-    return `<div class="diente" title="${titulo}">
-      ${contenido}<span class="numd">${n}</span><span class="mr">${mr}</span>
-      <span class="editar" data-detalle="${n}" title="Movilidad, recesión y nota">···</span></div>`;}).join('')}</div>`).join('');
+  const filaGeneral=(qs,superior)=>qs.map(q=>`<div class="cuadrante">${q.map(n=>tarjetaPieza(n,datosOdonto[n]||{},piezaSeleccionada===n,superior)).join('')}</div>`).join('');
+  const ACCIONES_RAPIDAS=[
+    {clave:'caries',nombre:'Caries',color:'#E0564A',simbolo:'●'},
+    {clave:'restauracion',nombre:'Restauración',color:'#3E7BE0',simbolo:'●'},
+    {clave:'grupo:endodoncia',nombre:'Endodoncia',color:'#D9B23C',simbolo:'▲'},
+    {clave:'grupo:corona',nombre:'Corona',color:'#8B6FC7',simbolo:'⌂'},
+    {clave:'grupo:implante',nombre:'Implante',color:'#3FAE6B',simbolo:'IM'},
+    {clave:'grupo:ausente',nombre:'Ausente',color:'#8C97A3',simbolo:'✕'}
+  ];
   const i=cpo({odontograma:datosOdonto});
   const prom=campo=>{let s=0,n=0;IHOS.forEach((_,k)=>{const v=I.filas[k]?.[campo];
     if(v!==undefined&&v!==''){s+=Number(v);n++;}});return n?(s/n).toFixed(2):'—';};
+  const bloqueGeneral=`<div class="odonto2">
+      <div class="odonto2-arcos">
+        <div class="arco-titulo">SUPERIOR</div>
+        <div class="odonto"><div class="arcada">${filaGeneral([set[0],set[1]],true)}</div></div>
+        <div class="arco-titulo" style="margin-top:20px">INFERIOR</div>
+        <div class="odonto"><div class="arcada">${filaGeneral([set[2],set[3]],false)}</div></div>
+        <div class="acciones-rapidas">
+          <span class="mini" style="width:100%;margin-bottom:2px">Acciones rápidas${piezaSeleccionada?' · pieza '+esc(piezaSeleccionada):' · elige una pieza arriba'}</span>
+          ${ACCIONES_RAPIDAS.map(a=>`<button class="accion-rapida" data-accrapida="${a.clave}" ${piezaSeleccionada?'':'disabled'}>
+            <span style="background:${a.color}">${a.simbolo}</span>${esc(a.nombre)}</button>`).join('')}
+        </div>
+      </div>
+      ${piezaSeleccionada?panelPiezaHTML(p,piezaSeleccionada,verInicial):''}
+    </div>`;
+  const bloqueLeyenda=`<div class="leyenda">
+      <span class="leyenda-titulo">Estado de la pieza</span>
+      <span><b style="color:#E0564A">●</b>Caries</span>
+      <span><b style="color:#3E7BE0">●</b>Restauración</span>
+      ${ESTADO_GRUPOS.map(g=>`<span><b style="color:${g.color}">●</b>${esc(g.nombre)}</span>`).join('')}
+      <span><b style="color:var(--tinta-suave);border:1.5px solid currentColor;border-radius:50%;width:9px;height:9px;display:inline-block;background:none">&nbsp;</b>Tratamiento pendiente</span>
+    </div>
+    <p class="mini" style="margin-top:8px">El color relleno = condición marcada; el aro hueco = tratamiento pendiente. Movilidad (M) 1–3 y recesión (R) 1–4 solo en piezas permanentes. Equivalencia con la simbología oficial MSP disponible al imprimir el formulario 033.</p>`;
   c.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
       <div class="ag-nav">
@@ -978,42 +1275,20 @@ function tabOdonto(p,c){
     </div>
     ${verInicial?`<div class="bloque" style="background:var(--porcelana);border-style:dashed">
       <p class="mini" style="margin:0">Estás viendo y editando el <b>odontograma inicial</b>, congelado el ${fechaCorta(p.odontogramaInicial.fecha)}. Los cambios aquí no afectan al odontograma «Actual» — es útil si necesitas corregir una confusión al cargarlo.</p></div>`:''}
-    <div class="bloque"><div class="barra-tit"><h3>Herramienta activa</h3>
-      <span class="der mini">${herramientaOdonto?'Toca las caras del diente para pintar':'Elige qué marcar, luego toca en el diente'}</span></div>
-      <p class="mini" style="margin-top:0">Por cara del diente (rojo = patología actual · azul = tratamiento ya realizado):</p>
-      <div class="paleta">
-        <button data-tool='${JSON.stringify({tipo:'cara',valor:'',n:'Sana (borrar)'}).replace(/'/g,"&#39;")}' aria-pressed="${activo({tipo:'cara',valor:''})}">
-          <i style="background:#fff"></i>Sana (borrar)</button>
-        ${Object.entries(SIMB_CARA).map(([k,v])=>`<button data-tool='${JSON.stringify({tipo:'cara',valor:k,n:v.n}).replace(/'/g,"&#39;")}' aria-pressed="${activo({tipo:'cara',valor:k})}">
-          <i style="background:${v.c};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px">${v.s}</i>${v.n}</button>`).join('')}
+    <div class="bloque"><div class="barra-tit"><b>6</b><h3>Odontograma</h3>
+      <div class="der"><button class="btn chico" id="cambiarSet">Ver dentición ${p.odontoLeche?'permanente':'temporal'}</button></div></div>
+      <p class="mini" style="margin:-4px 0 10px">Numeración FDI (dos dígitos: cuadrante + pieza) — ${p.odontoLeche?'51–85, dentición temporal':'11–48, dentición permanente'}.</p>
+      <div class="odonto-tabs">
+        <button data-otab="general" aria-pressed="${vistaOdontoTab==='general'}">${ICO_GRID} Vista general</button>
+        <button data-otab="leyenda" aria-pressed="${vistaOdontoTab==='leyenda'}">${ICO_LISTA} Leyenda</button>
       </div>
-      <p class="mini">Condición general del diente completo:</p>
-      <div class="paleta">
-        <button data-tool='${JSON.stringify({tipo:'general',valor:'',n:'Ninguna (borrar)'}).replace(/'/g,"&#39;")}' aria-pressed="${activo({tipo:'general',valor:''})}">
-          <i style="background:#fff"></i>Ninguna (borrar)</button>
-        ${Object.entries(SIMB_GENERAL).map(([k,v])=>`<button data-tool='${JSON.stringify({tipo:'general',valor:k,n:v.n}).replace(/'/g,"&#39;")}' aria-pressed="${activo({tipo:'general',valor:k})}">
-          <i style="background:${v.c}"></i>${v.s} ${v.n}</button>`).join('')}
-      </div></div>
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-      <button class="btn chico" id="cambiarSet">Ver dentición ${p.odontoLeche?'permanente':'temporal'}</button>
-      <span class="mini">El botón «···» de cada diente abre movilidad, recesión y notas.</span></div>
-    <div class="bloque"><div class="barra-tit"><b>6</b><h3>Odontograma</h3></div>
-      <div class="odonto"><div class="arcada">${fila([set[0],set[1]])}</div><div class="arcada">${fila([set[2],set[3]])}</div></div>
+      ${vistaOdontoTab==='general'?bloqueGeneral:bloqueLeyenda}
       <div class="grid" style="margin-top:16px">
         <label class="campo"><span>Prótesis superior</span><select data-k="protesisSuperior">
           ${['No usa','Parcial removible','Total removible','Fija'].map(v=>`<option ${p.protesisSuperior===v?'selected':''}>${v}</option>`).join('')}</select></label>
         <label class="campo"><span>Prótesis inferior</span><select data-k="protesisInferior">
           ${['No usa','Parcial removible','Total removible','Fija'].map(v=>`<option ${p.protesisInferior===v?'selected':''}>${v}</option>`).join('')}</select></label>
-      </div>
-      <div class="leyenda" style="border-top:1px solid var(--linea);padding-top:12px;margin-top:16px">
-        <span class="leyenda-titulo">Por cara del diente</span>
-        ${Object.entries(SIMB_CARA).map(([k,v])=>`<span><b style="color:${v.c}">${v.s||'●'}</b>${v.n}</span>`).join('')}
-      </div>
-      <div class="leyenda" style="margin-top:4px">
-        <span class="leyenda-titulo">Condición general del diente</span>
-        ${Object.entries(SIMB_GENERAL).map(([k,v])=>`<span><b style="color:${v.c}">${v.s}</b>${v.n}</span>`).join('')}
-      </div>
-      <p class="mini" style="margin-top:8px">Barra 9 del formulario: simbología oficial MSP. Movilidad (M) 1–3 y recesión (R) 1–4 solo en piezas permanentes.</p></div>
+      </div></div>
     <div class="bloque"><div class="barra-tit"><b>7</b><h3>Indicadores de salud bucal</h3></div>
       <table><thead><tr><th>Piezas</th><th>Placa 0–3</th><th>Cálculo 0–3</th><th>Gingivitis 0–1</th></tr></thead><tbody>
         ${IHOS.map((f,k)=>`<tr><td class="num">${f.join(' · ')}</td>
@@ -1036,71 +1311,109 @@ function tabOdonto(p,c){
         <tr><td>CPOD (permanentes)</td><td class="der">${i.C}</td><td class="der">${i.P}</td><td class="der">${i.O}</td><td class="der"><b>${i.C+i.P+i.O}</b></td></tr>
         <tr><td>ceod (temporales)</td><td class="der">${i.c}</td><td class="der">${i.e}</td><td class="der">${i.o}</td><td class="der"><b>${i.c+i.e+i.o}</b></td></tr></table></div>`;
   $('#cambiarSet').onclick=()=>{p.odontoLeche=!p.odontoLeche;guardar();pintarVista();};
+  c.querySelectorAll('[data-otab]').forEach(b=>b.onclick=()=>{vistaOdontoTab=b.dataset.otab;pintarVista();});
   c.querySelectorAll('[data-ihos]').forEach(el=>el.onchange=()=>{const [k,campo]=el.dataset.ihos.split('-');
     I.filas[k]=I.filas[k]||{};I.filas[k][campo]=el.value;guardar();pintarVista();});
   c.querySelectorAll('[data-ik]').forEach(el=>el.onchange=()=>{I[el.dataset.ik]=el.value;guardar();});
   c.querySelectorAll('[data-k="protesisSuperior"],[data-k="protesisInferior"]').forEach(el=>el.onchange=()=>{
     p[el.dataset.k]=el.value;guardar();
   });
-  c.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{
-    const t=JSON.parse(b.dataset.tool.replace(/&#39;/g,"'"));
-    herramientaOdonto=(herramientaOdonto&&herramientaOdonto.tipo===t.tipo&&herramientaOdonto.valor===t.valor)?null:t;
+  c.querySelectorAll('[data-pieza]').forEach(el=>el.onclick=()=>{
+    piezaSeleccionada=el.dataset.pieza;panelCaraActiva=null;pintarVista();
+  });
+  c.querySelectorAll('[data-ofcara]').forEach(el=>el.onclick=(ev)=>{
+    ev.stopPropagation();
+    const card=el.closest('[data-pieza]');
+    if(!card)return;
+    piezaSeleccionada=card.dataset.pieza;
+    panelCaraActiva=el.dataset.ofcara;
     pintarVista();
   });
-  c.querySelectorAll('[data-cara]').forEach(el=>el.onclick=()=>{
-    const n=el.dataset.d;
+  const cerrarBtn=c.querySelector('[data-cerrarpieza]');
+  if(cerrarBtn)cerrarBtn.onclick=()=>{piezaSeleccionada=null;panelCaraActiva=null;pintarVista();};
+  if(piezaSeleccionada){
+    c.querySelectorAll('[data-estgen2]').forEach(el=>el.onclick=()=>{
+      if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
+      const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
+      const nd=obj2[piezaSeleccionada]||{};
+      const clave=el.dataset.estgen2;
+      if(!clave){delete nd.general;}
+      else{
+        const grupo=ESTADO_GRUPOS.find(g=>g.clave===clave);
+        const chk=c.querySelector('#pz_pendiente');
+        nd.general=(chk&&chk.checked)?grupo.ind:grupo.real;
+      }
+      obj2[piezaSeleccionada]=nd;guardar();pintarVista();
+    });
+    const toggleCaraTodas=(tipo)=>{
+      if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
+      const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
+      const nd=obj2[piezaSeleccionada]||{};nd.caras=nd.caras||{};
+      const yaTodas=['V','M','O','D','L'].every(k=>nd.caras[k]===tipo);
+      ['V','M','O','D','L'].forEach(k=>{if(yaTodas)delete nd.caras[k];else nd.caras[k]=tipo;});
+      obj2[piezaSeleccionada]=nd;guardar();pintarVista();
+    };
+    const btnCaries=c.querySelector('[data-estcaries]');
+    if(btnCaries)btnCaries.onclick=()=>toggleCaraTodas('caries');
+    const btnRestauracion=c.querySelector('[data-estrestauracion]');
+    if(btnRestauracion)btnRestauracion.onclick=()=>toggleCaraTodas('obturado');
+    c.querySelectorAll('[data-caratog]').forEach(el=>el.onclick=()=>{
+      panelCaraActiva=panelCaraActiva===el.dataset.caratog?null:el.dataset.caratog;pintarVista();
+    });
+    c.querySelectorAll('[data-carafija]').forEach(el=>el.onclick=()=>{
+      if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
+      const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
+      const nd=obj2[piezaSeleccionada]||{};nd.caras=nd.caras||{};
+      if(el.dataset.carafija)nd.caras[panelCaraActiva]=el.dataset.carafija;else delete nd.caras[panelCaraActiva];
+      obj2[piezaSeleccionada]=nd;guardar();pintarVista();
+    });
+    const guardarCampoPieza=(campo,valor)=>{
+      if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
+      const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
+      const nd=obj2[piezaSeleccionada]||{};
+      if(valor)nd[campo]=valor;else delete nd[campo];
+      obj2[piezaSeleccionada]=nd;guardar();
+    };
+    const movSel=c.querySelector('#pz_mov'),recSel=c.querySelector('#pz_rec');
+    if(movSel)movSel.onchange=()=>guardarCampoPieza('mov',movSel.value);
+    if(recSel)recSel.onchange=()=>guardarCampoPieza('rec',recSel.value);
+    const pendienteChk=c.querySelector('#pz_pendiente'),fechaInp=c.querySelector('#pz_fecha');
+    if(pendienteChk)pendienteChk.onchange=()=>{if(fechaInp)fechaInp.style.visibility=pendienteChk.checked?'visible':'hidden';};
+    const cancelarBtn=c.querySelector('[data-cancelarpieza]');
+    if(cancelarBtn)cancelarBtn.onclick=()=>pintarVista();
+    const guardarBtn=c.querySelector('[data-guardarpieza]');
+    if(guardarBtn)guardarBtn.onclick=()=>{
+      if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
+      const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
+      const nd=obj2[piezaSeleccionada]||{};
+      const diagInp=c.querySelector('#pz_diag'),tratInp=c.querySelector('#pz_trat'),notaInp=c.querySelector('#pz_nota');
+      if(diagInp&&diagInp.value.trim())nd.diagnostico=diagInp.value.trim();else delete nd.diagnostico;
+      if(notaInp&&notaInp.value.trim())nd.nota=notaInp.value.trim();else delete nd.nota;
+      if(tratInp&&tratInp.value.trim())nd.tratamientoPlan=tratInp.value.trim();else delete nd.tratamientoPlan;
+      if(pendienteChk&&pendienteChk.checked){nd.pendiente=true;nd.fechaPendiente=fechaInp?fechaInp.value:'';}else{delete nd.pendiente;delete nd.fechaPendiente;}
+      obj2[piezaSeleccionada]=nd;guardar();avisar('Datos de la pieza guardados');pintarVista();
+    };
+  }
+  c.querySelectorAll('[data-accrapida]').forEach(el=>el.onclick=()=>{
+    if(!piezaSeleccionada)return;
     if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
-    const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
-    if(herramientaOdonto&&herramientaOdonto.tipo==='general'){
-      const nd=objetivo[n]||{};
-      if(herramientaOdonto.valor)nd.general=herramientaOdonto.valor;else delete nd.general;
-      objetivo[n]=nd;guardar();pintarVista();return;
+    const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
+    const nd=obj2[piezaSeleccionada]||{};
+    const clave=el.dataset.accrapida;
+    if(clave==='caries'||clave==='restauracion'){
+      nd.caras=nd.caras||{};const tipo=clave==='caries'?'caries':'obturado';
+      ['V','M','O','D','L'].forEach(k=>nd.caras[k]=tipo);
+    }else if(clave.startsWith('grupo:')){
+      const grupo=ESTADO_GRUPOS.find(g=>g.clave===clave.slice(6));
+      nd.general=grupo.ind;
     }
-    if(!herramientaOdonto||herramientaOdonto.tipo!=='cara'){avisar('Primero elige qué marcar en la paleta de arriba');return;}
-    const cara=el.dataset.cara,nd=objetivo[n]||{};nd.caras=nd.caras||{};
-    if(herramientaOdonto.valor)nd.caras[cara]=herramientaOdonto.valor;else delete nd.caras[cara];
-    objetivo[n]=nd;guardar();pintarVista();
+    obj2[piezaSeleccionada]=nd;guardar();pintarVista();
   });
-  c.querySelectorAll('[data-gen]').forEach(el=>el.onclick=()=>{
-    const n=el.dataset.gen;
-    if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
-    const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
-    if(herramientaOdonto&&herramientaOdonto.tipo==='general'){
-      const nd=objetivo[n]||{};
-      if(herramientaOdonto.valor)nd.general=herramientaOdonto.valor;else delete nd.general;
-      objetivo[n]=nd;guardar();pintarVista();
-    }else{
-      detalleDiente(p,n,verInicial);
-    }
-  });
-  c.querySelectorAll('[data-detalle]').forEach(b=>b.onclick=()=>detalleDiente(p,b.dataset.detalle,verInicial));
 }
 function asegurarInicialAntesDePrimerCambio(p){
   if(!p.odontogramaInicial){
     p.odontogramaInicial={dientes:JSON.parse(JSON.stringify(p.odontograma)),fecha:hoy()};
   }
-}
-function detalleDiente(p,n,verInicial){
-  const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
-  const d=objetivo[n]||{};
-  const perm=+n<51||+n>85;
-  abrirModal(`Pieza ${n} — detalles${verInicial?' (odontograma inicial)':''}`,
-    (perm?`<div class="grid">
-      <label class="campo"><span>Movilidad (Miller)</span><select id="d_mov">
-        ${['','1','2','3'].map(x=>`<option ${String(d.mov||'')===x?'selected':''}>${x}</option>`).join('')}</select></label>
-      <label class="campo"><span>Recesión (Miller)</span><select id="d_rec">
-        ${['','1','2','3','4'].map(x=>`<option ${String(d.rec||'')===x?'selected':''}>${x}</option>`).join('')}</select></label>
-    </div>`:'')+
-    `<label class="campo"><span>Nota de la pieza</span><input type="text" id="d_nota" value="${esc(d.nota||'')}"></label>
-    <p class="mini">Para marcar caries, obturados o la condición general, usa la paleta y toca directo el diente en el gráfico.</p>`,
-  ()=>{
-    if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
-    const nd=objetivo[n]||{};
-    if(perm){nd.mov=$('#d_mov').value;nd.rec=$('#d_rec').value;}
-    nd.nota=$('#d_nota').value;
-    if(!nd.mov)delete nd.mov;if(!nd.rec)delete nd.rec;if(!nd.nota)delete nd.nota;
-    objetivo[n]=nd;guardar();pintarVista();
-  });
 }
 
 /* ---------- tratamientos (barra 12) ---------- */
@@ -1127,7 +1440,7 @@ function tablaTrat(items,abonadoDe){
       ${items.map(t=>{
         const abonado=abonadoDe(t.id),costo=Number(t.costo)||0,saldoT=costo-abonado;
         return `<tr><td class="num">${esc(t.sesion||'')}<br>${fechaCorta(t.fecha)}</td>
-        <td>${esc(t.dx||'')}${t.pieza?`<br><span class="mini">Pieza ${esc(t.pieza)}</span>`:''}</td>
+        <td>${esc(t.dx||'')}${t.pieza?`<br><span class="mini">Pieza (FDI) ${esc(t.pieza)}${t.tipoOdonto?' · '+(t.tipoOdonto==='cara'?'por cara':'diente completo'):''}</span>`:''}</td>
         <td style="white-space:pre-wrap">${esc(t.proc||'')}${t.presc?`\n${esc(t.presc)}`:''}</td>
         <td class="der">${costo?usd(costo):'—'}</td>
         <td class="der">${abonado?usd(abonado):'—'}</td>
@@ -1221,6 +1534,8 @@ function renderEditorPresupuesto(p,c){
       <button class="btn chico der" onclick="agregarItemPresupuesto()">Agregar</button></div>
       ${x.items.map((it,i)=>{
         it.caras=it.caras||[];
+        const tipo=tipoTratamiento(it.tratamiento);
+        const etiquetaCaras=tipo==='cara'?'Cara(s) — obligatorio en este tratamiento':'Cara(s), si aplica';
         return `<div class="fila-item-presu">
         <div class="grid">
           <label class="campo"><span>Elegir del catálogo</span><select class="cat-shortcut" data-idx="${i}">
@@ -1232,15 +1547,17 @@ function renderEditorPresupuesto(p,c){
           <label class="campo"><span>Tratamiento (o escribe el tuyo)</span><input type="text" data-item="${i}-tratamiento" value="${esc(it.tratamiento||'')}" placeholder="Resina compuesta, profilaxis…"></label>
         </div>
         <div class="grid">
-          <label class="campo"><span>Pieza</span>
+          <label class="campo"><span>Pieza (FDI)</span>
             <div style="display:flex;gap:6px">
-              <input type="text" data-item="${i}-pieza" value="${esc(it.pieza||'')}" style="flex:1">
+              <input type="text" data-item="${i}-pieza" value="${esc(it.pieza||'')}" placeholder="Ej. 16, 26" style="flex:1">
               <button class="btn chico" type="button" data-elegirpieza="${i}" title="Elegir del odontograma">🦷</button>
             </div></label>
           <label class="campo"><span>Precio (USD)</span><input type="number" step="0.01" min="0" data-item="${i}-precio" value="${it.precio??''}"></label>
         </div>
-        <span class="mini">Cara(s), si aplica</span>
-        <div class="caras-mini">${CARAS.map(([k,n])=>`<label><input type="checkbox" class="cara-item-chk" data-idx="${i}" value="${k}" ${it.caras.includes(k)?'checked':''}> ${k}</label>`).join('')}
+        ${tipo==='general'?'<p class="mini" style="margin:2px 0 8px">Este tratamiento es de diente completo — no necesita cara.</p>':`
+        <span class="mini">${etiquetaCaras}</span>
+        <div class="caras-mini">${CARAS.map(([k,n])=>`<label><input type="checkbox" class="cara-item-chk" data-idx="${i}" value="${k}" ${it.caras.includes(k)?'checked':''}> ${k}</label>`).join('')}</div>`}
+        <div style="display:flex;margin-top:6px">
           <button class="btn chico peligro" style="margin-left:auto" onclick="quitarItemPresupuesto(${i})">Eliminar</button></div>
         </div>`;}).join('')}</div>
       <div class="grid" style="margin-top:12px">
@@ -1262,6 +1579,9 @@ function renderEditorPresupuesto(p,c){
   c.querySelectorAll('[data-item]').forEach(el=>el.onchange=()=>{
     const [i,campo]=el.dataset.item.split('-');x.items[i][campo]=el.value;guardar();
     if(campo==='precio')pintarVista();});
+  // En el campo de tratamiento escrito a mano, repintar solo al salir (blur) para no perder el foco
+  // mientras escribe, y así la sección «Cara(s)» se muestra u oculta según corresponda.
+  c.querySelectorAll('[data-item$="-tratamiento"]').forEach(el=>el.addEventListener('blur',()=>pintarVista()));
   c.querySelectorAll('.cat-shortcut').forEach(sel=>sel.onchange=()=>{
     if(!sel.value)return;
     x.items[sel.dataset.idx].tratamiento=sel.value;guardar();pintarVista();
@@ -1322,9 +1642,9 @@ function editarTrat(id){
     <div class="grid">
       <label class="campo"><span>Sesión</span><input type="text" id="t_ses" value="${esc(t.sesion||'')}"></label>
       <label class="campo"><span>Fecha</span><input type="date" id="t_fecha" value="${esc(t.fecha||hoy())}"></label>
-      <label class="campo"><span>Pieza(s)</span>
+      <label class="campo"><span>Pieza(s) (FDI)</span>
         <div style="display:flex;gap:6px">
-          <input type="text" id="t_pieza" value="${esc(t.pieza||'')}" style="flex:1">
+          <input type="text" id="t_pieza" value="${esc(t.pieza||'')}" placeholder="Ej. 16, 26" style="flex:1">
           <button class="btn chico" type="button" id="t_elegirPieza" title="Elegir del odontograma">🦷</button>
         </div></label>
       ${(datos.profesionales&&datos.profesionales.length)?`<label class="campo"><span>Profesional</span><select id="t_prof">
@@ -1378,11 +1698,13 @@ function editarTrat(id){
         </div>
       </div></details>`,
   ()=>{
+    const tipoCat=tipoTratamiento($('#t_procCat').value);
     const d={id:t.id||uid(),sesion:$('#t_ses').value,fecha:$('#t_fecha').value,pieza:$('#t_pieza').value.trim(),
       dx:$('#t_dx').value.trim(),proc:$('#t_proc').value.trim(),presc:$('#t_presc').value.trim(),
       costo:Number($('#t_costo').value)||0,prox:$('#t_prox').value,proxHora:$('#t_proxHora').value||'09:00',
       labNombre:$('#t_labNombre').value.trim(),labCosto:Number($('#t_labCosto').value)||0,labAbonado:Number($('#t_labAbonado').value)||0,
-      honorarioMonto:Number($('#t_honMonto').value)||0,honorarioPagado:Number($('#t_honPagado').value)||0};
+      honorarioMonto:Number($('#t_honMonto').value)||0,honorarioPagado:Number($('#t_honPagado').value)||0,
+      tipoOdonto:tipoCat||t.tipoOdonto||null};
     const profSel=document.getElementById('t_prof');
     if(profSel){const info=profSel.value?datos.profesionales.find(x=>x.id===profSel.value):null;
       d.profesionalId=profSel.value||null;d.profesionalNombre=info?info.nombre:'';}
@@ -2010,7 +2332,7 @@ function tabOrto(p,c){
     o.altaEstimada=(o.inicio&&o.duracionMeses)?sumarMeses(o.inicio,o.duracionMeses):'';
     guardar();pintarVista();
   };
-  $('#orto_inicio').onchange=recalcularAlta;
+  $('#orto_inicio').addEventListener('blur',recalcularAlta); // blur, no change: ver nota en ligar()
   $('#orto_meses').onchange=recalcularAlta;
   const campoCuota=document.getElementById('op_cuota'),campoNum=document.getElementById('op_num'),
     campoInicio=document.getElementById('op_inicio'),campoEntrada=document.getElementById('op_entrada'),
@@ -2083,8 +2405,10 @@ function generarCuotasOrto(){
   const cuotas=[];
   if(entrada1>0)cuotas.push({id:uid(),numero:0,esEntrada:true,entradaNum:1,fechaVenc:inicio,monto:entrada1,pagada:false});
   if(entrada2>0)cuotas.push({id:uid(),numero:0,esEntrada:true,entradaNum:2,fechaVenc:inicio,monto:entrada2,pagada:false});
+  // La cuota 1 siempre cae un mes después de la fecha de inicio (donde van las entradas),
+  // haya 1, 2 o ninguna entrada — así nunca coincide con la fecha de las entradas.
   for(let i=0;i<n;i++){
-    const f=new Date(partes[0],partes[1]-1+i,Math.min(dia,28));
+    const f=new Date(partes[0],partes[1]-1+i+1,Math.min(dia,28));
     cuotas.push({id:uid(),numero:i+1,fechaVenc:f.toISOString().slice(0,10),monto:cuota,pagada:false});
   }
   o.cuotas=cuotas;guardar();pintarVista();avisar('Cronograma de cuotas generado');
@@ -2124,6 +2448,11 @@ function editarCuotaOrto(id){
 }
 function alternarCuotaOrto(id){
   const p=pac(selId),o=p.orto,q=o.cuotas.find(x=>x.id===id);
+  const etiqueta=q.esEntrada?('Entrada '+(q.entradaNum||'')):('Cuota N.º '+q.numero);
+  const msg=q.pagada
+    ?`¿Quitar el pago de "${etiqueta}" (${usd(q.monto)}) y dejarla como pendiente otra vez?`
+    :`¿Confirmar que "${etiqueta}" (${usd(q.monto)}, vence ${fechaCorta(q.fechaVenc)}) ya fue pagada?`;
+  if(!confirm(msg))return;
   q.pagada=!q.pagada;if(q.pagada&&!q.fechaPago)q.fechaPago=hoy();
   guardar();pintarVista();
 }
@@ -2496,10 +2825,13 @@ function copiaReceta(r,p,g,numeroMostrar,modo){
   const filasIndicFarm=meds.length?meds.map((m,i)=>`
     <div style="padding:4px 6px;border-top:1px solid #000">${i+1}. ${detalleMed(m)||'—'}</div>`
     ).join(''):'<div style="padding:8px 6px;border-top:1px solid #000;color:#777">Sin medicamentos registrados.</div>';
+  const icoFacebook='<svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1.5px"><rect width="24" height="24" rx="6" fill="#1877F2"/><path d="M15.5 8.5h-1.6c-.5 0-.9.4-.9 1v1.8h2.4l-.3 2.4h-2.1V19h-2.5v-5.3H8.6v-2.4h1.9v-2.1c0-1.9 1.1-3 3-3h1.9v2.3z" fill="#fff"/></svg>';
+  const icoInstagram='<svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1.5px"><defs><linearGradient id="igGrad" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#FEDA75"/><stop offset="45%" stop-color="#D62976"/><stop offset="100%" stop-color="#962FBF"/></linearGradient></defs><rect width="24" height="24" rx="6" fill="url(#igGrad)"/><rect x="5" y="5" width="14" height="14" rx="4" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="12" cy="12" r="3.3" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="16.6" cy="7.4" r="1" fill="#fff"/></svg>';
+  const icoWhatsapp='<svg width="11" height="11" viewBox="0 0 24 24" style="vertical-align:-1.5px"><rect width="24" height="24" rx="6" fill="#25D366"/><path d="M12 5.5a6.5 6.5 0 0 0-5.6 9.8L5.5 18.5l3.3-.9A6.5 6.5 0 1 0 12 5.5zm0 1.3a5.2 5.2 0 0 1 4.3 8.1 5.14 5.14 0 0 1-4.3 2.3 5.2 5.2 0 0 1-2.5-.6l-.2-.1-1.9.5.5-1.8-.1-.2A5.2 5.2 0 0 1 12 6.8zm-2.5 2.6c-.1 0-.3 0-.4.2-.2.2-.6.6-.6 1.4s.6 1.6.7 1.7c.1.1 1.2 1.9 3 2.6 1.5.6 1.8.5 2.1.4.3 0 .9-.4 1.1-.7.2-.4.2-.7.1-.8 0-.1-.2-.1-.4-.2l-1.3-.6c-.2-.1-.3-.1-.4.1l-.5.7c-.1.1-.2.1-.4 0-.2-.1-.8-.3-1.5-.9-.6-.5-1-1.1-1.1-1.3-.1-.2 0-.3.1-.4l.3-.4c.1-.1.1-.2.2-.4 0-.1 0-.3 0-.4l-.6-1.4c-.1-.3-.3-.3-.4-.3z" fill="#fff"/></svg>';
   const redes=[
-    ['📘',g.facebook||'N/A'],
-    ['📷',g.instagram||'N/A'],
-    ['💬',g.telefono||'N/A'],
+    [icoFacebook,g.facebook||'N/A'],
+    [icoInstagram,g.instagram||'N/A'],
+    [icoWhatsapp,g.telefono||'N/A'],
     ['📍',g.direccion||''],
     ['✉',g.email||'']
   ].filter(x=>x[1]);
