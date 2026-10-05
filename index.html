@@ -260,7 +260,9 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .occ-grid .og-x s{position:absolute;top:50%;left:50%;width:150%;height:2px;background:#8C97A3;text-decoration:none}
 .occ-grid .og-x s:first-child{transform:translate(-50%,-50%) rotate(45deg)}
 .occ-grid .og-x s:last-child{transform:translate(-50%,-50%) rotate(-45deg)}
-.estado-dot{display:block;width:10px;height:10px;border-radius:50%;margin:4px auto 0;border:1.6px solid var(--linea);background:#fff}
+.estado-dot{display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;
+  padding:0 3px;border-radius:7px;margin:4px auto 0;border:1.6px solid var(--linea);background:#fff;
+  font-size:8.5px;font-weight:700;line-height:1;white-space:nowrap;font-family:Figtree,sans-serif}
 .panel-pieza{width:280px;flex:none;border:1px solid var(--linea);border-radius:var(--r-lg);background:var(--papel);
   padding:16px;box-shadow:var(--sombra-sm);position:sticky;top:12px;max-height:85vh;overflow-y:auto}
 .panel-pieza h4{font-size:24px;font-family:Newsreader,serif;margin:0 0 1px}
@@ -269,6 +271,10 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .pieza-avatar svg{width:24px;height:auto}
 .pieza-badge{position:absolute;width:12px;height:12px;border-radius:50%;border:2px solid var(--papel);
   top:-2px;right:-2px;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.modo-pendiente{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.modo-pendiente button{border:1.5px solid var(--linea);border-radius:10px;padding:8px;background:var(--papel);
+  font-size:12.5px;font-weight:600;cursor:pointer;color:var(--tinta-suave)}
+.modo-pendiente button[aria-pressed="true"]{background:var(--tinta);color:#fff;border-color:var(--tinta)}
 .estado-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0 14px}
 .estado-grid button{display:flex;align-items:center;gap:7px;border:1px solid var(--linea);border-radius:10px;
   padding:7px 8px;background:var(--papel);font-size:11.5px;cursor:pointer;text-align:left;line-height:1.2}
@@ -774,18 +780,25 @@ const SIMB_GENERAL={
   otro:{s:'?',c:'#5A706A',n:'Otro (ver nota de la pieza)'}
 };
 const ESTADO_GRUPOS=[
-  {clave:'ausente',nombre:'Ausente',color:'#8C97A3',ind:'extraccion',real:'perdida_caries'},
-  {clave:'endodoncia',nombre:'Endodoncia',color:'#D9B23C',ind:'endo_nec',real:'endo_real'},
-  {clave:'corona',nombre:'Corona',color:'#8B6FC7',ind:'corona_ind',real:'corona_real'},
-  {clave:'puente',nombre:'Prótesis fija',color:'#B79AE0',ind:'puente_ind',real:'puente_real'},
-  {clave:'removible',nombre:'Prótesis removible',color:'#B79AE0',ind:'removible_ind',real:'removible_real'},
-  {clave:'total',nombre:'Prótesis total',color:'#B79AE0',ind:'total_ind',real:'total_real'},
-  {clave:'implante',nombre:'Implante',color:'#3FAE6B',ind:'implante_ind',real:'implante_real'},
-  {clave:'sellante',nombre:'Sellante',color:'#49B6C9',ind:'sellante_nec',real:'sellante_real'},
+  {clave:'ausente',nombre:'Ausente',nombreInd:'Exodoncia indicada',nombreReal:'Diente ausente',color:'#8C97A3',ind:'extraccion',real:'perdida_caries'},
+  {clave:'endodoncia',nombre:'Endodoncia',nombreInd:'Endodoncia indicada',nombreReal:'Endodoncia realizada',color:'#D9B23C',ind:'endo_nec',real:'endo_real'},
+  {clave:'corona',nombre:'Corona',nombreInd:'Corona indicada',nombreReal:'Corona realizada',color:'#8B6FC7',ind:'corona_ind',real:'corona_real'},
+  {clave:'puente',nombre:'Prótesis fija',nombreInd:'Prótesis fija indicada',nombreReal:'Prótesis fija realizada',color:'#B79AE0',ind:'puente_ind',real:'puente_real'},
+  {clave:'removible',nombre:'Prótesis removible',nombreInd:'Prótesis removible indicada',nombreReal:'Prótesis removible realizada',color:'#B79AE0',ind:'removible_ind',real:'removible_real'},
+  {clave:'total',nombre:'Prótesis total',nombreInd:'Prótesis total indicada',nombreReal:'Prótesis total realizada',color:'#B79AE0',ind:'total_ind',real:'total_real'},
+  {clave:'implante',nombre:'Implante',nombreInd:'Implante indicado',nombreReal:'Implante realizado',color:'#3FAE6B',ind:'implante_ind',real:'implante_real'},
+  {clave:'sellante',nombre:'Sellante',nombreInd:'Sellante indicado',nombreReal:'Sellante realizado',color:'#49B6C9',ind:'sellante_nec',real:'sellante_real'},
   {clave:'fractura',nombre:'Fractura',color:'#E0564A',ind:'fractura',real:'fractura'},
   {clave:'lesion',nombre:'Lesión',color:'#E0564A',ind:'lesion',real:'lesion'},
   {clave:'otro',nombre:'Otro / Preexistencia',color:'#5A706A',ind:'otro',real:'otro'}
 ];
+/* Etiqueta del botón según el modo elegido (pendiente/realizado) — ej. "Ausente" se lee
+   "Exodoncia indicada" mientras está pendiente, y "Diente ausente" una vez realizada. */
+function etiquetaGrupo(g,modo){
+  if(modo==='pendiente'&&g.nombreInd)return g.nombreInd;
+  if(modo==='realizado'&&g.nombreReal)return g.nombreReal;
+  return g.nombre;
+}
 function grupoDeEstado(codigo){
   if(!codigo)return null;
   return ESTADO_GRUPOS.find(g=>g.ind===codigo||g.real===codigo)||null;
@@ -847,6 +860,26 @@ function pintar(){pintarLista();pintarVista();}
 
 /* ================= vista ================= */
 function pintarVista(){
+  // Cada click que repinta la vista reconstruye el HTML entero; si el alto o ancho del contenido
+  // cambia (ej. al mostrar/ocultar la paleta de una superficie), el navegador puede "saltar" el
+  // scroll. Por eso se guarda la posición (de la ventana, del panel principal y del odontograma
+  // si estaba desplazado horizontalmente) antes de repintar, y se restaura después.
+  const main=document.querySelector('main');
+  const sTop=main?main.scrollTop:0;
+  const winX=window.scrollX,winY=window.scrollY;
+  const odontoScrolls=[...document.querySelectorAll('.odonto')].map(el=>el.scrollLeft);
+  // El panel de la pieza (a la derecha del odontograma) tiene su propio scroll interno
+  // (max-height + overflow-y:auto) — es el que más se notaba "saltando" al tocar una superficie.
+  const panelPieza=document.querySelector('.panel-pieza');
+  const panelSTop=panelPieza?panelPieza.scrollTop:0;
+  pintarVistaInterna();
+  if(main)main.scrollTop=sTop;
+  window.scrollTo(winX,winY);
+  document.querySelectorAll('.odonto').forEach((el,i)=>{if(odontoScrolls[i]!==undefined)el.scrollLeft=odontoScrolls[i];});
+  const panelPiezaNuevo=document.querySelector('.panel-pieza');
+  if(panelPiezaNuevo)panelPiezaNuevo.scrollTop=panelSTop;
+}
+function pintarVistaInterna(){
   const v=$('#vista'),p=pac(selId);
   if(!p){
     const totalPac=datos.pacientes.length;
@@ -1029,6 +1062,12 @@ const ICO_LISTA='<svg width="13" height="13" viewBox="0 0 24 24" style="vertical
 let vistaOdontoTab='general'; // 'general' | 'leyenda'
 let piezaSeleccionada=null;
 let panelCaraActiva=null;
+let modoPiezaEstado=null; // 'pendiente' | 'realizado' | null (sin elegir aún → se calcula de lo que ya tenga la pieza)
+function modoPendienteActual(nd){
+  if(modoPiezaEstado)return modoPiezaEstado;
+  const pend=nd.pendiente!==undefined?nd.pendiente:(nd.general?esPendienteSegunCodigo(nd.general):true);
+  return pend?'pendiente':'realizado';
+}
 let ultimoPacienteOdontoId=null;
 function tipoPieza(n){
   const u=+String(n).slice(-1);
@@ -1087,17 +1126,18 @@ function svgPiezaHTML(n,badgeColor,w,pendiente,ausente){
   </svg>`;
 }
 function estadoVisualPieza(d){
+  const simbolo=d.general&&SIMB_GENERAL[d.general]?SIMB_GENERAL[d.general].s:null;
   const grupo=grupoDeEstado(d.general);
   if(grupo){
     const pendiente=esPendienteSegunCodigo(d.general);
     const ausenteReal=grupo.clave==='ausente'&&!pendiente;
-    return {color:grupo.color,ausente:ausenteReal,pendiente,nombre:grupo.nombre+(pendiente?' (pendiente)':'')};
+    return {color:grupo.color,ausente:ausenteReal,pendiente,nombre:grupo.nombre+(pendiente?' (pendiente)':''),simbolo};
   }
   if(d.general&&SIMB_GENERAL[d.general]){
     const g=SIMB_GENERAL[d.general];
-    return {color:g.c,ausente:['extraccion','perdida_caries','perdida_otra'].includes(d.general),pendiente:false,nombre:g.n};
+    return {color:g.c,ausente:['extraccion','perdida_caries','perdida_otra'].includes(d.general),pendiente:false,nombre:g.n,simbolo};
   }
-  return {color:null,ausente:false,pendiente:false,nombre:null};
+  return {color:null,ausente:false,pendiente:false,nombre:null,simbolo:null};
 }
 function cuerpoPiezaHTML(n,d,size){
   const est=estadoVisualPieza(d);
@@ -1123,7 +1163,7 @@ function tarjetaPieza(n,d,seleccionada){
   const occ=occlusalHTML(n,d,est.ausente);
   const numero=`<span class="numd">${n}</span>`;
   const puntoGeneral=est.color
-    ?`<span class="estado-dot" style="background:${est.pendiente?'#fff':est.color};border-color:${est.color};border-style:${est.pendiente?'dashed':'solid'}" title="${esc(est.nombre||'')}"></span>`
+    ?`<span class="estado-dot" style="background:${est.pendiente?'#fff':est.color};border-color:${est.color};border-style:${est.pendiente?'dashed':'solid'};color:${est.pendiente?est.color:'#fff'}" title="${esc(est.nombre||'')}">${esc(est.simbolo||'')}</span>`
     :`<span class="estado-dot" title="Sano"></span>`;
   return `<div class="pieza-card ${seleccionada?'sel':''}" data-pieza="${n}" title="${esc(est.nombre||'Sana')}">${occ}${numero}${puntoGeneral}</div>`;
 }
@@ -1145,13 +1185,17 @@ function panelPiezaHTML(p,n,verInicial){
       <button class="btn chico" data-cerrarpieza title="Cerrar" style="padding:3px 7px">✕</button>
     </div>
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Estado</p>
+    <p class="mini" style="margin:0 0 6px">Elige primero si va a quedar <b>pendiente</b> o ya está <b>realizado</b>, y luego toca la condición.</p>
+    <div class="modo-pendiente">
+      <button data-modopieza="pendiente" aria-pressed="${modoPendienteActual(d)==='pendiente'}">○ Pendiente</button>
+      <button data-modopieza="realizado" aria-pressed="${modoPendienteActual(d)==='realizado'}">● Realizado</button>
+    </div>
     <div class="estado-grid">
       <button data-estgen2="" aria-pressed="${!d.general}"><i style="background:#fff;border-color:var(--linea)"></i>Sano</button>
-      <button data-estcaries aria-pressed="${Object.values(d.caras||{}).includes('caries')}"><i style="background:#E0564A"></i>Caries</button>
-      <button data-estrestauracion aria-pressed="${Object.values(d.caras||{}).includes('obturado')}"><i style="background:#3E7BE0"></i>Restauración</button>
-      ${ESTADO_GRUPOS.map(g=>`<button data-estgen2="${g.clave}" aria-pressed="${d.general===g.ind||d.general===g.real}"><i style="background:${g.color}"></i>${esc(g.nombre)}</button>`).join('')}
+      ${ESTADO_GRUPOS.map(g=>`<button data-estgen2="${g.clave}" aria-pressed="${d.general===g.ind||d.general===g.real}"><i style="background:${g.color}"></i>${esc(etiquetaGrupo(g,modoPendienteActual(d)))}</button>`).join('')}
     </div>
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Superficie</p>
+    <p class="mini" style="margin:0 0 6px">Caries y restauraciones se marcan aquí, por cara — toca una superficie.</p>
     <div class="cara-grid">
       ${CARAS.map(([k,nombreLargo])=>{
         const col=d.caras&&d.caras[k]&&SIMB_CARA[d.caras[k]]?SIMB_CARA[d.caras[k]].c:null;
@@ -1178,7 +1222,7 @@ function panelPiezaHTML(p,n,verInicial){
     </label>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
       <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--tinta-suave)">
-        <input type="checkbox" id="pz_pendiente" ${pendienteInicial?'checked':''}> Tratamiento pendiente</label>
+        <input type="checkbox" id="pz_pendiente" ${pendienteInicial?'checked':''}> Fijar fecha estimada para este pendiente</label>
       <input type="date" id="pz_fecha" value="${esc(d.fechaPendiente||'')}" style="${d.pendiente?'':'visibility:hidden'}">
     </div>
     <div style="display:flex;gap:8px;margin-bottom:14px">
@@ -1231,13 +1275,15 @@ function tabOdonto(p,c){
   const verInicial=vistaOdontoInicial&&p.odontogramaInicial;
   const datosOdonto=verInicial?p.odontogramaInicial.dientes:p.odontograma;
   const filaGeneral=(qs,superior)=>qs.map(q=>`<div class="cuadrante">${q.map(n=>tarjetaPieza(n,datosOdonto[n]||{},piezaSeleccionada===n,superior)).join('')}</div>`).join('');
+  const modoAccRapidas=modoPendienteActual(datosOdonto[piezaSeleccionada]||{});
+  const nombreAccGrupo=clave=>etiquetaGrupo(ESTADO_GRUPOS.find(g=>g.clave===clave),modoAccRapidas);
   const ACCIONES_RAPIDAS=[
     {clave:'caries',nombre:'Caries',color:'#E0564A',simbolo:'●'},
     {clave:'restauracion',nombre:'Restauración',color:'#3E7BE0',simbolo:'●'},
-    {clave:'grupo:endodoncia',nombre:'Endodoncia',color:'#D9B23C',simbolo:'▲'},
-    {clave:'grupo:corona',nombre:'Corona',color:'#8B6FC7',simbolo:'⌂'},
-    {clave:'grupo:implante',nombre:'Implante',color:'#3FAE6B',simbolo:'IM'},
-    {clave:'grupo:ausente',nombre:'Ausente',color:'#8C97A3',simbolo:'✕'}
+    {clave:'grupo:endodoncia',nombre:nombreAccGrupo('endodoncia'),color:'#D9B23C',simbolo:'▲'},
+    {clave:'grupo:corona',nombre:nombreAccGrupo('corona'),color:'#8B6FC7',simbolo:'⌂'},
+    {clave:'grupo:implante',nombre:nombreAccGrupo('implante'),color:'#3FAE6B',simbolo:'IM'},
+    {clave:'grupo:ausente',nombre:nombreAccGrupo('ausente'),color:'#8C97A3',simbolo:'✕'}
   ];
   const i=cpo({odontograma:datosOdonto});
   const prom=campo=>{let s=0,n=0;IHOS.forEach((_,k)=>{const v=I.filas[k]?.[campo];
@@ -1250,6 +1296,10 @@ function tabOdonto(p,c){
         <div class="odonto"><div class="arcada">${filaGeneral([set[2],set[3]],false)}</div></div>
         <div class="acciones-rapidas">
           <span class="mini" style="width:100%;margin-bottom:2px">Acciones rápidas${piezaSeleccionada?' · pieza '+esc(piezaSeleccionada):' · elige una pieza arriba'}</span>
+          ${piezaSeleccionada?`<div class="modo-pendiente" style="width:100%">
+            <button data-modopieza="pendiente" aria-pressed="${modoPendienteActual(datosOdonto[piezaSeleccionada]||{})==='pendiente'}">○ Marcar como pendiente</button>
+            <button data-modopieza="realizado" aria-pressed="${modoPendienteActual(datosOdonto[piezaSeleccionada]||{})==='realizado'}">● Marcar como realizado</button>
+          </div>`:''}
           ${ACCIONES_RAPIDAS.map(a=>`<button class="accion-rapida" data-accrapida="${a.clave}" ${piezaSeleccionada?'':'disabled'}>
             <span style="background:${a.color}">${a.simbolo}</span>${esc(a.nombre)}</button>`).join('')}
         </div>
@@ -1320,7 +1370,7 @@ function tabOdonto(p,c){
     p[el.dataset.k]=el.value;guardar();
   });
   c.querySelectorAll('[data-pieza]').forEach(el=>el.onclick=()=>{
-    piezaSeleccionada=el.dataset.pieza;panelCaraActiva=null;pintarVista();
+    piezaSeleccionada=el.dataset.pieza;panelCaraActiva=null;modoPiezaEstado=null;pintarVista();
   });
   c.querySelectorAll('[data-ofcara]').forEach(el=>el.onclick=(ev)=>{
     ev.stopPropagation();
@@ -1328,11 +1378,15 @@ function tabOdonto(p,c){
     if(!card)return;
     piezaSeleccionada=card.dataset.pieza;
     panelCaraActiva=el.dataset.ofcara;
+    modoPiezaEstado=null;
     pintarVista();
   });
   const cerrarBtn=c.querySelector('[data-cerrarpieza]');
-  if(cerrarBtn)cerrarBtn.onclick=()=>{piezaSeleccionada=null;panelCaraActiva=null;pintarVista();};
+  if(cerrarBtn)cerrarBtn.onclick=()=>{piezaSeleccionada=null;panelCaraActiva=null;modoPiezaEstado=null;pintarVista();};
   if(piezaSeleccionada){
+    c.querySelectorAll('[data-modopieza]').forEach(el=>el.onclick=()=>{
+      modoPiezaEstado=el.dataset.modopieza;pintarVista();
+    });
     c.querySelectorAll('[data-estgen2]').forEach(el=>el.onclick=()=>{
       if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
       const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
@@ -1341,23 +1395,10 @@ function tabOdonto(p,c){
       if(!clave){delete nd.general;}
       else{
         const grupo=ESTADO_GRUPOS.find(g=>g.clave===clave);
-        const chk=c.querySelector('#pz_pendiente');
-        nd.general=(chk&&chk.checked)?grupo.ind:grupo.real;
+        nd.general=modoPendienteActual(nd)==='pendiente'?grupo.ind:grupo.real;
       }
       obj2[piezaSeleccionada]=nd;guardar();pintarVista();
     });
-    const toggleCaraTodas=(tipo)=>{
-      if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
-      const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
-      const nd=obj2[piezaSeleccionada]||{};nd.caras=nd.caras||{};
-      const yaTodas=['V','M','O','D','L'].every(k=>nd.caras[k]===tipo);
-      ['V','M','O','D','L'].forEach(k=>{if(yaTodas)delete nd.caras[k];else nd.caras[k]=tipo;});
-      obj2[piezaSeleccionada]=nd;guardar();pintarVista();
-    };
-    const btnCaries=c.querySelector('[data-estcaries]');
-    if(btnCaries)btnCaries.onclick=()=>toggleCaraTodas('caries');
-    const btnRestauracion=c.querySelector('[data-estrestauracion]');
-    if(btnRestauracion)btnRestauracion.onclick=()=>toggleCaraTodas('obturado');
     c.querySelectorAll('[data-caratog]').forEach(el=>el.onclick=()=>{
       panelCaraActiva=panelCaraActiva===el.dataset.caratog?null:el.dataset.caratog;pintarVista();
     });
@@ -1406,7 +1447,7 @@ function tabOdonto(p,c){
       ['V','M','O','D','L'].forEach(k=>nd.caras[k]=tipo);
     }else if(clave.startsWith('grupo:')){
       const grupo=ESTADO_GRUPOS.find(g=>g.clave===clave.slice(6));
-      nd.general=grupo.ind;
+      nd.general=modoPendienteActual(nd)==='pendiente'?grupo.ind:grupo.real;
     }
     obj2[piezaSeleccionada]=nd;guardar();pintarVista();
   });
