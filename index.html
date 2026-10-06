@@ -260,6 +260,8 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .occ-grid .og-x s{position:absolute;top:50%;left:50%;width:150%;height:2px;background:#8C97A3;text-decoration:none}
 .occ-grid .og-x s:first-child{transform:translate(-50%,-50%) rotate(45deg)}
 .occ-grid .og-x s:last-child{transform:translate(-50%,-50%) rotate(-45deg)}
+.estado-dots{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;margin:4px auto 0;max-width:46px}
+.estado-dots .estado-dot{margin:0}
 .estado-dot{display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;
   padding:0 3px;border-radius:7px;margin:4px auto 0;border:1.6px solid var(--linea);background:#fff;
   font-size:8.5px;font-weight:700;line-height:1;white-space:nowrap;font-family:Figtree,sans-serif}
@@ -805,6 +807,37 @@ function grupoDeEstado(codigo){
   if(!codigo)return null;
   return ESTADO_GRUPOS.find(g=>g.ind===codigo||g.real===codigo)||null;
 }
+/* Una pieza puede tener VARIOS estados a la vez (ej. endodoncia + corona, o implante + corona).
+   Compatibilidad: el primero sigue guardado en "general" (como siempre) y los demás en "adicionales",
+   así los datos que ya existen no cambian. */
+function codigosEstado(nd){
+  const r=[];
+  if(nd&&nd.general)r.push(nd.general);
+  ((nd&&nd.adicionales)||[]).forEach(c=>{if(c&&!r.includes(c))r.push(c);});
+  return r;
+}
+function guardarCodigosEstado(nd,lista){
+  if(!lista.length){delete nd.general;delete nd.adicionales;return;}
+  nd.general=lista[0];
+  if(lista.length>1)nd.adicionales=lista.slice(1);else delete nd.adicionales;
+}
+/* Pone el estado de un grupo: reemplaza el del mismo grupo (ej. de "indicada" a "realizada") o lo agrega. */
+function ponerEstadoGrupo(nd,grupo,codigo){
+  const lista=codigosEstado(nd);
+  const i=lista.findIndex(c=>grupoDeEstado(c)===grupo);
+  if(i>=0)lista[i]=codigo;else lista.push(codigo);
+  guardarCodigosEstado(nd,lista);
+}
+/* Al tocar un botón de estado: lo agrega, lo cambia de pendiente↔realizado, o lo quita si ya estaba igual. */
+function alternarEstadoGrupo(nd,grupo,modo){
+  const codigo=modo==='pendiente'?grupo.ind:grupo.real;
+  const lista=codigosEstado(nd);
+  const i=lista.findIndex(c=>grupoDeEstado(c)===grupo);
+  if(i>=0&&lista[i]===codigo)lista.splice(i,1);
+  else if(i>=0)lista[i]=codigo;
+  else lista.push(codigo);
+  guardarCodigosEstado(nd,lista);
+}
 function esPendienteSegunCodigo(codigo){
   const g=grupoDeEstado(codigo);
   return g?codigo===g.ind:false;
@@ -923,6 +956,7 @@ function pintarVistaInterna(){
           <div class="sub num">${[p.hc&&('HC '+esc(p.hc)),p.cedula&&('C.I. '+esc(p.cedula)),e!==null&&(e+' años'),p.telefono&&esc(p.telefono)].filter(Boolean).join(' · ')||'&nbsp;'}</div>
           ${p.alergias?`<div class="alergia">Alergias: ${esc(p.alergias)}</div>`:''}</div>
         <div class="spacer"></div>
+        ${pestana==='ficha'?'<button class="btn" onclick="abrirWhatsappPaciente()" title="Abrir chat de WhatsApp con este paciente (no necesita estar en tus contactos)">WhatsApp</button>':''}
         <button class="btn" onclick="imprimir033()">Imprimir 033</button>
         <button class="btn peligro" onclick="borrarPaciente()">Eliminar</button></div>
         <div id="panelTab"></div>
@@ -1161,13 +1195,15 @@ function occlusalHTML(n,d,ausente){
   </div>`;
 }
 function tarjetaPieza(n,d,seleccionada){
-  const est=estadoVisualPieza(d);
-  const occ=occlusalHTML(n,d,est.ausente);
+  const ests=codigosEstado(d).map(c=>estadoVisualPieza({general:c})).filter(e=>e.color);
+  const ausente=ests.some(e=>e.ausente);
+  const occ=occlusalHTML(n,d,ausente);
   const numero=`<span class="numd">${n}</span>`;
-  const puntoGeneral=est.color
-    ?`<span class="estado-dot" style="background:${est.pendiente?'#fff':est.color};border-color:${est.color};border-style:${est.pendiente?'dashed':'solid'};color:${est.pendiente?est.color:'#fff'}" title="${esc(est.nombre||'')}">${esc(est.simbolo||'')}</span>`
+  const puntos=ests.length
+    ?ests.map(est=>`<span class="estado-dot" style="background:${est.pendiente?'#fff':est.color};border-color:${est.color};border-style:${est.pendiente?'dashed':'solid'};color:${est.pendiente?est.color:'#fff'}" title="${esc(est.nombre||'')}">${esc(est.simbolo||'')}</span>`).join('')
     :`<span class="estado-dot" title="Sano"></span>`;
-  return `<div class="pieza-card ${seleccionada?'sel':''}" data-pieza="${n}" title="${esc(est.nombre||'Sana')}">${occ}${numero}${puntoGeneral}</div>`;
+  const titulo=ests.length?ests.map(e=>e.nombre).join(' + '):'Sana';
+  return `<div class="pieza-card ${seleccionada?'sel':''}" data-pieza="${n}" title="${esc(titulo)}">${occ}${numero}<span class="estado-dots">${puntos}</span></div>`;
 }
 function panelPiezaHTML(p,n,verInicial){
   const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
@@ -1187,14 +1223,14 @@ function panelPiezaHTML(p,n,verInicial){
       <button class="btn chico" data-cerrarpieza title="Cerrar" style="padding:3px 7px">✕</button>
     </div>
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Estado</p>
-    <p class="mini" style="margin:0 0 6px">Elige primero si va a quedar <b>pendiente</b> o ya está <b>realizado</b>, y luego toca la condición.</p>
+    <p class="mini" style="margin:0 0 6px">Elige primero si va a quedar <b>pendiente</b> o ya está <b>realizado</b>, y luego toca la condición. Puedes marcar <b>varias</b> (ej. endodoncia + corona); toca de nuevo una para quitarla.</p>
     <div class="modo-pendiente">
       <button data-modopieza="pendiente" aria-pressed="${modoPendienteActual(d)==='pendiente'}">○ Pendiente</button>
       <button data-modopieza="realizado" aria-pressed="${modoPendienteActual(d)==='realizado'}">● Realizado</button>
     </div>
     <div class="estado-grid">
-      <button data-estgen2="" aria-pressed="${!d.general}"><i style="background:#fff;border-color:var(--linea)"></i>Sano</button>
-      ${ESTADO_GRUPOS.map(g=>`<button data-estgen2="${g.clave}" aria-pressed="${d.general===g.ind||d.general===g.real}"><i style="background:${g.color}"></i>${esc(etiquetaGrupo(g,modoPendienteActual(d)))}</button>`).join('')}
+      <button data-estgen2="" aria-pressed="${!codigosEstado(d).length}"><i style="background:#fff;border-color:var(--linea)"></i>Sano</button>
+      ${ESTADO_GRUPOS.map(g=>`<button data-estgen2="${g.clave}" aria-pressed="${codigosEstado(d).some(c=>c===g.ind||c===g.real)}"><i style="background:${g.color}"></i>${esc(etiquetaGrupo(g,modoPendienteActual(d)))}</button>`).join('')}
     </div>
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Superficie</p>
     <p class="mini" style="margin:0 0 6px">Caries y restauraciones se marcan aquí, por cara — toca una superficie.</p>
@@ -1220,6 +1256,7 @@ function panelPiezaHTML(p,n,verInicial){
     <label class="campo" style="margin-bottom:10px"><span>Observación</span><textarea id="pz_nota" rows="2" placeholder="Detalle clínico de la pieza">${esc(d.nota||'')}</textarea></label>
     <label class="campo" style="margin-bottom:8px"><span>Tratamiento</span>
       <input id="pz_trat" list="dl_trat" value="${esc(d.tratamientoPlan||'')}" placeholder="Ej. Restauración con resina">
+      <span class="mini">Se verá también en la pestaña Tratamientos, como pendiente.</span>
       <datalist id="dl_trat">${['Restauración con resina','Endodoncia','Exodoncia','Corona','Sellante','Profilaxis','Control'].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
     </label>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -1247,9 +1284,9 @@ function generarPresupuestoDesdeOdontograma(p){
   const items=[],o=p.odontograma||{};
   Object.keys(o).sort((a,b)=>+a-+b).forEach(n=>{
     const d=o[n];
-    if(d.general&&SIMB_GENERAL[d.general]&&SIMB_GENERAL[d.general].c==='#E0564A'){
-      items.push({tratamiento:SIMB_GENERAL[d.general].n,pieza:n,precio:''});
-    }
+    codigosEstado(d).forEach(cod=>{
+      if(SIMB_GENERAL[cod]&&SIMB_GENERAL[cod].c==='#E0564A')items.push({tratamiento:SIMB_GENERAL[cod].n,pieza:n,precio:''});
+    });
     if(d.caras){
       const porEstado={};
       Object.entries(d.caras).forEach(([cara,est])=>{
@@ -1394,10 +1431,10 @@ function tabOdonto(p,c){
       const obj2=verInicial?p.odontogramaInicial.dientes:p.odontograma;
       const nd=obj2[piezaSeleccionada]||{};
       const clave=el.dataset.estgen2;
-      if(!clave){delete nd.general;}
+      if(!clave){delete nd.general;delete nd.adicionales;}
       else{
         const grupo=ESTADO_GRUPOS.find(g=>g.clave===clave);
-        nd.general=modoPendienteActual(nd)==='pendiente'?grupo.ind:grupo.real;
+        alternarEstadoGrupo(nd,grupo,modoPendienteActual(nd));
       }
       obj2[piezaSeleccionada]=nd;guardar();pintarVista();
     });
@@ -1435,7 +1472,7 @@ function tabOdonto(p,c){
       if(notaInp&&notaInp.value.trim())nd.nota=notaInp.value.trim();else delete nd.nota;
       if(tratInp&&tratInp.value.trim())nd.tratamientoPlan=tratInp.value.trim();else delete nd.tratamientoPlan;
       if(pendienteChk&&pendienteChk.checked){nd.pendiente=true;nd.fechaPendiente=fechaInp?fechaInp.value:'';}else{delete nd.pendiente;delete nd.fechaPendiente;}
-      obj2[piezaSeleccionada]=nd;guardar();avisar('Datos de la pieza guardados');pintarVista();
+      obj2[piezaSeleccionada]=nd;guardar();avisar(nd.tratamientoPlan?'Datos guardados — el tratamiento también aparece en la pestaña Tratamientos':'Datos de la pieza guardados');pintarVista();
     };
   }
   c.querySelectorAll('[data-accrapida]').forEach(el=>el.onclick=()=>{
@@ -1449,7 +1486,7 @@ function tabOdonto(p,c){
       ['V','M','O','D','L'].forEach(k=>nd.caras[k]=tipo);
     }else if(clave.startsWith('grupo:')){
       const grupo=ESTADO_GRUPOS.find(g=>g.clave===clave.slice(6));
-      nd.general=modoPendienteActual(nd)==='pendiente'?grupo.ind:grupo.real;
+      alternarEstadoGrupo(nd,grupo,modoPendienteActual(nd));
     }
     obj2[piezaSeleccionada]=nd;guardar();pintarVista();
   });
@@ -1494,13 +1531,37 @@ function tablaTrat(items,abonadoDe){
         <button class="btn chico peligro" onclick="borrarItem('tratamientos','${t.id}')">×</button></td></tr>`;}).join('')}
       </tbody></table>`;
 }
+function pendientesOdonto(p){
+  const o=p.odontograma||{};
+  return Object.keys(o).filter(n=>o[n]&&o[n].tratamientoPlan).sort((a,b)=>+a-+b)
+    .map(n=>({pieza:n,tratamiento:o[n].tratamientoPlan,fecha:o[n].fechaPendiente||''}));
+}
+function registrarPendienteOdonto(n){
+  const p=pac(selId),d=(p.odontograma||{})[n]||{};
+  editarTrat(null,{pieza:n,proc:d.tratamientoPlan||'',dx:d.diagnostico||'',_limpiarPlan:n});
+}
+function quitarPendienteOdonto(n){
+  if(!confirm('¿Quitar este tratamiento pendiente de la pieza '+n+'?'))return;
+  const p=pac(selId),d=(p.odontograma||{})[n];
+  if(d){delete d.tratamientoPlan;delete d.fechaPendiente;}
+  guardar();pintarVista();
+}
 function tabTrat(p,c){
   p.tratamientos=p.tratamientos||[];p.abonos=p.abonos||[];
   const abonadoDe=tId=>p.abonos.filter(a=>a.tratamientoId===tId).reduce((s,a)=>s+(Number(a.monto)||0),0);
   const ts=[...p.tratamientos];
   const grupos=agruparTratPorEspecialidad(ts);
   const hayVariasEspecialidades=grupos.length>1;
-  c.innerHTML=`<div id="zonaPresupuestos"></div>
+  const pendOdo=pendientesOdonto(p);
+  c.innerHTML=`${pendOdo.length?`<div class="bloque"><div class="barra-tit"><h3>Pendientes del odontograma</h3>
+      <span class="der mini">${pendOdo.length} pieza${pendOdo.length===1?'':'s'}</span></div>
+      <p class="mini" style="margin-top:0">Son los tratamientos que anotaste en cada pieza del odontograma. Al registrar la sesión se quitan de esta lista.</p>
+      ${pendOdo.map(x=>`<div class="evo"><div class="fecha">Pieza ${esc(x.pieza)}</div>
+        <div><span class="dx">${esc(x.tratamiento)}</span>
+          ${x.fecha?`<span class="mini" style="margin-left:8px">Fecha estimada: ${fechaCorta(x.fecha)}</span>`:''}
+          <div class="acciones-evo"><button onclick="registrarPendienteOdonto('${x.pieza}')">Registrar sesión</button>
+          <button onclick="quitarPendienteOdonto('${x.pieza}')">Quitar</button></div></div></div>`).join('')}</div>`:''}
+    <div id="zonaPresupuestos"></div>
     <div style="display:flex;gap:10px;align-items:center;margin:18px 0 12px">
       <button class="btn primario" onclick="editarTrat()">Agregar sesión</button>
       <span class="mini">${ts.length} sesión${ts.length===1?'':'es'} registrada${ts.length===1?'':'s'}</span></div>
@@ -1678,8 +1739,8 @@ function imprimirPresupuesto(id){
   lanzarImpresion();
 }
 
-function editarTrat(id){
-  const p=pac(selId),t=p.tratamientos.find(x=>x.id===id)||{fecha:hoy(),sesion:'N.º '+(p.tratamientos.length+1)};
+function editarTrat(id,pre){
+  const p=pac(selId),t=p.tratamientos.find(x=>x.id===id)||Object.assign({fecha:hoy(),sesion:'N.º '+(p.tratamientos.length+1)},pre||{});
   const resumenLab=t.labCosto?`${t.labNombre||'Laboratorio'} — ${usd(t.labCosto)}`:'opcional';
   const resumenHon=t.honorarioMonto?`Acordado ${usd(t.honorarioMonto)}`:'opcional';
   abrirModal(`${id?'Editar':'Nueva'} sesión de tratamiento`,`
@@ -1769,7 +1830,10 @@ function editarTrat(id){
       if(!piezas.length){
         avisoOdonto=' (no pude actualizar el odontograma: falta el número de pieza)';
       }else if(mapa.tipo==='general'){
-        piezas.forEach(n=>{const nd=p.odontograma[n]||{};nd.general=mapa.estado;p.odontograma[n]=nd;});
+        piezas.forEach(n=>{const nd=p.odontograma[n]||{};
+          const g=grupoDeEstado(mapa.estado);
+          if(g)ponerEstadoGrupo(nd,g,mapa.estado);else nd.general=mapa.estado;
+          p.odontograma[n]=nd;});
         avisoOdonto=` y odontograma actualizado (pieza${piezas.length===1?'':'s'} ${piezas.join(', ')})`;
       }else if(mapa.tipo==='cara'){
         const carasElegidas=[...document.querySelectorAll('.t_procCara_chk:checked')].map(el=>el.value);
@@ -1799,6 +1863,9 @@ function editarTrat(id){
       avisoOdonto+=' y agregado al presupuesto';
     }
 
+    if(pre&&pre._limpiarPlan&&p.odontograma&&p.odontograma[pre._limpiarPlan]){
+      delete p.odontograma[pre._limpiarPlan].tratamientoPlan;delete p.odontograma[pre._limpiarPlan].fechaPendiente;
+    }
     guardar();pintar();avisar('Sesión guardada'+avisoOdonto);
     sincronizarProximaCita(p.id,'tratamiento',d.id,d.prox,d.proc||d.dx||'Control de tratamiento',d.proxHora);
   });
@@ -2780,7 +2847,8 @@ function renderEditorReceta(p,c){
       <label class="campo"><span>Hora</span><input type="time" data-rk="proximoControlHora" value="${esc(r.proximoControlHora||'09:00')}"></label></div>
     <div style="display:flex;gap:8px">
       <button class="btn primario" onclick="imprimirReceta('${r.id}')">Guardar e imprimir</button>
-      <button class="btn" onclick="enviarRecetaWhatsapp('${r.id}')">Enviar por WhatsApp (PDF)</button>
+      <button class="btn" onclick="enviarRecetaWhatsapp('${r.id}')" title="Abre el chat con el número del paciente; no necesita estar en tus contactos">Enviar por WhatsApp</button>
+      ${(navigator.canShare&&navigator.share)?`<button class="btn" onclick="compartirRecetaPDF('${r.id}')">Compartir PDF…</button>`:''}
       <button class="btn peligro" onclick="borrarReceta('${r.id}')">Eliminar receta</button>
     </div>`;
   c.querySelectorAll('[data-rk]').forEach(el=>el.onchange=()=>{r[el.dataset.rk]=el.value;guardar();
@@ -2961,7 +3029,61 @@ async function generarPDFReceta(id){
     document.body.classList.remove('imprimiendo');
   }
 }
+/* Número del paciente listo para wa.me (código de Ecuador 593). Si no tiene teléfono guardado, lo pide y lo guarda en su ficha.
+   wa.me abre el chat con CUALQUIER número, sin necesidad de que el paciente esté guardado en los contactos de WhatsApp. */
+function numeroWhatsappPaciente(p){
+  let tel=telWhatsapp(p.telefono);
+  if(!tel){
+    const ingresado=prompt('Este paciente no tiene teléfono registrado. Escribe su número de WhatsApp (ej. 0991234567):');
+    if(!ingresado||!ingresado.trim())return '';
+    tel=telWhatsapp(ingresado);
+    if(!tel){avisar('Ese número no parece válido');return '';}
+    p.telefono=ingresado.trim();guardar();
+  }
+  return tel;
+}
+function abrirWhatsappPaciente(){
+  const p=pac(selId);if(!p)return;
+  const tel=numeroWhatsappPaciente(p);
+  if(!tel)return;
+  const est=datos.config&&datos.config.establecimiento;
+  const texto=encodeURIComponent(`Hola ${p.nombre||''}, te escribimos ${est?'de '+est:'del consultorio'}.`);
+  window.open(`https://wa.me/${tel}?text=${texto}`,'_blank');
+}
+function textoRecetaWhatsapp(r,p){
+  const est=datos.config&&datos.config.establecimiento;
+  const meds=(r.medicamentos||[]).filter(m=>m.dci).map(m=>{
+    const base=[m.dci,m.conc,m.forma].filter(Boolean).join(' ');
+    const como=[m.dosis,m.duracion&&('por '+m.duracion)].filter(Boolean).join(' ');
+    return '• '+base+(como?' — '+como:'');
+  });
+  return [`Hola ${p.nombre||''}, te comparto tu receta médica${est?' de '+est:''}.`,
+    r.diagnostico?`Diagnóstico: ${r.diagnostico}`:'',
+    meds.length?'Medicamentos:\n'+meds.join('\n'):'',
+    r.indicaciones?`Indicaciones: ${r.indicaciones}`:'',
+    'Te adjunto la receta en PDF.'].filter(Boolean).join('\n\n');
+}
+/* Envío por número: descarga el PDF y abre el chat con el número del paciente (sin guardarlo como contacto).
+   El texto ya lleva los medicamentos e indicaciones, así el paciente los tiene aunque el PDF se adjunte después. */
 async function enviarRecetaWhatsapp(id){
+  const p=pac(selId),r=p.recetas.find(x=>x.id===id);
+  const tel=numeroWhatsappPaciente(p);
+  if(!tel)return;
+  // se abre la ventana ya, antes de generar el PDF, para que el navegador no la bloquee como ventana emergente
+  const ventana=window.open('','_blank');
+  avisar('Generando PDF…');
+  let resultado;
+  try{ resultado=await generarPDFReceta(id); }
+  catch(e){ console.error(e); if(ventana)ventana.close(); avisar('No se pudo generar el PDF'); return; }
+  const {blob,nombreArchivo}=resultado;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=nombreArchivo;a.click();
+  const url=`https://wa.me/${tel}?text=${encodeURIComponent(textoRecetaWhatsapp(r,p))}`;
+  if(ventana)ventana.location.href=url;else window.open(url,'_blank');
+  avisar('Se abrió el chat con el número del paciente. Adjunta el PDF descargado («'+nombreArchivo+'») y envía.');
+}
+/* Alternativa en celular/tablet: abre el menú de compartir del sistema (ahí sí hay que elegir un contacto guardado). */
+async function compartirRecetaPDF(id){
   const p=pac(selId);
   avisar('Generando PDF…');
   let resultado;
@@ -2970,18 +3092,12 @@ async function enviarRecetaWhatsapp(id){
   const {blob,nombreArchivo}=resultado;
   const archivo=new File([blob],nombreArchivo,{type:'application/pdf'});
   if(navigator.canShare&&navigator.canShare({files:[archivo]})){
-    try{
-      await navigator.share({files:[archivo],title:'Receta médica',text:`Receta de ${p.nombre||'paciente'}`});
-      return;
-    }catch(e){ if(e.name==='AbortError')return; }
+    try{await navigator.share({files:[archivo],title:'Receta médica',text:`Receta de ${p.nombre||'paciente'}`});return;}
+    catch(e){if(e.name==='AbortError')return;}
   }
-  // alternativa: descargar el PDF y abrir WhatsApp con el número del paciente, para adjuntarlo a mano
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download=nombreArchivo;a.click();
-  const tel=(p.telefono||'').replace(/\D/g,'');
-  const texto=encodeURIComponent(`Hola ${p.nombre||''}, te comparto tu receta médica. Se descargó como "${nombreArchivo}" — adjúntala aquí mismo en este chat.`);
-  window.open(`https://wa.me/${tel}?text=${texto}`,'_blank');
-  avisar('PDF descargado. Adjúntalo manualmente en el chat de WhatsApp que se abrió.');
+  avisar('Tu dispositivo no permite compartir directo; el PDF se descargó.');
 }
 
 /* ---------- radiografías ---------- */
@@ -4278,7 +4394,7 @@ function imprimir033(){
   const odo=()=>{const filas=[];[FDI.adulto,FDI.leche].forEach(set=>set.forEach(q=>{
       const c=q.map(n=>{const d=p.odontograma?.[n];if(!d)return '';
         const partes=[];
-        if(d.general&&SIMB_GENERAL[d.general])partes.push(SIMB_GENERAL[d.general].n);
+        codigosEstado(d).forEach(cod=>{if(SIMB_GENERAL[cod])partes.push(SIMB_GENERAL[cod].n);});
         Object.entries(d.caras||{}).forEach(([cara,est])=>partes.push(`${cara}:${SIMB_CARA[est].n}`));
         if(!partes.length)return '';
         return `${n}: ${partes.join(', ')}${d.mov?' M'+d.mov:''}${d.rec?' R'+d.rec:''}`;}).filter(Boolean);
