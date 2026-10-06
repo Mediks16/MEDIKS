@@ -303,7 +303,8 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .ag-nav{display:flex;gap:4px}
 .ag-nav button[aria-pressed="true"]{border-color:var(--clinico);color:var(--clinico);background:var(--clinico-claro)}
 .ag-grid-wrap{display:flex;border:1px solid var(--linea);border-radius:14px;background:var(--papel);overflow:auto}
-.ag-horas{width:50px;flex:none;border-right:1px solid var(--linea);position:relative}
+.ag-horas{width:50px;flex:none;border-right:1px solid var(--linea);display:flex;flex-direction:column}
+.ag-horas-cuerpo{position:relative;flex:1}
 .ag-hora-lbl{position:absolute;right:8px;transform:translateY(-50%);font-size:11px;color:var(--tinta-suave);font-variant-numeric:tabular-nums}
 .ag-dias{flex:1;display:flex;position:relative;min-width:0}
 .ag-dia-col{flex:1;min-width:118px;position:relative;border-right:1px solid var(--linea)}
@@ -320,8 +321,9 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
   overflow:hidden;cursor:pointer;border:1px solid transparent;line-height:1.32;z-index:2;
   box-shadow:0 1px 2px rgba(15,40,35,.06)}
 .ag-cita:hover{filter:brightness(0.97)}
-.ag-cita .hora{display:block;font-size:10.5px;font-weight:600;opacity:.8;letter-spacing:.01em}
-.ag-cita .nom{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.ag-cita .hn{display:flex;align-items:baseline;gap:5px;min-width:0}
+.ag-cita .hora{flex:none;font-size:10.5px;font-weight:600;opacity:.8;letter-spacing:.01em}
+.ag-cita .nom{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .ag-cita .mot{display:block;font-size:10.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ag-cita.agendada{background:#DCEEE9;border-color:#BFE1D7;color:#0b4a40}
 .ag-cita.confirmada{background:var(--clinico);border-color:#0b6759;color:#fff}
@@ -3974,8 +3976,8 @@ function pintarGridAgenda(fechas){
       const cls=CLASE_ESTADO[c.estado]||'agendada';
       const cabe3=h>=44, cabe2=h>=30;
       return `<div class="ag-cita ${cls}" style="top:${top}px;height:${h}px" data-cita="${c.id}">
-        ${cabe2?`<span class="hora">${esc(c.hora)}${c.duracion?' · '+c.duracion+' min':''}</span>`:''}
-        <span class="nom">${esc(c.nombre)}</span>
+        <span class="hn"><span class="hora">${esc(c.hora)}</span><span class="nom">${esc(c.nombre)}</span></span>
+        ${cabe2&&c.duracion?`<span class="mot">${esc(c.duracion)} min</span>`:''}
         ${cabe3&&c.motivo?`<span class="mot">${esc(c.motivo)}</span>`:''}
         ${cabe3&&c.profesionalNombre?`<span class="mot">${esc(c.profesionalNombre)}</span>`:''}</div>`;
     }).join('');
@@ -3989,7 +3991,10 @@ function pintarGridAgenda(fechas){
   }).join('');
   const horasLabelsHTML=horasLineas.map(m=>`<div class="ag-hora-lbl" style="top:${(m-iniMin)*px}px">${horaLabel(m)}</div>`).join('');
   $('#agGrid').innerHTML=`<div class="ag-grid-wrap">
-      <div class="ag-horas" style="height:${alto+16}px">${horasLabelsHTML}</div>
+      <div class="ag-horas">
+        <div class="ag-dia-head" style="visibility:hidden">&nbsp;<b>00</b></div>
+        <div class="ag-horas-cuerpo" style="height:${alto+16}px">${horasLabelsHTML}</div>
+      </div>
       <div class="ag-dias">${colsHTML}</div>
     </div>
     <div class="leyenda" style="margin-top:12px">${ESTADOS_CITA.map(e=>`<span><b style="color:${COLOR_ESTADO[e]}">●</b> ${e}</span>`).join('')}</div>`;
@@ -4070,6 +4075,12 @@ function abrirCita(id,prefill){
     guardar();renderAgenda();avisar('Cita guardada');
     sincronizarCitaGoogle(d);
   });
+  $('#ci_pac').oninput=()=>{
+    const nombre=$('#ci_pac').value.trim();
+    if(!nombre)return;
+    const encontrado=datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nombre.toLowerCase());
+    if(encontrado&&encontrado.telefono&&!$('#ci_tel').value.trim())$('#ci_tel').value=encontrado.telefono;
+  };
   $('#ci_wsp').onclick=()=>{
     const nombre=$('#ci_pac').value.trim()||'paciente',tel=$('#ci_tel').value.trim();
     const fecha=$('#ci_fecha').value||c.fecha,hora=$('#ci_hora').value||c.hora;
