@@ -2848,7 +2848,6 @@ function renderEditorReceta(p,c){
     <div style="display:flex;gap:8px">
       <button class="btn primario" onclick="imprimirReceta('${r.id}')">Guardar e imprimir</button>
       <button class="btn" onclick="enviarRecetaWhatsapp('${r.id}')" title="Abre el chat con el número del paciente; no necesita estar en tus contactos">Enviar por WhatsApp</button>
-      ${(navigator.canShare&&navigator.share)?`<button class="btn" onclick="compartirRecetaPDF('${r.id}')">Compartir PDF…</button>`:''}
       <button class="btn peligro" onclick="borrarReceta('${r.id}')">Eliminar receta</button>
     </div>`;
   c.querySelectorAll('[data-rk]').forEach(el=>el.onchange=()=>{r[el.dataset.rk]=el.value;guardar();
@@ -3042,13 +3041,73 @@ function numeroWhatsappPaciente(p){
   }
   return tel;
 }
+/* ---------- mensajes predeterminados de WhatsApp ---------- */
+const PLANTILLAS_WSP=[
+  {id:'saludo',titulo:'Saludo sencillo',texto:'¡Hola {nombre}! 😊 Te saludamos de {consultorio}. ¿En qué podemos ayudarte?'},
+  {id:'recordatorio',titulo:'Recordatorio de cita',texto:'¡Hola {nombre}! 😊 Te recordamos tu cita en {consultorio} el {fecha} a las {hora}. Si necesitas cambiarla, respóndenos por aquí y la reprogramamos sin problema. ¡Te esperamos con gusto! 🦷'},
+  {id:'confirmar',titulo:'Confirmar asistencia',texto:'¡Hola {nombre}! 🦷 ¿Nos confirmas si podrás asistir a tu cita del {fecha} a las {hora}? Con un «Sí» por aquí queda todo listo. ¡Gracias!'},
+  {id:'gracias',titulo:'Gracias por tu visita',texto:'Hola {nombre} 💙 Gracias por visitarnos hoy en {consultorio}. Fue un gusto atenderte. Si tienes cualquier duda o molestia, escríbenos con toda confianza.'},
+  {id:'extraccion',titulo:'Cuidados después de una extracción',texto:'Hola {nombre} 😊 Gracias por confiar en nosotros. Para que tu recuperación sea rápida:\n\n• Muerde la gasa con suavidad unos 30 minutos.\n• Hoy no te enjuagues con fuerza, no escupas ni uses pitillo.\n• No fumes ni tomes alcohol por unos días.\n• Come alimentos blandos y fríos o tibios.\n• Puedes poner hielo por fuera de la mejilla, en ratos de 10 minutos.\n• Toma los medicamentos tal como te indicamos.\n\nSi el sangrado no para, el dolor aumenta mucho o te da fiebre, escríbenos o llámanos de inmediato. ¡Cuídate mucho! 💙'},
+  {id:'endodoncia',titulo:'Cuidados después de una endodoncia',texto:'Hola {nombre} 😊 Tu tratamiento de conducto salió muy bien. Algunas recomendaciones:\n\n• Es normal sentir una molestia leve unos días; toma la medicación como te indicamos.\n• Evita masticar cosas duras del lado tratado hasta que te coloquemos la restauración definitiva.\n• No dejes pasar mucho tiempo sin volver a terminar el tratamiento.\n\nSi aparece dolor fuerte, hinchazón o fiebre, avísanos enseguida. ¡Estamos para ayudarte! 💙'},
+  {id:'resina',titulo:'Cuidados después de una restauración (resina)',texto:'Hola {nombre} 😊 Ya tienes tu restauración lista. Recuerda:\n\n• La anestesia puede durar unas horas: ten cuidado de no morderte el labio, la lengua o la mejilla, y espera a que pase para comer.\n• Una sensibilidad leve los primeros días es normal.\n• Si sientes que la mordida quedó «alta» o te molesta al masticar, avísanos y la ajustamos.\n\n¡Gracias por tu confianza! 💙'},
+  {id:'control',titulo:'Invitación a control o limpieza',texto:'¡Hola {nombre}! 😊 Ya es un buen momento para tu control y limpieza dental. Cuidar tu sonrisa a tiempo evita molestias y tratamientos más largos. ¿Te agendamos una cita? Respóndenos por aquí y buscamos el horario que mejor te quede. 🦷'},
+  {id:'reagendar',titulo:'Te extrañamos (reagendar)',texto:'Hola {nombre} 💙 Notamos que no pudiste venir a tu cita y queremos asegurarnos de que todo esté bien. Si quieres, la reprogramamos para el día y la hora que mejor te acomode. ¡Aquí estamos!'},
+  {id:'cumple',titulo:'Feliz cumpleaños',texto:'¡Feliz cumpleaños, {nombre}! 🎉🎂 De parte de todo el equipo de {consultorio}, te deseamos un día lleno de alegría y muchas sonrisas. ¡Un abrazo grande!'},
+  {id:'saldo',titulo:'Recordatorio amable de saldo',texto:'Hola {nombre} 😊 Esperamos que estés muy bien. Te escribimos con cariño para recordarte que tienes un saldo pendiente de {saldo} en {consultorio}. Si ya lo cancelaste, por favor ignora este mensaje. ¡Gracias por tu confianza! 💙'}
+];
+function rellenarPlantilla(texto,vars){
+  return String(texto).replace(/\{(\w+)\}/g,(m,k)=>vars[k]!==undefined?vars[k]:m);
+}
+function nombreDiaFecha(f){
+  if(!f)return '';
+  const dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const d=new Date(f+'T00:00:00');
+  return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]}`;
+}
+/* Variables de una plantilla para un paciente: usa su próxima cita agendada, si tiene. */
+function variablesPlantillaWsp(p){
+  const g=datos.config||{};
+  const prox=(datos.citas||[]).filter(c=>(c.pacienteId===p.id||(c.nombre||'').trim().toLowerCase()===(p.nombre||'').trim().toLowerCase())
+      &&c.fecha>=hoy()&&c.estado!=='Cancelada')
+    .sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora))[0];
+  const sal=saldo(p);
+  return {nombre:p.nombre||'',consultorio:g.establecimiento||'nuestro consultorio',
+    fecha:prox?nombreDiaFecha(prox.fecha):'[fecha]',hora:prox?prox.hora:'[hora]',
+    saldo:sal>0?usd(sal):'[monto]'};
+}
 function abrirWhatsappPaciente(){
   const p=pac(selId);if(!p)return;
   const tel=numeroWhatsappPaciente(p);
   if(!tel)return;
-  const est=datos.config&&datos.config.establecimiento;
-  const texto=encodeURIComponent(`Hola ${p.nombre||''}, te escribimos ${est?'de '+est:'del consultorio'}.`);
-  window.open(`https://wa.me/${tel}?text=${texto}`,'_blank');
+  const vars=variablesPlantillaWsp(p);
+  const primero=PLANTILLAS_WSP[0];
+  abrirModal('Mensaje por WhatsApp',`
+    <p class="mini" style="margin-top:0">Para <b>${esc(p.nombre||'')}</b> · ${esc(p.telefono||tel)}. Elige un mensaje y, si quieres, cámbialo antes de enviar.</p>
+    <label class="campo"><span>Mensaje predeterminado</span>
+      <select id="wsp_plantilla">${PLANTILLAS_WSP.map(x=>`<option value="${x.id}">${esc(x.titulo)}</option>`).join('')}
+        <option value="__libre">Escribir mi propio mensaje</option></select></label>
+    <label class="campo"><span>Texto que se enviará</span>
+      <textarea id="wsp_texto" rows="10">${esc(rellenarPlantilla(primero.texto,vars))}</textarea></label>
+    <p class="mini" id="wsp_aviso" style="margin-top:-4px"></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primario" type="button" id="wsp_enviar">Abrir en WhatsApp</button>
+    </div>`,null);
+  const sel=$('#wsp_plantilla'),txt=$('#wsp_texto'),aviso=$('#wsp_aviso');
+  const revisar=()=>{aviso.textContent=/\[(fecha|hora|monto)\]/.test(txt.value)
+    ?'⚠ Completa lo que está entre corchetes [ ] antes de enviar (este paciente no tiene cita próxima o saldo).':'';};
+  sel.onchange=()=>{
+    if(sel.value==='__libre')txt.value='';
+    else txt.value=rellenarPlantilla(PLANTILLAS_WSP.find(x=>x.id===sel.value).texto,vars);
+    revisar();
+  };
+  txt.oninput=revisar;revisar();
+  $('#wsp_enviar').onclick=()=>{
+    const t=txt.value.trim();
+    if(!t){avisar('Escribe un mensaje');return;}
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(t)}`,'_blank');
+    $('#modal').close();
+  };
 }
 function textoRecetaWhatsapp(r,p){
   const est=datos.config&&datos.config.establecimiento;
@@ -3063,26 +3122,51 @@ function textoRecetaWhatsapp(r,p){
     r.indicaciones?`Indicaciones: ${r.indicaciones}`:'',
     'Te adjunto la receta en PDF.'].filter(Boolean).join('\n\n');
 }
-/* Envío por número: descarga el PDF y abre el chat con el número del paciente (sin guardarlo como contacto).
-   El texto ya lleva los medicamentos e indicaciones, así el paciente los tiene aunque el PDF se adjunte después. */
+/* Enviar receta: WhatsApp no deja que una página web adjunte un archivo a un número por sí sola, así que son 2 pasos:
+   1) abrir el chat con el número del paciente (sin guardarlo como contacto) con el mensaje ya escrito;
+   2) mandar el PDF — con el menú de compartir del celular/tablet (el chat ya abierto aparece en «recientes»)
+      o descargándolo para adjuntarlo con el clip (📎) en el chat. El PDF se prepara al abrir esta ventana. */
 async function enviarRecetaWhatsapp(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
   const tel=numeroWhatsappPaciente(p);
   if(!tel)return;
-  // se abre la ventana ya, antes de generar el PDF, para que el navegador no la bloquee como ventana emergente
-  const ventana=window.open('','_blank');
-  avisar('Generando PDF…');
+  abrirModal('Enviar receta por WhatsApp',`
+    <p class="mini" style="margin-top:0">Para <b>${esc(p.nombre||'')}</b> · ${esc(p.telefono||tel)}. No necesita estar en tus contactos.</p>
+    <div class="bloque" style="margin-bottom:10px">
+      <b>Paso 1 · Abrir el chat</b>
+      <p class="mini" style="margin:4px 0 8px">Abre WhatsApp con el mensaje y los medicamentos ya escritos. Envíalo.</p>
+      <button class="btn primario" type="button" id="rw_chat">Abrir chat y mensaje</button></div>
+    <div class="bloque" style="margin-bottom:0">
+      <b>Paso 2 · Enviar el PDF de la receta</b>
+      <p class="mini" id="rw_estado" style="margin:4px 0 8px">Preparando el PDF…</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primario" type="button" id="rw_compartir" disabled style="display:none">Enviar PDF por WhatsApp</button>
+        <button class="btn" type="button" id="rw_descargar" disabled>Descargar PDF</button></div>
+      <p class="mini" id="rw_ayuda" style="margin:8px 0 0"></p></div>`,null);
+  $('#rw_chat').onclick=()=>window.open(`https://wa.me/${tel}?text=${encodeURIComponent(textoRecetaWhatsapp(r,p))}`,'_blank');
   let resultado;
   try{ resultado=await generarPDFReceta(id); }
-  catch(e){ console.error(e); if(ventana)ventana.close(); avisar('No se pudo generar el PDF'); return; }
+  catch(e){ console.error(e); $('#rw_estado').textContent='No se pudo generar el PDF. Revisa tu conexión a internet e inténtalo de nuevo.'; return; }
   const {blob,nombreArchivo}=resultado;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=nombreArchivo;a.click();
-  const url=`https://wa.me/${tel}?text=${encodeURIComponent(textoRecetaWhatsapp(r,p))}`;
-  if(ventana)ventana.location.href=url;else window.open(url,'_blank');
-  avisar('Se abrió el chat con el número del paciente. Adjunta el PDF descargado («'+nombreArchivo+'») y envía.');
+  const archivo=new File([blob],nombreArchivo,{type:'application/pdf'});
+  const puedeCompartir=!!(navigator.canShare&&navigator.canShare({files:[archivo]}));
+  $('#rw_estado').textContent='✓ PDF listo: '+nombreArchivo;
+  const btnDesc=$('#rw_descargar'),btnComp=$('#rw_compartir');
+  btnDesc.disabled=false;
+  btnDesc.onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombreArchivo;a.click();
+    avisar('PDF descargado. Adjúntalo en el chat con el clip (📎) → Documento.');};
+  if(puedeCompartir){
+    btnComp.style.display='';btnComp.disabled=false;
+    $('#rw_ayuda').textContent='Al tocar «Enviar PDF por WhatsApp» elige WhatsApp y luego el chat de este paciente (aparece en «Recientes» después del paso 1).';
+    btnComp.onclick=async()=>{
+      try{await navigator.share({files:[archivo],title:'Receta médica'});}
+      catch(e){if(e.name!=='AbortError'){console.error(e);avisar('No se pudo abrir el menú de compartir; usa «Descargar PDF».');}}
+    };
+  }else{
+    $('#rw_ayuda').textContent='En computadora: descarga el PDF y arrástralo al chat de WhatsApp (o usa el clip 📎 → Documento).';
+  }
 }
-/* Alternativa en celular/tablet: abre el menú de compartir del sistema (ahí sí hay que elegir un contacto guardado). */
+/* Alternativa en celular/tablet: abre el menú de compartir del sistema directamente. */
 async function compartirRecetaPDF(id){
   const p=pac(selId);
   avisar('Generando PDF…');
@@ -3812,7 +3896,7 @@ function verResumen(){
         ${cumples.length?cumples.map(p=>{const e=edad(p.nacimiento);
           return `<div class="evo" style="grid-template-columns:1fr auto">
             <div><button class="btn chico" onclick="abrir('${p.id}')">${esc(p.nombre)}</button> <span class="mini">${e!==null?e+' años':''}</span></div>
-            <div>${p.telefono?`<a href="https://wa.me/${telWhatsapp(p.telefono)}?text=${encodeURIComponent('¡Feliz cumpleaños, '+p.nombre+'! Te deseamos un excelente día de parte de todo el consultorio. 🎉')}" target="_blank" class="btn chico">Felicitar</a>`:''}</div>
+            <div>${p.telefono?`<a href="https://wa.me/${telWhatsapp(p.telefono)}?text=${encodeURIComponent(rellenarPlantilla(PLANTILLAS_WSP.find(x=>x.id==='cumple').texto,{nombre:p.nombre,consultorio:(datos.config&&datos.config.establecimiento)||'nuestro consultorio'}))}" target="_blank" class="btn chico">Felicitar</a>`:''}</div>
           </div>`;}).join(''):'<p class="mini">Nadie cumple años hoy.</p>'}</div>
     </div>
     <div class="saldos">
@@ -4129,10 +4213,8 @@ function telWhatsapp(tel){
 }
 function mensajeRecordatorio(nombre,fecha,hora){
   const g=datos.config||{};
-  const dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-  const dfecha=new Date(fecha+'T00:00:00');
-  const texto=`Hola ${nombre}, te recordamos tu cita en ${g.establecimiento||'el consultorio'} el ${dias[dfecha.getDay()]} ${dfecha.getDate()}/${dfecha.getMonth()+1} a las ${hora}. Si necesitas reprogramar, respóndenos por este medio. ¡Te esperamos!`;
-  return texto;
+  return rellenarPlantilla(PLANTILLAS_WSP.find(x=>x.id==='recordatorio').texto,
+    {nombre,consultorio:g.establecimiento||'nuestro consultorio',fecha:nombreDiaFecha(fecha),hora});
 }
 function enlaceWhatsapp(tel,nombre,fecha,hora){
   const num=telWhatsapp(tel);
