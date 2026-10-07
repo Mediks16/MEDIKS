@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
+<meta name="theme-color" content="#0E7C6B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mediks">
 <title>Consultorio odontológico — HCU 033, consentimientos y pagos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -353,7 +360,7 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .rx-card .info b{display:block;font-size:13px}
 .rx-card .info span{color:var(--tinta-suave)}
 .rx-full{width:100%;max-height:62vh;object-fit:contain;border-radius:8px;background:#0b1f1b;display:block;margin-bottom:12px}
-.subir{border:1.5px dashed var(--linea);border-radius:10px;padding:22px;text-align:center;color:var(--tinta-suave);cursor:pointer}
+.subir{display:block;border:1.5px dashed var(--linea);border-radius:10px;padding:22px;text-align:center;color:var(--tinta-suave);cursor:pointer}
 .subir:hover{border-color:var(--clinico);color:var(--clinico)}
 .subir input{display:none}
 /* pagos */
@@ -497,6 +504,7 @@ body.imprimiendo #impresion{display:block;padding:8px}
         <button id="btnGastos">Gastos</button>
         <button id="btnInventario">Inventario</button>
         <button id="btnRecetas">Recetas emitidas</button>
+        <button id="btnReporte">Reporte mensual</button>
         <hr>
         <button id="btnPersonalizar">Personalizar</button>
         <button id="btnConfig">Consultorio</button>
@@ -591,6 +599,7 @@ function guardar(){clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
   try{await almacen.set(CLAVE,JSON.stringify(datos));}
   catch(e){console.error(e);avisar('No se pudo guardar. Descarga un respaldo.');}
   if(almacen!==almacenLocal){try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}}
+  copiaAutomatica();
 },350);}
 async function cargar(){try{const r=await almacen.get(CLAVE);if(r&&r.value)datos=JSON.parse(r.value);}catch(e){}
   datos.pacientes=datos.pacientes||[];datos.config=datos.config||{};datos.citas=datos.citas||[];
@@ -746,13 +755,22 @@ const TRAT_A_ODONTO={
   'Carilla':{tipo:'general',estado:'corona_real'},'Corona de acero':{tipo:'general',estado:'corona_real'},
   'Prótesis parcial removible':{tipo:'general',estado:'removible_real'},'Prótesis total':{tipo:'general',estado:'total_real'},
   'Sellante':{tipo:'general',estado:'sellante_real'},
-  'Colocación de implante':{tipo:'general',estado:'corona_real'},'Corona sobre implante':{tipo:'general',estado:'corona_real'}
+  'Colocación de implante':{tipo:'general',estado:'implante_real'},'Corona sobre implante':{tipo:'general',estado:'corona_real'}
 };
 /* 'cara' = tratamiento que se aplica sobre una o más superficies de la pieza (ej. resina, sellante).
    'general' = tratamiento que afecta a la pieza completa (ej. corona, exodoncia, endodoncia).
    null = no está en el catálogo mapeado (tratamiento libre); se deja la cara como opcional. */
+/* Reconoce el tratamiento aunque lo escribas a tu manera: «Corona de porcelana» se entiende como «Corona». */
+function claveTratOdonto(nombre){
+  if(!nombre)return null;
+  if(TRAT_A_ODONTO[nombre])return nombre;
+  const n=String(nombre).trim().toLowerCase();
+  const claves=Object.keys(TRAT_A_ODONTO).filter(k=>n===k.toLowerCase()||n.startsWith(k.toLowerCase()+' '));
+  return claves.sort((a,b)=>b.length-a.length)[0]||null;
+}
 function tipoTratamiento(nombre){
-  return nombre&&TRAT_A_ODONTO[nombre]?TRAT_A_ODONTO[nombre].tipo:null;
+  const k=claveTratOdonto(nombre);
+  return k?TRAT_A_ODONTO[k].tipo:null;
 }
 const SIMB_CARA={
   caries:{s:'',c:'#E0564A',n:'Caries'},
@@ -1270,6 +1288,7 @@ function panelPiezaHTML(p,n,verInicial){
     </div>
     <p class="mini" style="font-weight:600;color:var(--tinta);border-top:1px solid var(--linea);padding-top:10px;margin-bottom:4px">Historial de la pieza</p>
     ${historial.length?historial.map(t=>`<div class="hist-pieza-item"><i></i><div><b>${fechaCorta(t.fecha)} — ${esc(t.proc||t.dx||'Tratamiento')}</b>${t.profesionalNombre?esc(t.profesionalNombre):''}</div><span class="chev">›</span></div>`).join(''):'<p class="mini" style="margin:0">Sin tratamientos registrados en esta pieza.</p>'}
+    ${linkImagenesPieza(p,n)}
   </div>`;
 }
 
@@ -1540,7 +1559,7 @@ function pendientesOdonto(p){
 }
 function registrarPendienteOdonto(n){
   const p=pac(selId),d=(p.odontograma||{})[n]||{};
-  editarTrat(null,{pieza:n,proc:d.tratamientoPlan||'',dx:d.diagnostico||'',_limpiarPlan:n});
+  editarTrat(null,{pieza:n,dx:d.diagnostico||'',lineas:[{pieza:n,trat:d.tratamientoPlan||'',caras:[]}],_limpiarPlan:n});
 }
 function quitarPendienteOdonto(n){
   if(!confirm('¿Quitar este tratamiento pendiente de la pieza '+n+'?'))return;
@@ -1755,8 +1774,85 @@ function imprimirPresupuesto(id){
   lanzarImpresion();
 }
 
+/* ---------- sesión de tratamiento: líneas «pieza + tratamiento + caras» que se aplican solas al odontograma ---------- */
+const PIEZA_VALIDA=n=>{const v=+n;return (v>=11&&v<=48)||(v>=51&&v<=85);};
+const piezasDeTexto=txt=>(String(txt||'').match(/\d{1,2}/g)||[]).filter(PIEZA_VALIDA);
+function endodonciaSugerida(n){
+  const t=tipoPieza(n);
+  if(t==='molar')return 'Endodoncia multirradicular';
+  if(t==='premolar'&&esSuperiorPieza(n))return 'Endodoncia birradicular';
+  return 'Endodoncia unirradicular';
+}
+const TRAT_SUGERIDO={extraccion:'Exodoncia simple',corona_ind:'Corona',puente_ind:'Puente',removible_ind:'Prótesis parcial removible',
+  total_ind:'Prótesis total',implante_ind:'Colocación de implante',sellante_nec:'Sellante'};
+function carasConCaries(p,n){
+  const d=(p.odontograma||{})[n];
+  return d&&d.caras?['V','M','O','D','L'].filter(k=>d.caras[k]==='caries'):[];
+}
+function tratamientoParaCaries(nCaras){return nCaras<=1?'Restauración simple':nCaras===2?'Restauración compuesta':'Restauración compleja';}
+/* Qué le falta hacer a este paciente, según su odontograma: cada sugerencia se convierte en una línea con un toque. */
+function sugerenciasSesion(p){
+  const out=[],o=p.odontograma||{};
+  const todos=Object.values(CATALOGO_TRATAMIENTOS).flat();
+  Object.keys(o).sort((a,b)=>+a-+b).forEach(n=>{
+    const d=o[n];if(!d||!PIEZA_VALIDA(n))return;
+    const caries=carasConCaries(p,n);
+    if(caries.length)out.push({pieza:n,trat:tratamientoParaCaries(caries.length),caras:caries,texto:`${n} · Caries (${caries.join(', ')})`});
+    codigosEstado(d).forEach(cod=>{
+      if(!esPendienteSegunCodigo(cod))return;
+      const trat=cod==='endo_nec'?endodonciaSugerida(n):TRAT_SUGERIDO[cod];
+      if(trat)out.push({pieza:n,trat,caras:[],texto:`${n} · ${SIMB_GENERAL[cod].n}`});
+    });
+    if(d.tratamientoPlan){
+      const plan=d.tratamientoPlan.trim();
+      const enCat=todos.find(x=>x.toLowerCase()===plan.toLowerCase());
+      const trat=enCat||plan;
+      if(!out.some(x=>x.pieza===n&&x.trat.toLowerCase()===trat.toLowerCase()))
+        out.push({pieza:n,trat,caras:enCat&&tipoTratamiento(enCat)==='cara'?carasConCaries(p,n):[],texto:`${n} · ${plan}`});
+    }
+  });
+  return out;
+}
+function textoLinea(l){
+  const caras=(l.caras||[]).length?' ('+l.caras.join('')+')':'';
+  return `${l.trat}${caras}${(l.pieza||'').trim()?' — pieza '+l.pieza.trim():''}`;
+}
+/* Aplica una línea al odontograma. Devuelve un texto si algo quedó pendiente de completar. */
+function aplicarLineaAOdonto(p,l){
+  const mapa=TRAT_A_ODONTO[claveTratOdonto(l.trat)];
+  if(!mapa)return '';
+  const piezas=piezasDeTexto(l.pieza);
+  if(!piezas.length)return `falta la pieza de «${l.trat}»`;
+  if(mapa.tipo==='cara'&&!(l.caras||[]).length)return `faltan las caras de «${l.trat}» en la pieza ${piezas.join(', ')}`;
+  asegurarInicialAntesDePrimerCambio(p);
+  p.odontograma=p.odontograma||{};
+  piezas.forEach(n=>{
+    const nd=p.odontograma[n]||{};
+    if(mapa.tipo==='general'){
+      if(mapa.estado==='perdida_caries')guardarCodigosEstado(nd,[mapa.estado]); // el diente ya no está: quedan solo «ausente»
+      else{const g=grupoDeEstado(mapa.estado);if(g)ponerEstadoGrupo(nd,g,mapa.estado);else nd.general=mapa.estado;}
+    }else{
+      nd.caras=nd.caras||{};l.caras.forEach(k=>{nd.caras[k]=mapa.estado;});
+    }
+    p.odontograma[n]=nd;
+  });
+  return '';
+}
+/* Costo que ya acordaste en un presupuesto aceptado para esa pieza y tratamiento. */
+function precioPresupuestado(p,l){
+  const piezas=piezasDeTexto(l.pieza);
+  let total=0;
+  (p.presupuestos||[]).filter(x=>x.estado==='Aceptado').forEach(x=>(x.items||[]).forEach(it=>{
+    if((it.tratamiento||'').toLowerCase()!==(l.trat||'').toLowerCase())return;
+    const ip=piezasDeTexto(it.pieza);
+    if(piezas.length&&ip.length&&piezas.every(n=>ip.includes(n)))total+=(Number(it.precio)||0)*(piezas.length/ip.length);
+  }));
+  return total;
+}
 function editarTrat(id,pre){
   const p=pac(selId),t=p.tratamientos.find(x=>x.id===id)||Object.assign({fecha:hoy(),sesion:'N.º '+(p.tratamientos.length+1)},pre||{});
+  let lineas=JSON.parse(JSON.stringify(t.lineas||[]));
+  let procManual=!!(t.proc&&!(t.lineas&&t.lineas.length));
   const resumenLab=t.labCosto?`${t.labNombre||'Laboratorio'} — ${usd(t.labCosto)}`:'opcional';
   const resumenHon=t.honorarioMonto?`Acordado ${usd(t.honorarioMonto)}`:'opcional';
   abrirModal(`${id?'Editar':'Nueva'} sesión de tratamiento`,`
@@ -1774,21 +1870,17 @@ function editarTrat(id,pre){
     <label class="campo"><span>Diagnóstico y complicaciones</span>
       <textarea id="t_dx" placeholder="Si no hay complicaciones, anotar «no presenta complicaciones»">${esc(t.dx||'')}</textarea></label>
 
-    <label class="campo"><span>Procedimientos realizados</span></label>
-    <div class="grid">
-      <label class="campo"><span>Elegir del catálogo (opcional)</span><select id="t_procCat">
-        <option value="">— Elegir tratamiento —</option>
-        ${Object.entries(CATALOGO_TRATAMIENTOS).map(([cat,lista])=>`<optgroup label="${esc(cat)}">
-          ${lista.map(tr=>`<option value="${esc(tr)}">${esc(tr)}</option>`).join('')}
-        </optgroup>`).join('')}
-      </select></label>
-      <div id="t_procCarasWrap" style="display:none">
-        <span class="mini">¿Qué cara(s)?</span>
-        <div class="chks">${CARAS.map(([k,n])=>`<label class="chk"><input type="checkbox" class="t_procCara_chk" value="${k}"> ${k}</label>`).join('')}</div>
-      </div>
+    <div class="bloque" style="margin-bottom:12px">
+      <b>¿Qué se hizo hoy?</b>
+      <p class="mini" style="margin:2px 0 8px">Toca una sugerencia del odontograma o agrega una línea. Al guardar, el odontograma se actualiza solo (pieza, cara y estado).</p>
+      <div id="t_sugs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <div id="t_lineas"></div>
+      <div id="t_consent"></div>
+      <button class="btn chico" type="button" id="t_addLinea" style="margin-top:6px">+ Agregar tratamiento</button>
+      <datalist id="dl_cat_trat">${Object.values(CATALOGO_TRATAMIENTOS).flat().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
     </div>
-    <textarea id="t_proc" placeholder="Se completa solo al elegir del catálogo, o escribe aquí directamente">${esc(t.proc||'')}</textarea>
-    <p class="mini" style="margin-top:-6px">Al elegir del catálogo, el odontograma de esta pieza se actualiza solo al guardar.</p>
+    <label class="campo"><span>Procedimientos realizados (se llena solo; puedes editarlo)</span>
+    <textarea id="t_proc" placeholder="Se completa solo con lo de arriba, o escribe aquí directamente">${esc(t.proc||'')}</textarea></label>
 
     <label class="campo"><span>Prescripciones</span><textarea id="t_presc">${esc(t.presc||'')}</textarea></label>
     <div class="grid">
@@ -1819,8 +1911,12 @@ function editarTrat(id,pre){
         </div>
       </div></details>`,
   ()=>{
-    const tipoCat=tipoTratamiento($('#t_procCat').value);
-    const d={id:t.id||uid(),sesion:$('#t_ses').value,fecha:$('#t_fecha').value,pieza:$('#t_pieza').value.trim(),
+    const lineasOk=lineas.filter(l=>(l.trat||'').trim()).map(l=>({pieza:(l.pieza||'').trim(),trat:l.trat.trim(),caras:l.caras||[]}));
+    const tipoCat=(lineasOk.map(l=>tipoTratamiento(l.trat)).find(Boolean))||null;
+    // la pieza de la sesión = lo escrito arriba + las piezas de cada línea (sin repetir)
+    const piezasSesion=[...new Set([...piezasDeTexto($('#t_pieza').value),...lineasOk.flatMap(l=>piezasDeTexto(l.pieza))])];
+    const piezaTexto=piezasSesion.length?piezasSesion.join(', '):$('#t_pieza').value.trim();
+    const d={id:t.id||uid(),sesion:$('#t_ses').value,fecha:$('#t_fecha').value,pieza:piezaTexto,lineas:lineasOk,
       dx:$('#t_dx').value.trim(),proc:$('#t_proc').value.trim(),presc:$('#t_presc').value.trim(),
       costo:Number($('#t_costo').value)||0,prox:$('#t_prox').value,proxHora:$('#t_proxHora').value||'09:00',
       labNombre:$('#t_labNombre').value.trim(),labCosto:Number($('#t_labCosto').value)||0,labAbonado:Number($('#t_labAbonado').value)||0,
@@ -1837,32 +1933,16 @@ function editarTrat(id,pre){
       p.odontogramaInicial={dientes:JSON.parse(JSON.stringify(p.odontograma)),fecha:hoy()};
     }
 
-    // actualizar el odontograma solo, según lo elegido en el catálogo
-    const catTratamiento=$('#t_procCat').value;
-    const mapa=catTratamiento?TRAT_A_ODONTO[catTratamiento]:null;
+    // actualizar el odontograma solo: cada línea (pieza + tratamiento + caras) se aplica a su pieza
     let avisoOdonto='';
-    if(mapa){
-      const piezas=(d.pieza.match(/\d{1,2}/g)||[]).filter(n=>{const v=+n;return (v>=11&&v<=48)||(v>=51&&v<=85);});
-      if(!piezas.length){
-        avisoOdonto=' (no pude actualizar el odontograma: falta el número de pieza)';
-      }else if(mapa.tipo==='general'){
-        piezas.forEach(n=>{const nd=p.odontograma[n]||{};
-          const g=grupoDeEstado(mapa.estado);
-          if(g)ponerEstadoGrupo(nd,g,mapa.estado);else nd.general=mapa.estado;
-          p.odontograma[n]=nd;});
-        avisoOdonto=` y odontograma actualizado (pieza${piezas.length===1?'':'s'} ${piezas.join(', ')})`;
-      }else if(mapa.tipo==='cara'){
-        const carasElegidas=[...document.querySelectorAll('.t_procCara_chk:checked')].map(el=>el.value);
-        if(!carasElegidas.length){
-          avisoOdonto=' (elige al menos una cara para que se refleje en el odontograma)';
-        }else{
-          piezas.forEach(n=>{const nd=p.odontograma[n]||{};nd.caras=nd.caras||{};
-            carasElegidas.forEach(cara=>{nd.caras[cara]=mapa.estado;});
-            p.odontograma[n]=nd;});
-          avisoOdonto=` y odontograma actualizado (pieza${piezas.length===1?'':'s'} ${piezas.join(', ')})`;
-        }
-      }
-    }
+    const faltantes=[],aplicadas=new Set();
+    lineasOk.forEach(l=>{
+      if(!claveTratOdonto(l.trat))return;
+      const falta=aplicarLineaAOdonto(p,l);
+      if(falta)faltantes.push(falta);else piezasDeTexto(l.pieza).forEach(n=>aplicadas.add(n));
+    });
+    if(aplicadas.size)avisoOdonto=` y odontograma actualizado (pieza${aplicadas.size===1?'':'s'} ${[...aplicadas].join(', ')})`;
+    if(faltantes.length)avisoOdonto+=` (no se reflejó en el odontograma: ${faltantes.join('; ')})`;
 
     // agregar también a un presupuesto, si se marcó
     if(document.getElementById('t_alPresu')?.checked){
@@ -1874,15 +1954,16 @@ function editarTrat(id,pre){
         p.presupuestos.push(dest);
       }
       dest.items=(dest.items||[]).filter(it=>it.tratamiento||it.pieza||it.precio);
-      const carasElegidas=[...document.querySelectorAll('.t_procCara_chk:checked')].map(el=>el.value);
-      dest.items.push({tratamiento:catTratamiento||d.proc||'Tratamiento',pieza:d.pieza,precio:d.costo||'',caras:carasElegidas});
+      if(lineasOk.length){
+        lineasOk.forEach(l=>dest.items.push({tratamiento:l.trat,pieza:l.pieza,precio:lineasOk.length===1?(d.costo||''):'',caras:l.caras}));
+      }else dest.items.push({tratamiento:d.proc||'Tratamiento',pieza:d.pieza,precio:d.costo||'',caras:[]});
       avisoOdonto+=' y agregado al presupuesto';
     }
 
     // coordinación automática: la cita de ese día queda «Atendida» y se quitan los pendientes del odontograma que ya se hicieron
     const citaDia=(datos.citas||[]).find(c=>c.pacienteId===p.id&&c.fecha===d.fecha&&(c.estado==='Agendada'||c.estado==='Confirmada'));
     if(citaDia){citaDia.estado='Atendida';sincronizarCitaGoogle(citaDia);avisoOdonto+=' · su cita de ese día quedó como atendida';}
-    const textoHecho=((d.proc||'')+' '+(catTratamiento||'')).toLowerCase();
+    const textoHecho=((d.proc||'')+' '+lineasOk.map(l=>l.trat).join(' ')).toLowerCase();
     let pendQuitados=0;
     (d.pieza.match(/\d{1,2}/g)||[]).forEach(num=>{
       const nd=p.odontograma&&p.odontograma[num];
@@ -1895,6 +1976,12 @@ function editarTrat(id,pre){
     }
     guardar();pintar();avisar('Sesión guardada'+avisoOdonto);
     sincronizarProximaCita(p.id,'tratamiento',d.id,d.prox,d.proc||d.dx||'Control de tratamiento',d.proxHora);
+    // lo que sigue solo para sesiones nuevas: primero el aviso de consentimiento y luego el cobro
+    if(!id){
+      const _faltan=consentimientosFaltantes(p,[...lineasOk.map(l=>l.trat),d.proc||'']);
+      if(_faltan.length)encolarModal(()=>avisarConsentimientoFaltante(p.id,_faltan));
+      if(d.costo>0)encolarModal(()=>ofrecerCobroSesion(p.id,d.id));
+    }
   });
   $('#t_elegirPieza').onclick=()=>{
     abrirSelectorDiente(num=>{
@@ -1902,15 +1989,70 @@ function editarTrat(id,pre){
       $('#t_pieza').value=actual?actual+', '+num:num;
     });
   };
-  $('#t_procCat').onchange=(e)=>{
-    const val=e.target.value;
-    const cont=$('#t_proc');
-    if(val){
-      cont.value=cont.value?cont.value+'\n'+val:val;
-      const mapa=TRAT_A_ODONTO[val];
-      document.getElementById('t_procCarasWrap').style.display=(mapa&&mapa.tipo==='cara')?'':'none';
-    }
+  // ---- líneas «pieza + tratamiento + caras» ----
+  const procTxt=$('#t_proc'),costoInp=$('#t_costo');
+  let costoAuto=null;
+  procTxt.addEventListener('input',()=>{procManual=true;});
+  const recomponer=()=>{
+    if(!procManual)procTxt.value=lineas.filter(l=>(l.trat||'').trim()).map(textoLinea).join('\n');
+    // costo sugerido desde un presupuesto aceptado (solo si el campo está vacío o es el sugerido anterior)
+    const sug=lineas.reduce((acc,l)=>acc+precioPresupuestado(p,l),0);
+    if(sug>0&&(costoInp.value===''||Number(costoInp.value)===costoAuto)){costoInp.value=sug.toFixed(2);costoAuto=Number(sug.toFixed(2));}
+    let hint=document.getElementById('t_costoHint');
+    if(!hint){hint=document.createElement('p');hint.id='t_costoHint';hint.className='mini';hint.style.margin='-4px 0 8px';costoInp.closest('.grid').after(hint);}
+    hint.textContent=sug>0?`Costo tomado de tu presupuesto aceptado: ${usd(sug)}. Puedes cambiarlo.`:'';
+    avisoConsentSesion(p,lineas,!id);
   };
+  const pintarSugs=()=>{
+    const ya=l=>lineas.some(x=>(x.pieza||'').trim()===l.pieza&&(x.trat||'').toLowerCase()===l.trat.toLowerCase());
+    const sugs=sugerenciasSesion(p).filter(x=>!ya(x));
+    const cont=$('#t_sugs');
+    cont.innerHTML=sugs.length?`<span class="mini" style="align-self:center">Pendiente en el odontograma:</span>`+
+      sugs.map((x,i)=>`<button type="button" class="btn chico" data-sug="${i}" title="Agregar «${esc(x.trat)}» a esta sesión">${esc(x.texto)} ＋</button>`).join(''):'';
+    cont.querySelectorAll('[data-sug]').forEach(b=>b.onclick=()=>{
+      const x=sugs[b.dataset.sug];
+      lineas.push({pieza:x.pieza,trat:x.trat,caras:[...x.caras]});pintarLineas();
+    });
+  };
+  const pintarLineas=()=>{
+    const cont=$('#t_lineas');
+    cont.innerHTML=lineas.length?lineas.map((l,i)=>{
+      const tipo=tipoTratamiento(l.trat);l._tipo=tipo;
+      return `<div class="t-linea" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;padding:6px;border:1px solid var(--linea);border-radius:9px">
+        <input type="text" data-l="${i}-pieza" value="${esc(l.pieza||'')}" placeholder="Pieza" style="width:70px" title="Número FDI de la pieza (ej. 16)">
+        <input type="text" list="dl_cat_trat" data-l="${i}-trat" value="${esc(l.trat||'')}" placeholder="Tratamiento (elige o escribe)" style="flex:1;min-width:240px">
+        ${tipo==='cara'?`<span class="chks" style="display:flex;gap:4px;align-items:center"><span class="mini">Caras:</span>${CARAS.map(([k,n])=>
+          `<label class="chk" title="${esc(n)}"><input type="checkbox" data-lc="${i}" value="${k}" ${(l.caras||[]).includes(k)?'checked':''}> ${k}</label>`).join('')}</span>`:''}
+        <button type="button" class="btn chico peligro" data-lx="${i}" title="Quitar esta línea">✕</button></div>`;
+    }).join(''):'<p class="mini" style="margin:0">Aún no agregaste tratamientos. Usa una sugerencia o «+ Agregar tratamiento».</p>';
+    cont.querySelectorAll('[data-l]').forEach(el=>{
+      const [i,campo]=el.dataset.l.split('-');
+      el.oninput=()=>{lineas[i][campo]=el.value;if(campo==='trat')recomponer();};
+      // al salir del campo: solo se repinta la línea si hace falta mostrar/ocultar las caras (así no se pierde el cursor al pasar de pieza a tratamiento)
+      el.onchange=()=>{
+        const l=lineas[i];
+        l[campo]=el.value;
+        const tipo=tipoTratamiento(l.trat);
+        let repintar=tipo!==l._tipo;
+        if(tipo==='cara'&&!(l.caras||[]).length&&piezasDeTexto(l.pieza).length===1){
+          const cc=carasConCaries(p,piezasDeTexto(l.pieza)[0]);
+          if(cc.length){l.caras=cc;repintar=true;}
+        }
+        l._tipo=tipo;
+        recomponer();pintarSugs();
+        if(repintar)pintarLineas();
+      };
+    });
+    cont.querySelectorAll('[data-lc]').forEach(el=>el.onchange=()=>{
+      const l=lineas[el.dataset.lc];l.caras=l.caras||[];
+      if(el.checked){if(!l.caras.includes(el.value))l.caras.push(el.value);}else l.caras=l.caras.filter(k=>k!==el.value);
+      lineas[el.dataset.lc]=l;recomponer();
+    });
+    cont.querySelectorAll('[data-lx]').forEach(b=>b.onclick=()=>{lineas.splice(+b.dataset.lx,1);recomponer();pintarLineas();pintarSugs();});
+    recomponer();
+  };
+  $('#t_addLinea').onclick=()=>{lineas.push({pieza:'',trat:'',caras:[]});pintarLineas();};
+  pintarLineas();pintarSugs();
 }
 function borrarItem(lista,id){const p=pac(selId);if(!confirm('¿Eliminar este registro?'))return;
   p[lista]=p[lista].filter(x=>x.id!==id);guardar();pintar();}
@@ -2292,7 +2434,7 @@ function tabCons(p,c){
     ${cs.length?`<table><thead><tr><th style="width:90px">Fecha</th><th>Documento</th><th style="width:150px"></th></tr></thead><tbody>
       ${cs.map(x=>`<tr><td class="num">${fechaCorta(x.fecha)}</td>
         <td>${esc(x.titulo)}${x.pieza?`<br><span class="mini">Pieza ${esc(x.pieza)}</span>`:''}
-          <br><span class="mini" style="color:${x.firma?'var(--clinico)':'var(--tinta-suave)'}">${x.firma?'✓ Firmado':'Sin firmar'}</span></td>
+          <br><span class="mini" style="color:${(x.firma||x.papel)?'var(--clinico)':'var(--tinta-suave)'}">${x.firma?'✓ Firmado':(x.papel?'✓ Firmado en papel':'Sin firmar')}</span>${x.firma?'':` <a href="#" class="mini" onclick="marcarConsentimientoPapel('${x.id}');return false">${x.papel?'(quitar)':'Marcar firmado en papel'}</a>`}</td>
         <td class="der"><button class="btn chico" onclick="imprimirConsentimiento('${x.id}')">Imprimir</button>
           <button class="btn chico" onclick="verConsentimiento('${x.id}')">Editar</button>
           <button class="btn chico peligro" onclick="borrarItem('consentimientos','${x.id}')">×</button></td></tr>`).join('')}
@@ -2342,7 +2484,7 @@ function verConsentimiento(id){
     const cv=document.getElementById('firmaPad');
     const padWrap=document.getElementById('firmaPadWrap');
     if(cv&&padWrap&&padWrap.style.display!=='none'&&huboTrazo){
-      d.firma=cv.toDataURL('image/png');
+      d.firma=reducirFirma(cv);
       d.firmaFecha=new Date().toISOString();
       d.firmaPor=d.rep?(d.repdato||'Representante legal'):(p.nombre||'');
     }
@@ -2830,6 +2972,7 @@ function renderEditorReceta(p,c){
   r.medicamentos=r.medicamentos&&r.medicamentos.length?r.medicamentos:[{}];
   c.innerHTML=`
     <button class="btn chico" style="margin-bottom:12px" onclick="cerrarEditorReceta()">← Volver a recetas</button>
+    <div id="rx_alertas">${htmlAlertasReceta(p,r)}</div>
     <div class="bloque"><div class="barra-tit"><h3>Datos generales</h3></div>
       <div class="grid">
         <label class="campo"><span>Fecha</span><input type="date" data-rk="fecha" value="${esc(r.fecha||hoy())}"></label>
@@ -2877,7 +3020,7 @@ function renderEditorReceta(p,c){
       <button class="btn" onclick="enviarRecetaWhatsapp('${r.id}')" title="Abre el chat con el número del paciente; no necesita estar en tus contactos">Enviar por WhatsApp</button>
       <button class="btn peligro" onclick="borrarReceta('${r.id}')">Eliminar receta</button>
     </div>`;
-  c.querySelectorAll('[data-rk]').forEach(el=>el.onchange=()=>{r[el.dataset.rk]=el.value;guardar();
+  c.querySelectorAll('[data-rk]').forEach(el=>el.onchange=()=>{r[el.dataset.rk]=el.value;guardar();refrescarAlertasReceta(p,r);
     if(el.dataset.rk==='proximoControl'||el.dataset.rk==='proximoControlHora')
       sincronizarProximaCita(p.id,'receta',r.id,r.proximoControl,'Control tras receta',r.proximoControlHora);});
   const rxCie=document.getElementById('rxCie');
@@ -2887,7 +3030,7 @@ function renderEditorReceta(p,c){
     r.diagnostico=x.n;r.cie=x.c;guardar();pintarVista();
   };
   c.querySelectorAll('[data-med]').forEach(el=>el.onchange=()=>{
-    const [i,campo]=el.dataset.med.split('-');r.medicamentos[i][campo]=el.value;guardar();
+    const [i,campo]=el.dataset.med.split('-');r.medicamentos[i][campo]=el.value;guardar();refrescarAlertasReceta(p,r);
     if(campo==='dosis'||campo==='duracion')recalcularCantidadMedicamento(r,i);});
   c.querySelectorAll('.med-cat-shortcut').forEach(sel=>sel.onchange=()=>{
     if(sel.value==='')return;
@@ -3035,6 +3178,7 @@ function hojaReceta(r,p){
 }
 function imprimirReceta(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
+  if(!confirmarAlertasReceta(p,r))return;
   $('#impresion').innerHTML=hojaReceta(r,p);
   lanzarImpresion();
 }
@@ -3079,6 +3223,7 @@ const PLANTILLAS_WSP=[
   {id:'resina',titulo:'Cuidados después de una restauración (resina)',texto:'Hola {nombre} 😊 Ya tienes tu restauración lista. Recuerda:\n\n• La anestesia puede durar unas horas: ten cuidado de no morderte el labio, la lengua o la mejilla, y espera a que pase para comer.\n• Una sensibilidad leve los primeros días es normal.\n• Si sientes que la mordida quedó «alta» o te molesta al masticar, avísanos y la ajustamos.\n\n¡Gracias por tu confianza! 💙'},
   {id:'control',titulo:'Invitación a control o limpieza',texto:'¡Hola {nombre}! 😊 Ya es un buen momento para tu control y limpieza dental. Cuidar tu sonrisa a tiempo evita molestias y tratamientos más largos. ¿Te agendamos una cita? Respóndenos por aquí y buscamos el horario que mejor te quede. 🦷'},
   {id:'orto_control',titulo:'Control de ortodoncia',texto:'¡Hola {nombre}! 😁 Te recordamos tu control de ortodoncia el {fecha} a las {hora} en {consultorio}.\n\nPara que la cita sea más rápida y cómoda:\n• Cepíllate bien los dientes y los brackets antes de venir.\n• Si usas elásticos o retenedor, tráelos contigo.\n• Si se te despegó un bracket o te molesta un alambre, avísanos por aquí para atenderte lo antes posible.\n\n¡Gracias por tu constancia, tu sonrisa va avanzando muy bien! 💙'},
+  {id:'orto_agendar',titulo:'Agendar control de ortodoncia',texto:'¡Hola {nombre}! 😁 Ya toca tu control de ortodoncia en {consultorio}. Para que tu tratamiento avance a tiempo, ¿te agendamos esta semana? Dinos qué día y horario te queda mejor y lo dejamos listo. ¡Gracias!'},
   {id:'reagendar',titulo:'Te extrañamos (reagendar)',texto:'Hola {nombre} 💙 Notamos que no pudiste venir a tu cita y queremos asegurarnos de que todo esté bien. Si quieres, la reprogramamos para el día y la hora que mejor te acomode. ¡Aquí estamos!'},
   {id:'cumple',titulo:'Feliz cumpleaños',texto:'¡Feliz cumpleaños, {nombre}! 🎉🎂 De parte de todo el equipo de {consultorio}, te deseamos un día lleno de alegría y muchas sonrisas. ¡Un abrazo grande!'},
   {id:'saldo',titulo:'Recordatorio amable de saldo',texto:'Hola {nombre} 😊 Esperamos que estés muy bien. Te escribimos con cariño para recordarte que tienes un saldo pendiente de {saldo} en {consultorio}. Si ya lo cancelaste, por favor ignora este mensaje. ¡Gracias por tu confianza! 💙'}
@@ -3120,7 +3265,7 @@ function variablesPlantillaWsp(p,idPlantilla){
     fecha:prox?nombreDiaFecha(prox.fecha):'[fecha]',hora:prox?prox.hora:'[hora]',
     saldo:sal>0?usd(sal):'[monto]'};
 }
-function abrirWhatsappPaciente(pid){
+function abrirWhatsappPaciente(pid,plantillaId,alEnviar){
   const p=pac(pid||selId);if(!p)return;
   const tel=numeroWhatsappPaciente(p);
   if(!tel)return;
@@ -3154,6 +3299,7 @@ function abrirWhatsappPaciente(pid){
   };
   sel.onchange=cargarPlantilla;
   txt.oninput=revisar;
+  if(plantillaId&&[...sel.options].some(o=>o.value===plantillaId))sel.value=plantillaId;
   cargarPlantilla();
   $('#wsp_guardar').onclick=()=>{
     const t=txt.value.trim();
@@ -3176,6 +3322,7 @@ function abrirWhatsappPaciente(pid){
     const t=txt.value.trim();
     if(!t){avisar('Escribe un mensaje');return;}
     window.open(`https://wa.me/${tel}?text=${encodeURIComponent(t)}`,'_blank');
+    if(typeof alEnviar==='function'){try{alEnviar();}catch(e){}}
     $('#modal').close();
   };
 }
@@ -3198,6 +3345,7 @@ function textoRecetaWhatsapp(r,p){
       o descargándolo para adjuntarlo con el clip (📎) en el chat. El PDF se prepara al abrir esta ventana. */
 async function enviarRecetaWhatsapp(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
+  if(!confirmarAlertasReceta(p,r))return;
   const tel=numeroWhatsappPaciente(p);
   if(!tel)return;
   abrirModal('Enviar receta por WhatsApp',`
@@ -3286,9 +3434,12 @@ function tabRx(p,c){
       <label class="subir" id="subirRx">
         <div><b>Subir radiografía o foto clínica</b><br><span class="mini">JPG o PNG. Se guarda comprimida en este navegador.</span></div>
         <input type="file" id="rxFile" accept="image/*" multiple>
-      </label></div>
+      </label>
+      <p class="mini" style="margin:10px 0 0">Si quieres, elige antes el tipo y la pieza: se guardan con las imágenes que subas.</p>
+      <div class="grid"><label class="campo"><span>Tipo</span><select id="rxTipoSub"><option value=""></option>${RX_TIPOS.map(t=>`<option>${t}</option>`).join('')}</select></label>
+        <label class="campo"><span>Pieza(s)</span><input type="text" id="rxPiezaSub" placeholder="Ej. 16, 26"></label></div></div>
     <div class="bloque"><div class="barra-tit"><h3>Imágenes del paciente</h3>
-      <span class="der mini">${rs.length} archivo${rs.length===1?'':'s'}</span></div>
+      ${rs.length>1?`<button class="btn chico" style="margin-left:10px" onclick="abrirComparador('rx')">Comparar</button>`:''}<span class="der mini">${rs.length} archivo${rs.length===1?'':'s'}</span></div>
       ${rs.length?`<div class="rx-grid" id="rxGrid">${rs.map(r=>`<div class="rx-card" data-ver="${r.id}">
         <div class="thumb" id="thumb-${r.id}"></div>
         <div class="info"><b>${esc(r.tipo||'Radiografía')}</b>
@@ -3318,7 +3469,7 @@ async function subirRx(p,files){
       const id=uid();
       await almacen.set(claveRx(p.id,id),dataUrl);
       p.radiografias=p.radiografias||[];
-      p.radiografias.push({id,fecha:hoy(),tipo:'',pieza:'',nota:''});
+      p.radiografias.push({id,fecha:hoy(),tipo:((document.getElementById('rxTipoSub')||{}).value||''),pieza:(((document.getElementById('rxPiezaSub')||{}).value)||'').trim(),nota:''});
     }catch(e){ console.error(e); avisar('No se pudo subir '+file.name); }
   }
   guardar();pintarVista();avisar('Radiografía guardada');
@@ -3366,9 +3517,12 @@ function tabFotos(p,c){
       <label class="subir" id="subirFotoLbl">
         <div><b>Subir fotografía clínica</b><br><span class="mini">JPG o PNG. Se guarda comprimida en este navegador.</span></div>
         <input type="file" id="fotoFile" accept="image/*" multiple>
-      </label></div>
+      </label>
+      <p class="mini" style="margin:10px 0 0">Si quieres, elige antes el tipo y la pieza: se guardan con las fotos que subas (usa «Antes» y «Después» para poder compararlas).</p>
+      <div class="grid"><label class="campo"><span>Tipo</span><select id="fotoTipoSub"><option value=""></option>${FOTO_TIPOS.map(t=>`<option>${t}</option>`).join('')}</select></label>
+        <label class="campo"><span>Pieza(s)</span><input type="text" id="fotoPiezaSub" placeholder="Ej. 11, 21"></label></div></div>
     <div class="bloque"><div class="barra-tit"><h3>Fotografías del paciente</h3>
-      <span class="der mini">${rs.length} foto${rs.length===1?'':'s'}</span></div>
+      ${rs.length>1?`<button class="btn chico" style="margin-left:10px" onclick="abrirComparador('fotos')">Comparar antes y después</button>`:''}<span class="der mini">${rs.length} foto${rs.length===1?'':'s'}</span></div>
       ${rs.length?`<div class="rx-grid" id="fotoGrid">${rs.map(r=>`<div class="rx-card" data-verfoto="${r.id}">
         <div class="thumb" id="fthumb-${r.id}"></div>
         <div class="info"><b>${esc(r.tipo||'Fotografía')}</b>
@@ -3398,7 +3552,7 @@ async function subirFoto(p,files){
       const id=uid();
       await almacen.set(claveFoto(p.id,id),dataUrl);
       p.fotografias=p.fotografias||[];
-      p.fotografias.push({id,fecha:hoy(),tipo:'',pieza:'',nota:''});
+      p.fotografias.push({id,fecha:hoy(),tipo:((document.getElementById('fotoTipoSub')||{}).value||''),pieza:(((document.getElementById('fotoPiezaSub')||{}).value)||'').trim(),nota:''});
     }catch(e){ console.error(e); avisar('No se pudo subir '+file.name); }
   }
   guardar();pintarVista();avisar('Fotografía guardada');
@@ -3454,7 +3608,10 @@ function tabPagos(p,c){
       <div class="saldo"><b>${usd(pagadoPlan)}</b><span>Pagado</span></div>
       <div class="saldo ${saldoOrto>0.004?'debe':''}"><b>${usd(saldoOrto)}</b><span>${saldoOrto>0.004?'Saldo pendiente':'Al día'}</span></div></div></div>`;
   }
-  c.innerHTML=`<div class="saldos">
+  c.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn chico" onclick="imprimirEstadoCuenta()">Estado de cuenta</button>
+      ${d>0.004?`<button class="btn chico" onclick="abrirWhatsappPaciente(null,'saldo')">Recordar saldo por WhatsApp</button>`:''}</div>
+    <div class="saldos">
       <div class="saldo"><b>${usd(totalTrat(p))}</b><span>Tratamientos</span></div>
       <div class="saldo"><b>${usd(totalAbon(p))}</b><span>Abonado</span></div>
       <div class="saldo ${d>0.004?'debe':''}"><b>${usd(d)}</b><span>${d>0.004?'Saldo pendiente':'Sin deuda'}</span></div></div>
@@ -3472,6 +3629,7 @@ function tabPagos(p,c){
           return `<tr><td class="num">${fechaCorta(a.fecha)}</td><td>${esc(a.metodo||'')}</td>
           <td>${esc(a.nota||'')}${trat?`<br><span class="mini" style="color:var(--clinico)">↳ ${esc(trat.proc||trat.dx||trat.sesion||'tratamiento')}</span>`:''}</td>
           <td class="der">${usd(a.monto)}</td><td class="der">
+          <button class="btn chico" onclick="imprimirRecibo('${a.id}')">Recibo</button>
           <button class="btn chico" onclick="editarAbono('${a.id}')">Editar</button>
           <button class="btn chico peligro" onclick="borrarItem('abonos','${a.id}')">×</button></td></tr>`;}).join('')}
         </tbody></table>`:'<p class="mini">Sin pagos registrados.</p>'}</div>`;
@@ -3914,16 +4072,22 @@ function listaRecordatoriosHTML(){
   }).join('');
 }
 function bloqueRecordatorios(){
-  if(!citasPorRecordar().length)return '';
-  const n=pendientesDeRecordar().length;
-  return `<div class="bloque"><div class="barra-tit"><h3>Recordatorios de citas</h3>
+  const hayCitas=citasPorRecordar().length>0,ctl=controlesPorAgendar();
+  if(!hayCitas&&!ctl.length)return '';
+  const n=totalRecordatoriosPendientes();
+  return `<div class="bloque"><div class="barra-tit"><h3>Recordatorios</h3>
       <span class="der mini">${n?n+' por enviar':'Todo enviado ✓'}</span></div>
-    <p class="mini" style="margin-top:0">Citas de mañana y pasado mañana. Cada botón abre WhatsApp con el mensaje y el número ya listos: solo tocas «Enviar» allá.</p>
-    <div class="rec-lista">${listaRecordatoriosHTML()}</div></div>`;
+    ${hayCitas?`<p class="mini" style="margin-top:0">Citas de mañana y pasado mañana. Cada botón abre WhatsApp con el mensaje y el número ya listos: solo tocas «Enviar» allá.</p>
+      <div class="rec-lista">${listaRecordatoriosHTML()}</div>`:''}
+    ${ctl.length?`<p class="mini" style="margin:${hayCitas?'14px':'0'} 0 4px"><b>Controles por agendar</b> — la app los calcula sola: limpieza cada ${mesesControl()} meses y controles de ortodoncia.</p>
+      <div class="ctl-lista">${listaControlesHTML()}</div>`:''}</div>`;
 }
 function abrirRecordatorios(){
-  abrirModal('Recordatorios de citas',`<p class="mini" style="margin-top:0">Citas de mañana y pasado mañana. Cada botón abre WhatsApp con el mensaje y el número ya listos.</p>
-    <div class="rec-lista">${listaRecordatoriosHTML()}</div>`,null);
+  const ctl=controlesPorAgendar();
+  abrirModal('Recordatorios',`<p class="mini" style="margin-top:0">Citas de mañana y pasado mañana. Cada botón abre WhatsApp con el mensaje y el número ya listos.</p>
+    <div class="rec-lista">${listaRecordatoriosHTML()}</div>
+    ${ctl.length?`<p class="mini" style="margin:16px 0 4px"><b>Controles por agendar</b> — la app los calcula sola: limpieza cada ${mesesControl()} meses y controles de ortodoncia.</p>
+      <div class="ctl-lista">${listaControlesHTML()}</div>`:''}`,null);
 }
 function enviarRecordatorioCita(id){
   const c=(datos.citas||[]).find(x=>x.id===id);if(!c)return;
@@ -3953,15 +4117,19 @@ function bloqueAtencion(){
   const sinCerrar=(datos.citas||[]).filter(c=>c.fecha<hoyF&&c.fecha>=addDias(hoyF,-30)&&(c.estado==='Agendada'||c.estado==='Confirmada'))
     .sort((a,b)=>(b.fecha+b.hora).localeCompare(a.fecha+a.hora));
   const conPendientes=datos.pacientes.filter(p=>pendientesOdonto(p).length&&!tieneCitaFutura(p));
-  const idsPend=new Set(conPendientes.map(p=>p.id));
+  const idsPend=new Set([...conPendientes.map(p=>p.id),...controlesPorAgendar().map(x=>x.p.id)]);
+  const sinConsent=citasHoySinConsentimiento();
   const sinVenir=datos.pacientes.filter(p=>!idsPend.has(p.id)&&!tieneCitaFutura(p)&&p.apertura
       &&Math.round((new Date(hoyF)-new Date(ultimaVisitaPaciente(p)))/864e5)>=180)
     .sort((a,b)=>ultimaVisitaPaciente(a).localeCompare(ultimaVisitaPaciente(b)));
-  if(!sinCerrar.length&&!conPendientes.length&&!sinVenir.length)return '';
+  if(!sinCerrar.length&&!conPendientes.length&&!sinVenir.length&&!sinConsent.length)return '';
   const mas=(lista)=>lista.length>MAX?`<p class="mini" style="margin:6px 0 0">… y ${lista.length-MAX} más</p>`:'';
   const fila=(izq,der)=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--linea)"><div>${izq}</div><div style="display:flex;gap:6px;flex-wrap:wrap">${der}</div></div>`;
   const sec=(titulo,ayuda,filas)=>`<div style="margin-bottom:14px"><b>${titulo}</b><p class="mini" style="margin:2px 0 4px">${ayuda}</p>${filas}</div>`;
   return `<div class="bloque"><div class="barra-tit"><h3>Requiere tu atención</h3></div>
+    ${sinConsent.length?sec(`Citas de hoy sin consentimiento firmado (${sinConsent.length})`,'El procedimiento de la cita pide un consentimiento que aún no está firmado. Conviene firmarlo antes de empezar.',
+      sinConsent.slice(0,MAX).map(x=>fila(`<b>${esc(x.p.nombre||'')}</b> <span class="mini">${esc(x.cita.hora)} · ${esc(x.titulo)}</span>`,
+        `<button class="btn chico primario" onclick="firmarConsentimientoPara('${x.p.id}','${x.clave}')">Crear y firmar</button>`)).join('')+mas(sinConsent)):''}
     ${sinCerrar.length?sec(`Citas pasadas sin cerrar (${sinCerrar.length})`,'¿Vino el paciente? Márcalo para que la agenda y las estadísticas queden al día.',
       sinCerrar.slice(0,MAX).map(c=>fila(`<b>${esc(c.nombre)}</b> <span class="mini">${fechaCorta(c.fecha)} ${esc(c.hora)}${c.motivo?' · '+esc(c.motivo):''}</span>`,
         `<button class="btn chico" onclick="cambiarEstadoCita('${c.id}','Atendida')">Atendida</button>
@@ -4031,6 +4199,7 @@ function verResumen(){
   $('#vista').innerHTML=`<div class="cabecera"><div><h2>Resumen de actividades</h2>
       <div class="sub">Al ${fechaCorta(hoy())}</div></div>
       <div class="spacer"></div>
+      <button class="btn chico" onclick="verReporte()">Reporte mensual</button>
       <div class="rango-fechas">
         <input type="date" id="res_desde" value="${desde}">
         <span class="mini">a</span>
@@ -4047,6 +4216,7 @@ function verResumen(){
       <div class="kpi-card kpi-teal"><span>Nuevos presupuestos</span><b>${nuevosPresRango}</b></div>
       <div class="kpi-card kpi-rosa"><span>Cobrado en el período</span><b>${usd(cobradoRango)}</b></div>
     </div>
+    ${bloqueRespaldo()}
     ${bloqueRecordatorios()}
     ${bloqueAtencion()}
     <div class="panel-2col" style="margin-bottom:14px">
@@ -4099,9 +4269,11 @@ function verResumen(){
         <td><div class="barra" style="width:${(meses[m]/max*100).toFixed(1)}%"></div></td>
         <td class="der" style="width:90px">${usd(meses[m])}</td></tr>`;}).join('')}</table>`:'<p class="mini">Aún no hay pagos.</p>'}</div>
     <div class="bloque"><div class="barra-tit"><h3>Saldos pendientes</h3></div>
-      ${deb.length?`<table><thead><tr><th>Paciente</th><th>Teléfono</th><th class="der">Debe</th></tr></thead><tbody>
+      ${deb.length?`<table><thead><tr><th>Paciente</th><th>Teléfono</th><th>Último pago</th><th class="der">Debe</th><th></th></tr></thead><tbody>
         ${deb.map(p=>`<tr><td><button class="btn chico" onclick="abrir('${p.id}')">${esc(p.nombre)}</button></td>
-        <td class="num">${esc(p.telefono||'—')}</td><td class="der">${usd(saldo(p))}</td></tr>`).join('')}</tbody></table>`
+        <td class="num">${esc(p.telefono||'—')}</td><td class="mini">${ultimoPagoTexto(p)}</td><td class="der">${usd(saldo(p))}</td>
+        <td class="der">${telWhatsapp(p.telefono||'')?`<button class="btn chico" onclick="abrirWhatsappPaciente('${p.id}','saldo')">Recordar</button>`:''}</td></tr>`).join('')}
+        <tr><td colspan="3"><b>Total por cobrar</b></td><td class="der"><b>${usd(pend)}</b></td><td></td></tr></tbody></table>`
         :'<p class="mini">Nadie tiene saldo pendiente.</p>'}</div>`;
   pintarLista();
   $('#res_desde').onchange=(e)=>{resumenDesde=e.target.value;verResumen();};
@@ -4307,7 +4479,7 @@ function renderAgenda(){
       <div class="spacer"></div>
       <button class="btn chico" onclick="alternarGoogleCalendar()">${googleConectado?'✓ Google Calendar conectado':'Conectar Google Calendar'}</button>
       ${googleConectado?'<button class="btn chico" onclick="sincronizarDesdeGoogle(true)">Actualizar desde Google</button>':''}
-      <button class="btn chico" onclick="abrirRecordatorios()">Recordatorios${pendientesDeRecordar().length?' ('+pendientesDeRecordar().length+')':''}</button>
+      <button class="btn chico" onclick="abrirRecordatorios()">Recordatorios${totalRecordatoriosPendientes()?' ('+totalRecordatoriosPendientes()+')':''}</button>
       <button class="btn primario" onclick="abrirCita(null,{fecha:'${agendaFecha}'})">Nueva cita</button></div>
     <div class="ag-topbar">
       <div class="ag-nav">
@@ -4393,7 +4565,8 @@ function enlaceWhatsapp(tel,nombre,fecha,hora){
 
 function abrirCita(id,prefill){
   const existente=id?(datos.citas||[]).find(x=>x.id===id):null;
-  const c=existente||{fecha:(prefill&&prefill.fecha)||agendaFecha,hora:(prefill&&prefill.hora)||'09:00',duracion:30,estado:'Agendada'};
+  const c=existente||{fecha:(prefill&&prefill.fecha)||agendaFecha,hora:(prefill&&prefill.hora)||'09:00',duracion:30,estado:'Agendada',
+    nombre:(prefill&&prefill.nombre)||'',telefono:(prefill&&prefill.telefono)||'',pacienteId:(prefill&&prefill.pacienteId)||null,motivo:(prefill&&prefill.motivo)||''};
   const listaPac=datos.pacientes.map(p=>`<option value="${esc(p.nombre)}">`).join('');
   const origenTxt={
     'hc033-control':'la fecha de control de su historia clínica',
@@ -4731,11 +4904,11 @@ function verRespaldo(){
       <button class="btn" id="bkPag">Pagos (.csv)</button>
       <button class="btn" id="bkCitas">Citas (.csv)</button>
       <button class="btn" id="bkImp">Restaurar</button>
-    </div><input type="file" id="bkFile" accept="application/json" style="display:none">`,null);
+    </div><input type="file" id="bkFile" accept="application/json" style="display:none"><div id="bk_extra"></div>`,null);
   const bajar=(t,n,tipo)=>{const u=URL.createObjectURL(new Blob([t],{type:tipo}));
     const a=document.createElement('a');a.href=u;a.download=n;a.click();URL.revokeObjectURL(u);};
   const csv=f=>'\uFEFF'+f.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  $('#bkJson').onclick=()=>bajar(JSON.stringify(datos,null,2),`respaldo-consultorio-${hoy()}.json`,'application/json');
+  $('#bkJson').onclick=()=>{descargarRespaldoCompleto();pintarExtraRespaldo();};
   $('#bkPac').onclick=()=>bajar(csv([['HC','Nombre','Cedula','Nacimiento','Sexo','Telefono','Alergias','Tratamientos','Abonado','Saldo'],
     ...datos.pacientes.map(p=>[p.hc,p.nombre,p.cedula,p.nacimiento,p.sexo,p.telefono,p.alergias,
       totalTrat(p).toFixed(2),totalAbon(p).toFixed(2),saldo(p).toFixed(2)])]),`pacientes-${hoy()}.csv`,'text/csv');
@@ -4753,7 +4926,681 @@ function verRespaldo(){
       datos=d;selId=null;guardar();$('#modal').close();pintar();avisar('Respaldo restaurado');}
       catch(e){avisar('El archivo no es un respaldo válido');}};
     r.readAsText(f);};
+  pintarExtraRespaldo();
 }
+
+/* ================= MEJORAS: cobros, copias, alertas, consentimientos, controles, imágenes, reporte ================= */
+const normTxt=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+
+/* Cola de ventanas: deja mostrar una ventana justo después de que se cierre la anterior
+   (por ejemplo, al guardar una sesión: primero el aviso de consentimiento y luego el cobro). */
+const colaModales=[];
+function encolarModal(fn){colaModales.push(fn);}
+document.getElementById('modal').addEventListener('close',()=>{
+  if(!colaModales.length)return;
+  setTimeout(()=>{
+    const fn=colaModales.shift();
+    if(fn){try{fn();}catch(e){console.error(e);}}
+    const m=document.getElementById('modal');
+    if(!m.open&&colaModales.length)m.dispatchEvent(new Event('close'));
+  },200);
+});
+
+/* ---------- 1. cobros: pago al guardar la sesión, recibo y estado de cuenta ---------- */
+function totalAbonadoDe(p,tid){return (p.abonos||[]).filter(a=>a.tratamientoId===tid).reduce((s,a)=>s+(Number(a.monto)||0),0);}
+function ofrecerCobroSesion(pid,tid){
+  const p=pac(pid);if(!p)return;
+  const t=(p.tratamientos||[]).find(x=>x.id===tid);if(!t)return;
+  const costo=Number(t.costo)||0,abonado=totalAbonadoDe(p,tid),falta=Math.round((costo-abonado)*100)/100;
+  if(falta<=0.004)return;
+  selId=pid;
+  abrirModal('¿Cobraste esta sesión?',`
+    <p style="margin-top:0">Sesión <b>${esc(t.sesion||'')}</b>${t.proc||t.dx?' · '+esc((t.proc||t.dx).split('\n')[0].slice(0,70)):''}</p>
+    <div class="saldos">
+      <div class="saldo"><b>${usd(costo)}</b><span>Costo</span></div>
+      <div class="saldo"><b>${usd(abonado)}</b><span>Ya abonado</span></div>
+      <div class="saldo debe"><b>${usd(falta)}</b><span>Falta</span></div></div>
+    <div class="grid">
+      <label class="campo"><span>Cobrado hoy (USD)</span><input type="number" step="0.01" min="0" id="cb_monto" value="${falta.toFixed(2)}"></label>
+      <label class="campo"><span>Forma de pago</span><select id="cb_metodo">${['Efectivo','Transferencia','Tarjeta','Otro'].map(m=>`<option>${m}</option>`).join('')}</select></label>
+    </div>
+    <p class="mini" style="margin-bottom:0">Si hoy no cobraste nada, toca «Dejar pendiente»: queda como saldo del paciente.</p>`,
+  ()=>{
+    const m=Number($('#cb_monto').value)||0;
+    if(m<=0){avisar('Ingresa un monto mayor a cero');return false;}
+    p.abonos=p.abonos||[];
+    p.abonos.push({id:uid(),fecha:hoy(),monto:m,metodo:$('#cb_metodo').value,nota:'Sesión '+(t.sesion||''),tratamientoId:tid});
+    guardar();pintar();avisar('Pago registrado');
+  });
+  const ok=$('#mOk'),cn=$('#mCancel');
+  if(ok)ok.textContent='Registrar pago';
+  if(cn)cn.textContent='Dejar pendiente';
+}
+function montoEnLetras(m){
+  const n=Math.round((Number(m)||0)*100),ent=Math.floor(n/100),cts=n%100;
+  return `${numeroALetras(ent)} con ${String(cts).padStart(2,'0')}/100 dólares`;
+}
+function imprimirRecibo(aid){
+  const p=pac(selId);if(!p)return;
+  const lista=p.abonos||[];
+  if(!lista.some(x=>x.id===aid))return;
+  const g=datos.config||{};
+  const orden=lista.map((x,k)=>({x,k})).sort((u,v)=>(u.x.fecha||'').localeCompare(v.x.fecha||'')||u.k-v.k);
+  const pos=orden.findIndex(o=>o.x.id===aid),a=orden[pos].x;
+  const acumulado=orden.slice(0,pos+1).reduce((s,o)=>s+(Number(o.x.monto)||0),0);
+  const saldoDespues=Math.max(0,totalTrat(p)-acumulado);
+  const trat=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
+  const concepto=a.nota||(trat?(trat.proc||trat.dx||('Sesión '+(trat.sesion||''))).split('\n')[0]:'Abono a tratamiento odontológico');
+  $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
+    <section><h4>COMPROBANTE DE PAGO N.º ${String(pos+1).padStart(4,'0')}</h4>
+      <div class="texto">Recibí de ${esc(p.nombre||'')} la suma de <b>${usd(a.monto)}</b> (${esc(montoEnLetras(a.monto))}) por concepto de: ${esc(concepto)}.
+
+Fecha: ${fechaCorta(a.fecha)}
+Forma de pago: ${esc(a.metodo||'—')}
+Saldo pendiente después de este pago: ${usd(saldoDespues)}</div></section>
+    <div class="firma" style="margin-top:46px"><div>${esc(g.profesional||'')}<br>Odontólogo/a — Código ${esc(g.codigo||'')}</div><div>Firma del paciente</div></div>
+    <p style="font-size:9px;color:#555;margin-top:14px">Este comprobante es un documento interno de control de pagos y no reemplaza a la factura electrónica.</p></div>`;
+  lanzarImpresion();
+}
+function imprimirEstadoCuenta(){
+  const p=pac(selId);if(!p)return;
+  const g=datos.config||{};
+  const movs=[];
+  (p.tratamientos||[]).filter(t=>Number(t.costo)>0).forEach(t=>movs.push({f:t.fecha,det:(t.proc||t.dx||('Sesión '+(t.sesion||''))).split('\n')[0].slice(0,90),cargo:Number(t.costo)||0,abono:0}));
+  (p.abonos||[]).forEach(a=>movs.push({f:a.fecha,det:'Pago'+(a.metodo?' ('+a.metodo+')':'')+(a.nota?' — '+a.nota:''),cargo:0,abono:Number(a.monto)||0}));
+  movs.sort((x,y)=>(x.f||'').localeCompare(y.f||'')||(y.cargo>0)-(x.cargo>0));
+  let acc=0;
+  const filas=movs.map(m=>{acc+=m.cargo-m.abono;
+    return `<tr><td>${fechaCorta(m.f)}</td><td>${esc(m.det)}</td><td style="text-align:right">${m.cargo?usd(m.cargo):''}</td><td style="text-align:right">${m.abono?usd(m.abono):''}</td><td style="text-align:right">${usd(acc)}</td></tr>`;}).join('');
+  $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
+    <section><h4>ESTADO DE CUENTA — al ${fechaCorta(hoy())}</h4>
+      <table><thead><tr><th>Fecha</th><th>Detalle</th><th style="text-align:right">Cargo</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th></tr></thead>
+      <tbody>${filas||'<tr><td colspan="5">Sin movimientos</td></tr>'}</tbody></table>
+      <div class="fila" style="margin-top:8px"><div><span class="rot">Total de tratamientos</span>${usd(totalTrat(p))}</div>
+        <div><span class="rot">Total pagado</span>${usd(totalAbon(p))}</div>
+        <div><span class="rot">Saldo pendiente</span><b>${usd(Math.max(0,saldo(p)))}</b></div></div></section>
+    <div class="firma" style="margin-top:46px"><div>${esc(g.profesional||'')}<br>Odontólogo/a — Código ${esc(g.codigo||'')}</div><div>Firma del paciente</div></div></div>`;
+  lanzarImpresion();
+}
+function ultimoPagoTexto(p){
+  let u='';(p.abonos||[]).forEach(a=>{if(a.fecha&&a.fecha>u)u=a.fecha;});
+  if(!u)return 'nunca';
+  const d=diasEntre(u,hoy());
+  return d<=0?'hoy':(d===1?'ayer':`hace ${d} días`);
+}
+
+/* ---------- 2. copias automáticas, último respaldo y tamaño de los datos ---------- */
+const SNAP_DB='mediks-copias',SNAP_STORE='copias';
+function snapAbrir(){
+  return new Promise((res,rej)=>{
+    try{
+      const rq=indexedDB.open(SNAP_DB,1);
+      rq.onupgradeneeded=()=>rq.result.createObjectStore(SNAP_STORE,{keyPath:'clave'});
+      rq.onsuccess=()=>res(rq.result);
+      rq.onerror=()=>rej(rq.error);
+    }catch(e){rej(e);}
+  });
+}
+async function snapPoner(reg){
+  const db=await snapAbrir();
+  return new Promise((res,rej)=>{const tx=db.transaction(SNAP_STORE,'readwrite');tx.objectStore(SNAP_STORE).put(reg);
+    tx.oncomplete=()=>{db.close();res();};tx.onerror=()=>{db.close();rej(tx.error);};});
+}
+async function snapListar(){
+  const db=await snapAbrir();
+  return new Promise((res,rej)=>{const rq=db.transaction(SNAP_STORE,'readonly').objectStore(SNAP_STORE).getAll();
+    rq.onsuccess=()=>{db.close();res(rq.result||[]);};rq.onerror=()=>{db.close();rej(rq.error);};});
+}
+async function snapBorrar(clave){
+  const db=await snapAbrir();
+  return new Promise((res,rej)=>{const tx=db.transaction(SNAP_STORE,'readwrite');tx.objectStore(SNAP_STORE).delete(clave);
+    tx.oncomplete=()=>{db.close();res();};tx.onerror=()=>{db.close();rej(tx.error);};});
+}
+/* Una copia al abrir cada día (queda 14 días) y una «última» que se renueva cada 20 min. Vive en este dispositivo. */
+let _copiaTs=0;
+async function copiaAutomatica(){
+  try{
+    if(!datos.pacientes||!datos.pacientes.length)return;
+    const ahora=Date.now();
+    if(ahora-_copiaTs<5*60*1000)return;
+    _copiaTs=ahora;
+    const json=JSON.stringify(datos),lista=await snapListar();
+    const base={json,pacientes:datos.pacientes.length,fecha:new Date().toISOString()};
+    const claveDia='dia:'+hoy();
+    if(!lista.some(r=>r.clave===claveDia))await snapPoner({...base,clave:claveDia,tipo:'dia'});
+    const ult=lista.find(r=>r.clave==='ultima');
+    if(!ult||ahora-new Date(ult.fecha).getTime()>20*60*1000)await snapPoner({...base,clave:'ultima',tipo:'ultima'});
+    const dias=lista.filter(r=>r.tipo==='dia').sort((a,b)=>b.clave.localeCompare(a.clave));
+    for(const r of dias.slice(13))await snapBorrar(r.clave);
+    const antes=lista.filter(r=>r.tipo==='antes').sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    for(const r of antes.slice(3))await snapBorrar(r.clave);
+  }catch(e){}
+}
+function normalizarDatos(){
+  datos.pacientes=datos.pacientes||[];datos.config=datos.config||{};datos.citas=datos.citas||[];
+  datos.tareas=datos.tareas||[];datos.inventario=datos.inventario||[];datos.profesionales=datos.profesionales||[];
+  datos.gastosProfesionales=datos.gastosProfesionales||[];
+}
+async function restaurarCopia(clave){
+  let r;
+  try{r=(await snapListar()).find(x=>x.clave===clave);}catch(e){}
+  if(!r){avisar('No se encontró esa copia');return;}
+  const cuando=new Date(r.fecha).toLocaleString('es-EC');
+  if(!confirm(`Se reemplazará la información actual por la copia del ${cuando} (${r.pacientes} pacientes).\n\nAntes se guarda una copia de lo que tienes ahora, así puedes volver atrás. ¿Continuar?`))return;
+  try{await snapPoner({clave:'antes:'+Date.now(),tipo:'antes',fecha:new Date().toISOString(),json:JSON.stringify(datos),pacientes:datos.pacientes.length});}catch(e){}
+  try{datos=JSON.parse(r.json);}catch(e){avisar('La copia está dañada');return;}
+  normalizarDatos();selId=null;guardar();
+  const m=$('#modal');if(m.open)m.close();
+  pintar();avisar('Copia restaurada');
+}
+function tamanoDatosKB(){try{return Math.max(1,Math.round(new Blob([JSON.stringify(datos)]).size/1024));}catch(e){return 0;}}
+function diasDesdeRespaldo(){
+  const u=datos.config&&datos.config.ultimoRespaldo;
+  if(!u)return null;
+  return Math.max(0,Math.floor((Date.now()-new Date(u).getTime())/864e5));
+}
+function descargarArchivo(texto,nombre,tipo){
+  const u=URL.createObjectURL(new Blob([texto],{type:tipo}));
+  const a=document.createElement('a');a.href=u;a.download=nombre;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+function descargarRespaldoCompleto(){
+  descargarArchivo(JSON.stringify(datos,null,2),`respaldo-consultorio-${hoy()}.json`,'application/json');
+  datos.config=datos.config||{};datos.config.ultimoRespaldo=new Date().toISOString();guardar();
+  avisar('Respaldo descargado');
+}
+function bloqueRespaldo(){
+  const d=diasDesdeRespaldo(),kb=tamanoDatosKB(),pct=Math.round(kb/1000*100);
+  const viejo=d===null||d>=14,lleno=pct>=70;
+  if(!viejo&&!lleno)return '';
+  const msg=[];
+  if(viejo)msg.push(d===null?'Todavía no has descargado ningún respaldo en este equipo.':`Hace ${d} días que no descargas un respaldo.`);
+  if(lleno)msg.push(`Tus datos ya usan el ${pct}% del espacio que admite la nube (${kb} KB de ~1000 KB): conviene avisar para dividirlos antes de que se llene.`);
+  return `<div class="bloque" style="background:#FFF7E6;border-color:#EBD9A8"><div class="barra-tit"><h3>Respaldo</h3></div>
+    <p class="mini" style="margin-top:0">${msg.join(' ')}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn chico primario" onclick="descargarRespaldoCompleto();verResumen()">Descargar respaldo ahora</button>
+    <button class="btn chico" onclick="verRespaldo()">Más opciones</button></div></div>`;
+}
+async function pintarExtraRespaldo(){
+  const el=document.getElementById('bk_extra');if(!el)return;
+  const kb=tamanoDatosKB(),pct=Math.min(100,Math.round(kb/1000*100)),d=diasDesdeRespaldo();
+  let copias=[];try{copias=(await snapListar()).sort((a,b)=>b.fecha.localeCompare(a.fecha));}catch(e){}
+  const nombre=r=>r.tipo==='ultima'?'Última copia automática':r.tipo==='dia'?'Al abrir el '+fechaCorta(r.clave.slice(4)):'Antes de una restauración';
+  el.innerHTML=`<div style="margin-top:16px;border-top:1px solid var(--linea);padding-top:12px">
+    <p class="mini" style="margin:0 0 4px"><b>Último respaldo descargado:</b> ${d===null?'ninguno todavía':(d===0?'hoy':`hace ${d} día${d===1?'':'s'}`)}</p>
+    <p class="mini" style="margin:0 0 4px"><b>Tamaño de tus datos:</b> ${kb} KB de ~1000 KB que admite la nube (las fotos y radiografías van aparte y no cuentan).</p>
+    <div style="height:8px;background:var(--linea);border-radius:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct>=70?'var(--alerta)':'var(--clinico)'}"></div></div>
+    ${pct>=70?'<p class="mini" style="color:var(--alerta);margin:4px 0 0">Se está acercando al límite. Avísame para dividir los datos por paciente.</p>':''}
+    <p class="mini" style="margin:14px 0 4px"><b>Copias automáticas en este dispositivo</b> (por si borras o cambias algo sin querer):</p>
+    ${copias.length?copias.map(r=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--linea)">
+      <span>${esc(nombre(r))} <span class="mini">· ${new Date(r.fecha).toLocaleString('es-EC',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${r.pacientes} pacientes</span></span>
+      <button class="btn chico" data-restcopia="${esc(r.clave)}">Restaurar</button></div>`).join(''):'<p class="mini">Aún no hay copias; se crean solas al usar la app.</p>'}</div>`;
+  el.querySelectorAll('[data-restcopia]').forEach(b=>b.onclick=()=>restaurarCopia(b.dataset.restcopia));
+}
+function reducirFirma(cv){
+  const ancho=420,esc2=Math.min(1,ancho/cv.width);
+  const c2=document.createElement('canvas');c2.width=Math.round(cv.width*esc2);c2.height=Math.round(cv.height*esc2);
+  c2.getContext('2d').drawImage(cv,0,0,c2.width,c2.height);
+  return c2.toDataURL('image/png');
+}
+
+/* ---------- 3. alertas de alergias y contraindicaciones al recetar ---------- */
+function contextoClinico(p,r){
+  const h=p.hc033||{},ant=h.antecedentes||{};
+  const idx=n=>ANTECEDENTES.indexOf(n);
+  const marcado=n=>{const i=idx(n);return i>=0&&!!(ant[i]&&ant[i].x);};
+  const det=n=>{const i=idx(n);return (i>=0&&ant[i]&&ant[i].det)||'';};
+  const textoAlerg=normTxt([p.alergias,r&&r.alergias,det('Alergia a antibiótico'),det('Alergia a anestesia'),det('Otros')].join(' | '));
+  const textoGral=normTxt([p.alergias,r&&r.alergias,h.antObs,h.actual,
+    ...ANTECEDENTES.map(n=>det(n))].join(' | '));
+  return {marcado,textoAlerg,textoGral};
+}
+function alertasMedicamento(dci,c){
+  const d=normTxt(dci);if(!d.trim())return [];
+  const out=[],add=(nivel,txt)=>out.push({nivel,txt});
+  const es={
+    peni:/amoxicilina|ampicilina|penicilina|clavulan/.test(d),
+    cefa:/cefalexina|cefadroxilo|cefuroxima|ceftriaxona|cefixima/.test(d),
+    macro:/azitromicina|eritromicina|claritromicina/.test(d),
+    clinda:/clindamicina/.test(d),
+    metro:/metronidazol/.test(d),
+    aine:/ibuprofeno|diclofenaco|naproxeno|ketorolaco|meloxicam|mefenamico|aspirina|acetilsalicilico|ketoprofeno|piroxicam/.test(d),
+    metamizol:/metamizol|dipirona/.test(d),
+    cortico:/dexametasona|prednisona|prednisolona|betametasona|hidrocortisona|triamcinolona/.test(d),
+    anest:/lidocaina|benzocaina|articaina|mepivacaina|bupivacaina|prilocaina/.test(d),
+    paracet:/paracetamol|acetaminofen/.test(d)
+  };
+  const antib=es.peni||es.cefa||es.macro||es.clinda||es.metro;
+  const A=c.textoAlerg,G=c.textoGral;
+  if(es.peni&&/penicil|amoxi|ampicil|betalact|beta lact|clavul/.test(A))add('peligro','entre las alergias registradas figura penicilina / amoxicilina.');
+  if(es.cefa&&/penicil|amoxi|ampicil|betalact|beta lact|cefa|cefal/.test(A))add('peligro','hay alergia a betalactámicos registrada; las cefalosporinas pueden dar reacción cruzada.');
+  if(es.macro&&/macrolid|azitro|eritro|claritro/.test(A))add('peligro','entre las alergias registradas figuran los macrólidos.');
+  if(es.clinda&&/clinda|lincosam/.test(A))add('peligro','entre las alergias registradas figura clindamicina.');
+  if(es.metro&&/metronid|nitroimid/.test(A))add('peligro','entre las alergias registradas figura metronidazol.');
+  if(es.aine&&/aine|ibuprofeno|aspirin|acetilsalic|diclofen|naproxen|ketorol|meloxic|mefenam|antiinflamat/.test(A))add('peligro','entre las alergias registradas figuran los antiinflamatorios (AINE).');
+  if(es.metamizol&&/metamizol|dipirona|pirazolon|aine|aspirin|antiinflamat/.test(A))add('peligro','hay alergia registrada a metamizol / antiinflamatorios.');
+  if(es.cortico&&/corticoid|dexameta|predniso/.test(A))add('peligro','entre las alergias registradas figuran los corticoides.');
+  if(es.anest&&(/anest|lidoca|benzoca|articaina|mepivac|bupivac|prilocain/.test(A)||c.marcado('Alergia a anestesia')))add('peligro','el paciente tiene registrada alergia a anestesia / anestésicos locales.');
+  if(antib&&!out.length&&c.marcado('Alergia a antibiótico'))add('revisar','en la historia está marcada «Alergia a antibiótico»; confirma a cuál antes de recetar.');
+  const embarazo=/embaraz|gestac|gestante|lactanc|lactando/.test(G);
+  if(es.aine||es.metamizol){
+    if(c.marcado('Asma')||/asma|broncoespasmo/.test(G))add('revisar','asma: los antiinflamatorios pueden provocar una crisis en algunos pacientes.');
+    if(c.marcado('Hipertensión')||/hipertens|presion alta/.test(G))add('revisar','hipertensión: pueden subir la presión o interferir con su medicación.');
+    if(c.marcado('Enfermedad cardíaca')||/cardiac|cardio|infarto|marcapaso/.test(G))add('revisar','enfermedad cardíaca: usar con cuidado.');
+    if(c.marcado('Hemorragias')||/hemorrag|anticoag|warfarina|sintrom|clopidogrel|trombo/.test(G))add('revisar','riesgo de sangrado / anticoagulantes: aumentan el sangrado.');
+    if(/gastritis|ulcera|reflujo|sangrado digestivo/.test(G))add('revisar','gastritis o úlcera: pueden irritar el estómago.');
+    if(/renal|rinon|dialisis/.test(G))add('revisar','problema renal: pueden empeorarlo.');
+    if(embarazo)add('revisar','embarazo o lactancia: verificar si es seguro.');
+  }
+  if(es.cortico){
+    if(c.marcado('Diabetes')||/diabet|glucosa|azucar/.test(G))add('revisar','diabetes: los corticoides elevan la glucosa.');
+    if(c.marcado('Hipertensión')||/hipertens|presion alta/.test(G))add('revisar','hipertensión: los corticoides pueden subir la presión.');
+    if(embarazo)add('revisar','embarazo o lactancia: verificar si es seguro.');
+  }
+  if(es.metro&&embarazo)add('revisar','embarazo o lactancia: verificar si es seguro.');
+  if(es.paracet&&/hepat|higado|cirrosis/.test(G))add('revisar','problema hepático: ajustar dosis o evitar.');
+  return out;
+}
+function alertasReceta(p,r){
+  const c=contextoClinico(p,r),res=[];
+  (r.medicamentos||[]).forEach((m,i)=>alertasMedicamento(m.dci,c).forEach(a=>res.push({...a,med:m.dci,i})));
+  return res;
+}
+function htmlAlertasReceta(p,r){
+  const al=alertasReceta(p,r);
+  if(!al.length)return '';
+  const hayPeligro=al.some(a=>a.nivel==='peligro');
+  return `<div class="bloque" style="background:var(--alerta-claro);border-color:#EBD3CC">
+    <b style="color:var(--alerta)">⚠ ${hayPeligro?'Posible alergia o contraindicación':'Revisa antes de recetar'}</b>
+    <ul style="margin:6px 0 0 18px;padding:0">${al.map(a=>`<li><b>${esc(a.med)}</b>: ${esc(a.txt)}${a.nivel==='peligro'?'':' <span class="mini">(precaución)</span>'}</li>`).join('')}</ul>
+    <p class="mini" style="margin:6px 0 0">Es un aviso automático a partir de lo escrito en la ficha y la historia; la decisión es tuya.</p></div>`;
+}
+function confirmarAlertasReceta(p,r){
+  const al=alertasReceta(p,r).filter(a=>a.nivel==='peligro');
+  if(!al.length)return true;
+  return confirm('⚠ ATENCIÓN\n\n'+al.map(a=>'• '+a.med+': '+a.txt).join('\n')+'\n\n¿Imprimir o enviar la receta de todas formas?');
+}
+
+function refrescarAlertasReceta(p,r){const el=document.getElementById('rx_alertas');if(el)el.innerHTML=htmlAlertasReceta(p,r);}
+
+/* ---------- 4. consentimientos: la app avisa cuándo falta uno firmado ---------- */
+function claveConsentimientoPara(texto){
+  const t=normTxt(texto);
+  if(!t.trim())return null;
+  if(/implante/.test(t))return 'implantes';
+  if(/tercer molar|cordal|quirurgic|frenectom|biopsia|apicectom|cirugia/.test(t))return 'cirugia';
+  if(/exodoncia|extraccion/.test(t))return 'exodoncia';
+  if(/endodoncia|conducto|pulpotom|pulpectom|retratamiento/.test(t))return 'endodoncia';
+  if(/raspado|curetaje|gingivectom|periodon/.test(t))return 'periodoncia';
+  if(/blanqueamiento/.test(t))return 'blanqueamiento';
+  if(/carilla|diseno de sonrisa/.test(t))return 'estetica';
+  if(/corona|puente|protesis|incrustacion|removible/.test(t))return 'protesis';
+  if(/bracket|ortodon|alineador/.test(t))return 'ortodoncia';
+  if(/restauracion|resina|profilaxis|sellante|fluor|obturacion|caries|limpieza/.test(t))return 'general';
+  return null;
+}
+const EQUIV_CONSENT={exodoncia:['exodoncia','cirugia','exodonciaLlanos'],cirugia:['cirugia','exodoncia','exodonciaLlanos'],
+  ortodoncia:['ortodoncia','ortodonciaGallegos','ortopediaGallegos']};
+function tieneConsentimientoFirmado(p,clave){
+  const eq=EQUIV_CONSENT[clave]||[clave];
+  return (p.consentimientos||[]).some(x=>eq.includes(x.clave)&&(x.firma||x.papel));
+}
+function consentimientosFaltantes(p,textos){
+  const faltan=new Map();
+  textos.forEach(tx=>{
+    const k=claveConsentimientoPara(tx);
+    if(k&&PLANTILLAS[k]&&!tieneConsentimientoFirmado(p,k)&&!faltan.has(k))faltan.set(k,tx);
+  });
+  return [...faltan.entries()].map(([clave,desde])=>({clave,desde,titulo:PLANTILLAS[clave].t}));
+}
+function firmarConsentimientoPara(pid,clave){
+  selId=pid;pestana='cons';recetaEditando=null;vistaOdontoInicial=false;
+  pintar();crearConsentimiento(clave);
+}
+function marcarConsentimientoPapel(cid){
+  const p=pac(selId),x=(p.consentimientos||[]).find(k=>k.id===cid);if(!x)return;
+  x.papel=!x.papel;guardar();pintarVista();
+}
+/* Aviso dentro de la ventana de la sesión, mientras se eligen los tratamientos (antes de guardar). */
+function avisoConsentSesion(p,lineas,esNueva){
+  const el=document.getElementById('t_consent');if(!el)return;
+  if(!esNueva){el.innerHTML='';return;}
+  const faltan=consentimientosFaltantes(p,lineas.map(l=>l.trat||''));
+  const limpieza=lineas.some(l=>/profilaxis|limpieza|raspado/.test(normTxt(l.trat)));
+  el.innerHTML=(faltan.length?`<div class="mini" style="color:var(--alerta);margin:6px 0 2px">⚠ Falta el consentimiento firmado de: <b>${faltan.map(f=>esc(f.titulo)).join(', ')}</b>. Al guardar te ofreceré crearlo y firmarlo en pantalla.</div>`:'')
+    +(limpieza?`<div class="mini" style="color:var(--clinico);margin:6px 0 2px">✓ La app te recordará solo su próxima limpieza y control en ${mesesControl()} meses (sección Recordatorios).</div>`:'');
+}
+function avisarConsentimientoFaltante(pid,faltan){
+  const p=pac(pid);if(!p||!faltan.length)return;
+  abrirModal('Falta el consentimiento firmado',`
+    <p style="margin-top:0">Esta sesión incluye procedimientos para los que <b>${esc(p.nombre||'')}</b> aún no tiene el consentimiento firmado:</p>
+    <ul style="margin:0 0 8px 18px;padding:0">${faltan.map(f=>`<li><b>${esc(f.titulo)}</b> <span class="mini">(por «${esc(String(f.desde).slice(0,50))}»)</span></li>`).join('')}</ul>
+    <p class="mini" style="margin-bottom:0">Puedes crearlo y hacerlo firmar ahora en la pantalla, o hacerlo después desde la pestaña Consentimientos.</p>`,
+  ()=>{firmarConsentimientoPara(pid,faltan[0].clave);return false;});
+  const ok=$('#mOk'),cn=$('#mCancel');
+  if(ok)ok.textContent='Crear y firmar ahora';
+  if(cn)cn.textContent='Más tarde';
+}
+/* Citas de hoy cuyo motivo pide un consentimiento que todavía no está firmado. */
+function citasHoySinConsentimiento(){
+  const res=[];
+  (datos.citas||[]).filter(c=>c.fecha===hoy()&&c.pacienteId&&(c.estado==='Agendada'||c.estado==='Confirmada')).forEach(c=>{
+    const p=pac(c.pacienteId);if(!p)return;
+    consentimientosFaltantes(p,[c.motivo||'']).forEach(f=>res.push({cita:c,p,clave:f.clave,titulo:f.titulo}));
+  });
+  return res;
+}
+
+/* ---------- 5. controles automáticos: limpieza cada 6 meses y ortodoncia ---------- */
+function mesesControl(){return Number(datos.config&&datos.config.mesesControl)||6;}
+function ultimaProfilaxis(p){
+  let u='';
+  (p.tratamientos||[]).forEach(t=>{
+    const txt=normTxt([t.proc,t.dx,(t.lineas||[]).map(l=>l.trat).join(' ')].join(' '));
+    if(/profilaxis|limpieza|raspado/.test(txt)&&t.fecha&&t.fecha>u)u=t.fecha;
+  });
+  return u;
+}
+function controlesPorAgendar(){
+  const f=hoy(),res=[];
+  datos.pacientes.forEach(p=>{
+    if(tieneCitaFutura(p))return;
+    const invitado=!!(p.controlInvitado&&diasEntre(p.controlInvitado,f)<14);
+    if(esPacienteOrto(p)){
+      const ult=[...(p.orto.controles||[])].filter(x=>x.fecha).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+      if(ult){
+        const ref=ult.proxima||addDias(ult.fecha,30),dif=diasEntre(f,ref);
+        if(dif<=7&&dif>=-90)res.push({tipo:'orto',p,fechaRef:ref,invitado});
+      }
+      return;
+    }
+    const up=ultimaProfilaxis(p);
+    if(up){
+      const venc=sumarMeses(up,mesesControl()),dif=diasEntre(f,venc);
+      if(dif<=14&&dif>=-90)res.push({tipo:'limpieza',p,fechaRef:venc,invitado});
+    }
+  });
+  return res.sort((a,b)=>a.fechaRef.localeCompare(b.fechaRef));
+}
+function controlesPendientesEnvio(){return controlesPorAgendar().filter(x=>!x.invitado&&telWhatsapp(x.p.telefono||''));}
+function totalRecordatoriosPendientes(){return pendientesDeRecordar().length+controlesPendientesEnvio().length;}
+function listaControlesHTML(){
+  return controlesPorAgendar().map(x=>{
+    const p=x.p,hayTel=!!telWhatsapp(p.telefono||''),dias=diasEntre(hoy(),x.fechaRef);
+    const cuando=dias<0?`venció hace ${-dias} día${dias===-1?'':'s'}`:(dias===0?'toca hoy':`toca en ${dias} día${dias===1?'':'s'}`);
+    const que=x.tipo==='orto'?'Control de ortodoncia':'Limpieza y control';
+    const estado=x.invitado?`<span class="mini" style="color:var(--clinico)">✓ Invitado el ${fechaCorta(p.controlInvitado)}</span>`:'';
+    const boton=!hayTel
+      ?`<span class="mini" style="color:var(--alerta)">Sin teléfono</span> <button class="btn chico" onclick="abrirEn('${p.id}','ficha')">Agregar</button>`
+      :`<button class="btn chico ${x.invitado?'':'primario'}" onclick="invitarControl('${p.id}','${x.tipo}')">${x.invitado?'Invitar de nuevo':'Invitar por WhatsApp'}</button>`;
+    return `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--linea)">
+      <div><b>${esc(p.nombre||'')}</b> <span class="mini">${que} · ${cuando}</span> ${estado}</div>
+      <div style="display:flex;gap:6px;align-items:center">${boton}
+      <button class="btn chico" onclick="agendarControl('${p.id}','${x.tipo}')" title="Crear la cita directamente">Agendar</button></div></div>`;
+  }).join('');
+}
+function refrescarControles(){document.querySelectorAll('.ctl-lista').forEach(el=>{el.innerHTML=listaControlesHTML();});}
+function invitarControl(pid,tipo){
+  abrirWhatsappPaciente(pid,tipo==='orto'?'orto_agendar':'control',()=>{
+    const p=pac(pid);if(!p)return;
+    p.controlInvitado=hoy();guardar();refrescarControles();
+  });
+}
+
+/* ---------- 6. fotos y radiografías: comparar antes/después y ver por pieza ---------- */
+async function cargarDataUrl(clave){try{const r=await almacen.get(clave);return (r&&r.value)||'';}catch(e){return '';}}
+function listaImagenes(p,origen){
+  const arr=origen==='rx'?(p.radiografias||[]):(p.fotografias||[]);
+  const clave=origen==='rx'?claveRx:claveFoto;
+  return arr.map(r=>({...r,_clave:clave(p.id,r.id)})).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+}
+function etiquetaImagen(r){return [fechaCorta(r.fecha),r.tipo||'sin tipo',r.pieza?('pieza '+r.pieza):''].filter(Boolean).join(' · ');}
+async function componerComparacion(rA,rB,urlA,urlB){
+  const cargar=u=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u;});
+  const [a,b]=await Promise.all([cargar(urlA),cargar(urlB)]);
+  const H=800,wa=Math.round(a.width*H/a.height),wb=Math.round(b.width*H/b.height),gap=16,top=54,pie=34;
+  const cv=document.createElement('canvas');cv.width=wa+wb+gap*3;cv.height=H+top+pie+gap;
+  const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);
+  x.drawImage(a,gap,top,wa,H);x.drawImage(b,gap*2+wa,top,wb,H);
+  x.fillStyle='#15302A';x.font='bold 26px sans-serif';x.textBaseline='middle';
+  const t=r=>`${r.tipo||'Imagen'} · ${fechaCorta(r.fecha)}`;
+  x.fillText(t(rA),gap,top/2);x.fillText(t(rB),gap*2+wa,top/2);
+  x.fillStyle='#5A706A';x.font='18px sans-serif';
+  x.fillText((datos.config&&datos.config.establecimiento)||'',gap,top+H+pie/2+4);
+  return cv;
+}
+async function abrirComparador(origen){
+  const p=pac(selId);if(!p)return;
+  const imgs=listaImagenes(p,origen);
+  if(imgs.length<2){avisar('Necesitas al menos 2 imágenes para comparar');return;}
+  const antes=imgs.find(x=>x.tipo==='Antes')||imgs[0];
+  let despues=[...imgs].reverse().find(x=>x.tipo==='Después')||imgs[imgs.length-1];
+  if(despues.id===antes.id)despues=imgs[imgs.length-1].id!==antes.id?imgs[imgs.length-1]:imgs[0];
+  const opts=sel=>imgs.map(r=>`<option value="${r.id}" ${r.id===sel.id?'selected':''}>${esc(etiquetaImagen(r))}</option>`).join('');
+  abrirModal('Comparar imágenes',`
+    <div class="grid">
+      <label class="campo"><span>Izquierda</span><select id="cmp_a">${opts(antes)}</select></label>
+      <label class="campo"><span>Derecha</span><select id="cmp_b">${opts(despues)}</select></label></div>
+    <div id="cmp_vista" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;min-height:60px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn chico" type="button" id="cmp_desc">Descargar comparación</button>
+      <button class="btn chico" type="button" id="cmp_comp" style="display:none">Compartir</button></div>`,null);
+  let urlA='',urlB='';
+  const cargar=async()=>{
+    const rA=imgs.find(x=>x.id===$('#cmp_a').value),rB=imgs.find(x=>x.id===$('#cmp_b').value);
+    $('#cmp_vista').innerHTML='<p class="mini">Cargando…</p>';
+    [urlA,urlB]=await Promise.all([cargarDataUrl(rA._clave),cargarDataUrl(rB._clave)]);
+    const v=document.getElementById('cmp_vista');if(!v)return;
+    v.innerHTML=[[rA,urlA],[rB,urlB]].map(([r,u])=>`<figure style="margin:0"><img src="${u}" alt="" style="width:100%;border-radius:8px;display:block"><figcaption class="mini" style="margin-top:4px">${esc(r.tipo||'Imagen')} · ${fechaCorta(r.fecha)}</figcaption></figure>`).join('');
+  };
+  const generar=async()=>{
+    const rA=imgs.find(x=>x.id===$('#cmp_a').value),rB=imgs.find(x=>x.id===$('#cmp_b').value);
+    if(!urlA||!urlB){avisar('No se pudieron cargar las imágenes');return null;}
+    const cv=await componerComparacion(rA,rB,urlA,urlB);
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.9));
+    return {blob,nombre:`comparacion-${(p.nombre||'paciente').replace(/[^a-z0-9]+/gi,'-')}-${hoy()}.jpg`};
+  };
+  $('#cmp_a').onchange=cargar;$('#cmp_b').onchange=cargar;
+  $('#cmp_desc').onclick=async()=>{
+    const r=await generar();if(!r)return;
+    const a=document.createElement('a');a.href=URL.createObjectURL(r.blob);a.download=r.nombre;a.click();
+  };
+  try{
+    const probe=new File([new Blob(['x'])],'x.jpg',{type:'image/jpeg'});
+    if(navigator.canShare&&navigator.canShare({files:[probe]})){
+      const b=$('#cmp_comp');b.style.display='';
+      b.onclick=async()=>{
+        const r=await generar();if(!r)return;
+        try{await navigator.share({files:[new File([r.blob],r.nombre,{type:'image/jpeg'})],title:'Comparación'});}
+        catch(e){if(e.name!=='AbortError')avisar('No se pudo abrir el menú de compartir; usa «Descargar».');}
+      };
+    }
+  }catch(e){}
+  cargar();
+}
+function imagenesDePieza(p,n){
+  const re=new RegExp(`(^|\\D)${n}(\\D|$)`);
+  return [...(p.fotografias||[]).map(r=>({...r,_o:'fotos'})),...(p.radiografias||[]).map(r=>({...r,_o:'rx'}))]
+    .filter(r=>re.test(r.pieza||'')).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+}
+function linkImagenesPieza(p,n){
+  const k=imagenesDePieza(p,n).length;
+  if(!k)return '';
+  return `<p class="mini" style="margin:10px 0 0"><button class="btn chico" onclick="verImagenesPieza('${n}')">📷 ${k} ${k===1?'imagen':'imágenes'} de esta pieza · Ver</button></p>`;
+}
+async function verImagenesPieza(n){
+  const p=pac(selId);if(!p)return;
+  const imgs=imagenesDePieza(p,n);
+  abrirModal('Imágenes de la pieza '+n,`<div class="rx-grid">${imgs.map(r=>`<div class="rx-card" data-gal="${r._o}:${r.id}">
+    <div class="thumb" id="gthumb-${r.id}"></div>
+    <div class="info"><b>${esc(r.tipo||(r._o==='rx'?'Radiografía':'Fotografía'))}</b><span>${fechaCorta(r.fecha)}</span></div></div>`).join('')}</div>`,null);
+  document.querySelectorAll('[data-gal]').forEach(el=>el.onclick=()=>{
+    const [o,id]=el.dataset.gal.split(':');o==='rx'?verRx(p,id):verFoto(p,id);});
+  for(const r of imgs){
+    const u=await cargarDataUrl(r._o==='rx'?claveRx(p.id,r.id):claveFoto(p.id,r.id));
+    const t=document.getElementById('gthumb-'+r.id);
+    if(t&&u){t.style.background='none';t.innerHTML=`<img src="${u}" alt="">`;}
+  }
+}
+function agendarControl(pid,tipo){
+  const p=pac(pid);if(!p)return;
+  abrirCita(null,{fecha:addDias(hoy(),1),hora:'09:00',nombre:p.nombre||'',telefono:p.telefono||'',pacienteId:p.id,
+    motivo:tipo==='orto'?'Control de ortodoncia':'Limpieza y control'});
+}
+
+/* ---------- 7. reporte mensual ---------- */
+let reporteMes=hoy().slice(0,7);
+function sumaMes(m,delta){
+  const [y,mm]=m.split('-').map(Number),d=new Date(y,mm-1+delta,1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function nombreMesAnio(m){const [y,mm]=m.split('-').map(Number);return MESES[mm-1]+' '+y;}
+function categoriaDeTratamiento(nombre){
+  const n=normTxt(nombre);
+  for(const [cat,lista] of Object.entries(CATALOGO_TRATAMIENTOS)){
+    if(lista.some(x=>normTxt(x)===n))return cat;
+  }
+  if(/endodon|conducto|pulpotom/.test(n))return 'Endodoncia';
+  if(/extrac|exodon|cirug/.test(n))return 'Cirugía';
+  if(/profilaxis|raspado|periodon|curetaje|limpieza/.test(n))return 'Periodoncia';
+  if(/ortodon|bracket/.test(n))return 'Ortodoncia';
+  if(/corona|puente|carilla|incrust|protes/.test(n))return 'Prótesis fija';
+  if(/resina|restaur|obtur|sellante|caries/.test(n))return 'Restauradora';
+  return 'Otros';
+}
+function nombresDeSesion(t){
+  if(t.lineas&&t.lineas.length)return t.lineas.map(l=>l.trat).filter(Boolean);
+  const base=(t.proc||t.dx||'').split('\n')[0].trim();
+  return [base?base.slice(0,45):'Sesión sin detalle'];
+}
+function datosReporte(m){
+  const enMes=f=>!!f&&String(f).slice(0,7)===m;
+  const R={mes:m,cobrado:0,cobradoOrto:0,porMetodo:{},pagos:[],pacCobro:{},sesiones:0,produccion:0,porProf:{},porTrat:{},porCat:{},
+    lab:0,hon:0,citas:{Agendada:0,Confirmada:0,Atendida:0,'No asistió':0,Cancelada:0},nuevos:0,presupuestos:0,atendidos:new Set()};
+  const sumar=(o,k,v)=>{o[k]=(o[k]||0)+v;};
+  datos.pacientes.forEach(p=>{
+    const nombre=p.nombre||'Sin nombre';
+    if(enMes(p.apertura))R.nuevos++;
+    (p.abonos||[]).forEach(a=>{
+      if(!enMes(a.fecha))return;
+      const v=Number(a.monto)||0;R.cobrado+=v;sumar(R.porMetodo,a.metodo||'Otro',v);sumar(R.pacCobro,nombre,v);
+      R.pagos.push({fecha:a.fecha,paciente:nombre,metodo:a.metodo||'',nota:a.nota||'',monto:v});
+    });
+    ((p.orto&&p.orto.cuotas)||[]).forEach(q=>{
+      if(!q.pagada||!enMes(q.fechaPago))return;
+      const v=Number(q.monto)||0;R.cobrado+=v;R.cobradoOrto+=v;sumar(R.porMetodo,q.metodo||'Otro',v);sumar(R.pacCobro,nombre,v);
+      R.pagos.push({fecha:q.fechaPago,paciente:nombre,metodo:q.metodo||'',nota:'Cuota de ortodoncia',monto:v});
+    });
+    (p.tratamientos||[]).forEach(t=>{
+      if(!enMes(t.fecha))return;
+      R.sesiones++;R.atendidos.add(p.id);
+      const c=Number(t.costo)||0;R.produccion+=c;sumar(R.porProf,t.profesionalNombre||'Sin asignar',c);
+      R.lab+=Number(t.labCosto)||0;R.hon+=Number(t.honorarioPagado)||0;
+      nombresDeSesion(t).forEach(n=>{sumar(R.porTrat,n,1);sumar(R.porCat,categoriaDeTratamiento(n),1);});
+    });
+    ((p.orto&&p.orto.controles)||[]).forEach(x=>{
+      if(!enMes(x.fecha))return;
+      R.sesiones++;R.atendidos.add(p.id);R.hon+=Number(x.honorarioPagado)||0;
+      sumar(R.porTrat,'Control de ortodoncia',1);sumar(R.porCat,'Ortodoncia',1);
+    });
+    (p.presupuestos||[]).forEach(x=>{if(enMes(x.fecha))R.presupuestos++;});
+  });
+  (datos.gastosProfesionales||[]).forEach(g=>{if(enMes(g.fecha))R.hon+=Number(g.monto)||0;});
+  (datos.citas||[]).forEach(c=>{if(enMes(c.fecha)&&R.citas[c.estado]!==undefined)R.citas[c.estado]++;});
+  R.gastos=R.lab+R.hon;
+  const base=R.citas.Atendida+R.citas['No asistió'];
+  R.inasistencia=base>0?Math.round(R.citas['No asistió']/base*100):null;
+  R.citasTotal=Object.values(R.citas).reduce((s,v)=>s+v,0);
+  return R;
+}
+function filasBarras(obj,formato){
+  const ent=Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+  if(!ent.length)return '<p class="mini">Sin datos este mes.</p>';
+  const max=Math.max(...ent.map(e=>e[1]),1);
+  return `<table>${ent.map(([k,v])=>`<tr><td style="width:38%">${esc(k)}</td><td><div class="barra" style="width:${(v/max*100).toFixed(1)}%"></div></td><td class="der" style="width:80px">${formato(v)}</td></tr>`).join('')}</table>`;
+}
+function verReporte(mes){
+  if(mes)reporteMes=mes;
+  selId=null;ocultarPanel();pintarLista();
+  const R=datosReporte(reporteMes),A=datosReporte(sumaMes(reporteMes,-1));
+  const variacion=A.cobrado>0?Math.round((R.cobrado-A.cobrado)/A.cobrado*100):null;
+  const utilidad=R.cobrado-R.gastos;
+  const porCobrar=datos.pacientes.reduce((s,pt)=>s+Math.max(0,saldo(pt)),0);
+  const topPac=Object.fromEntries(Object.entries(R.pacCobro).sort((a,b)=>b[1]-a[1]).slice(0,5));
+  const topTrat=Object.fromEntries(Object.entries(R.porTrat).sort((a,b)=>b[1]-a[1]).slice(0,8));
+  const n=x=>x;
+  $('#vista').innerHTML=`<div class="cabecera"><div><h2>Reporte mensual</h2>
+      <div class="sub" style="text-transform:capitalize">${nombreMesAnio(reporteMes)}</div></div>
+      <div class="spacer"></div>
+      <button class="btn chico" onclick="verReporte(sumaMes(reporteMes,-1))">← Mes anterior</button>
+      <button class="btn chico" onclick="verReporte(hoy().slice(0,7))">Este mes</button>
+      <button class="btn chico" onclick="verReporte(sumaMes(reporteMes,1))">Mes siguiente →</button>
+      <button class="btn chico" onclick="imprimirReporte()">Imprimir / PDF</button>
+      <button class="btn chico" onclick="descargarPagosMes()">Pagos del mes (.csv)</button></div>
+    <div class="kpi-grid" style="margin-top:16px">
+      <div class="kpi-card kpi-verde"><span>Cobrado en el mes</span><b>${usd(R.cobrado)}</b></div>
+      <div class="kpi-card kpi-azul"><span>Producción (costo de sesiones)</span><b>${usd(R.produccion)}</b></div>
+      <div class="kpi-card kpi-morado"><span>Gastos registrados</span><b>${usd(R.gastos)}</b></div>
+      <div class="kpi-card ${utilidad>=0?'kpi-teal':'kpi-rojo'}"><span>Cobrado − gastos</span><b>${usd(utilidad)}</b></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-naranja"><span>Sesiones realizadas</span><b>${R.sesiones}</b></div>
+      <div class="kpi-card kpi-indigo"><span>Pacientes atendidos</span><b>${R.atendidos.size}</b></div>
+      <div class="kpi-card kpi-rosa"><span>Pacientes nuevos</span><b>${R.nuevos}</b></div>
+      <div class="kpi-card kpi-rojo"><span>Inasistencia</span><b>${R.inasistencia!==null?R.inasistencia+'%':'—'}</b></div>
+    </div>
+    <p class="mini" style="margin:-4px 0 12px">${variacion!==null?`Cobrado ${variacion>=0?'+':''}${variacion}% frente a ${nombreMesAnio(sumaMes(reporteMes,-1))} (${usd(A.cobrado)}). `:''}Por cobrar hoy en total: ${usd(porCobrar)}.${R.cobradoOrto?` Incluye ${usd(R.cobradoOrto)} de cuotas de ortodoncia.`:''}</p>
+    <div class="panel-2col" style="margin-bottom:14px">
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Cobrado por forma de pago</h3></div>${filasBarras(R.porMetodo,usd)}</div>
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Tratamientos más frecuentes</h3></div>${filasBarras(topTrat,v=>v+' vez'+(v===1?'':'es'))}</div>
+    </div>
+    <div class="panel-2col" style="margin-bottom:14px">
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Sesiones por especialidad</h3></div>${filasBarras(R.porCat,v=>v)}</div>
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Producción por profesional</h3></div>${filasBarras(R.porProf,usd)}</div>
+    </div>
+    <div class="panel-2col" style="margin-bottom:14px">
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Pacientes que más aportaron</h3></div>${filasBarras(topPac,usd)}</div>
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Citas del mes</h3></div>
+        <table>${Object.entries(R.citas).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="der">${v}</td></tr>`).join('')}
+        <tr><td><b>Total</b></td><td class="der"><b>${R.citasTotal}</b></td></tr></table></div>
+    </div>
+    <div class="bloque"><div class="barra-tit"><h3>Gastos registrados</h3></div>
+      <table><tr><td>Laboratorio</td><td class="der">${usd(R.lab)}</td></tr>
+      <tr><td>Honorarios a profesionales (pagados)</td><td class="der">${usd(R.hon)}</td></tr>
+      <tr><td><b>Total</b></td><td class="der"><b>${usd(R.gastos)}</b></td></tr></table>
+      <p class="mini" style="margin-bottom:0">Solo cuenta lo que registras en las sesiones y en «Gastos». No incluye alquiler, sueldos, servicios ni insumos, así que «Cobrado − gastos» es una referencia, no la utilidad contable.</p></div>`;
+}
+function descargarPagosMes(){
+  const R=datosReporte(reporteMes);
+  const csv=f=>'﻿'+f.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const filas=[['Fecha','Paciente','Forma de pago','Nota','Monto'],...R.pagos.sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))).map(x=>[x.fecha,x.paciente,x.metodo,x.nota,x.monto.toFixed(2)])];
+  descargarArchivo(csv(filas),`pagos-${reporteMes}.csv`,'text/csv');
+}
+function imprimirReporte(){
+  const R=datosReporte(reporteMes),g=datos.config||{};
+  const tabla=(obj,fmt)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td style="text-align:right">${fmt(v)}</td></tr>`).join('')||'<tr><td colspan="2">Sin datos</td></tr>';
+  $('#impresion').innerHTML=`<div class="hoja">
+    ${g.logo?`<img src="${g.logo}" style="height:40px;display:block;margin:0 auto 4px">`:''}
+    <h1>${esc(g.establecimiento||'CONSULTORIO ODONTOLÓGICO')}</h1>
+    <div class="est">REPORTE MENSUAL — ${esc(nombreMesAnio(reporteMes).toUpperCase())}</div>
+    <section><h4>RESUMEN</h4><div class="fila">
+      <div><span class="rot">Cobrado</span>${usd(R.cobrado)}</div><div><span class="rot">Producción</span>${usd(R.produccion)}</div>
+      <div><span class="rot">Gastos registrados</span>${usd(R.gastos)}</div><div><span class="rot">Cobrado − gastos</span>${usd(R.cobrado-R.gastos)}</div></div>
+      <div class="fila" style="margin-top:6px"><div><span class="rot">Sesiones</span>${R.sesiones}</div><div><span class="rot">Pacientes atendidos</span>${R.atendidos.size}</div>
+      <div><span class="rot">Pacientes nuevos</span>${R.nuevos}</div><div><span class="rot">Inasistencia</span>${R.inasistencia!==null?R.inasistencia+'%':'—'}</div></div></section>
+    <section><h4>COBRADO POR FORMA DE PAGO</h4><table>${tabla(R.porMetodo,usd)}</table></section>
+    <section><h4>TRATAMIENTOS MÁS FRECUENTES</h4><table>${tabla(Object.fromEntries(Object.entries(R.porTrat).sort((a,b)=>b[1]-a[1]).slice(0,10)),v=>v)}</table></section>
+    <section><h4>SESIONES POR ESPECIALIDAD</h4><table>${tabla(R.porCat,v=>v)}</table></section>
+    <section><h4>PRODUCCIÓN POR PROFESIONAL</h4><table>${tabla(R.porProf,usd)}</table></section>
+    <section><h4>CITAS</h4><table>${Object.entries(R.citas).map(([k,v])=>`<tr><td>${esc(k)}</td><td style="text-align:right">${v}</td></tr>`).join('')}</table></section>
+    <p style="font-size:9px;color:#555;margin-top:10px">Los gastos incluyen solo laboratorio y honorarios registrados en la app; no incluyen alquiler, sueldos, servicios ni insumos.</p></div>`;
+  lanzarImpresion();
+}
+
+/* ---------- 8. instalable en el iPad / sin conexión ---------- */
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
+
 
 /* ---------- modal ---------- */
 function abrirModal(titulo,html,onGuardar){
@@ -4774,6 +5621,7 @@ $('#gestionLista').querySelectorAll('button').forEach(b=>b.addEventListener('cli
 document.addEventListener('click',()=>$('#gestionLista').classList.remove('abierto'));
 $('#btnProfesionales').onclick=()=>verProfesionales();
 $('#btnGastos').onclick=()=>verGastos();
+$('#btnReporte').onclick=()=>verReporte();
 $('#btnInventario').onclick=()=>verInventario();
 $('#btnNube').onclick=()=>abrirNube();
 $('#btnResumen').onclick=()=>{ocultarPanel();verResumen();};
@@ -4782,6 +5630,7 @@ $('#btnConfig').onclick=()=>verConfig();
 $('#btnPersonalizar').onclick=()=>abrirPersonalizar();
 $('#btnRespaldo').onclick=()=>verRespaldo();
 arrancar();
+setTimeout(copiaAutomatica,6000);
 </script>
 </body>
 </html>
