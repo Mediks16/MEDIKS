@@ -206,10 +206,10 @@ td{padding:8px 8px 8px 0;border-bottom:1px solid var(--linea);vertical-align:top
 td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums}
 .mini{font-size:13px;color:var(--tinta-suave)}
 /* odontograma */
-.odonto{display:flex;flex-direction:column;gap:26px;align-items:center;overflow-x:auto;padding:10px 4px 6px;width:100%}
-.arcada{display:flex;gap:22px;position:relative;padding:0 2px 6px;flex-wrap:nowrap;justify-content:center;width:max-content;min-width:100%}
+.odonto{display:flex;flex-direction:column;gap:26px;align-items:flex-start;overflow-x:auto;padding:10px 4px 6px;width:100%}
+.arcada{display:flex;gap:10px;position:relative;padding:0 2px 6px;flex-wrap:nowrap;justify-content:center;width:max-content;min-width:100%}
 .arcada::after{content:"";position:absolute;left:50%;top:-4px;bottom:2px;width:1px;background:var(--linea)}
-.cuadrante{display:flex;gap:5px;flex-wrap:nowrap}
+.cuadrante{display:flex;gap:3px;flex-wrap:nowrap}
 .diente{width:46px;text-align:center;font-size:10px;color:var(--tinta-suave);font-variant-numeric:tabular-nums;
   background:var(--papel);border:1px solid var(--linea);border-radius:10px;padding:6px 2px 7px;
   box-shadow:var(--sombra-sm);transition:transform .12s,box-shadow .12s,border-color .12s}
@@ -250,7 +250,7 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .odonto2{display:flex;gap:18px;align-items:flex-start}
 .odonto2-arcos{flex:1;min-width:0}
 .arco-titulo{text-align:center;font-size:11px;letter-spacing:.12em;color:var(--tinta-suave);font-weight:700;margin-bottom:12px}
-.pieza-card{width:64px;text-align:center;font-size:11px;color:var(--tinta-suave);cursor:pointer;
+.pieza-card{width:52px;text-align:center;font-size:11px;color:var(--tinta-suave);cursor:pointer;
   border-radius:12px;padding:7px 2px 9px;border:1.5px solid transparent;transition:border-color .12s,transform .12s,background .12s,box-shadow .12s}
 .pieza-card:hover{transform:translateY(-2px);background:var(--porcelana);box-shadow:var(--sombra-sm)}
 .pieza-card.sel{border-color:var(--acento);background:var(--clinico-claro);box-shadow:var(--sombra-sm)}
@@ -470,6 +470,61 @@ body.imprimiendo #impresion{display:block;padding:8px}
   header.top .btn.chico{padding:5px 8px;font-size:11.5px}
   .menu-drop-lista{font-size:13px}
 }
+/* ===== mejoras estéticas ===== */
+header.top .marca{display:flex;flex-direction:column;line-height:1.05;letter-spacing:.04em;font-weight:600}
+header.top .marca small{font-family:Figtree,sans-serif;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.62);font-weight:500;margin-top:3px}
+header.top #logoConsultorio{border-radius:50%;background:#000}
+.pieza-card{background:var(--papel);border:1.5px solid var(--linea)}
+.pieza-card .estado-dot{box-shadow:0 0 0 1px var(--linea)}
+.pieza-card.con-estado{border-color:var(--ce,var(--acento));box-shadow:0 0 0 1px var(--ce,var(--acento)) inset,var(--sombra-sm)}
+.occ-grid{border:1.5px solid #9AA8A3}
+.occ-grid i{border:.5px solid #B6C1BD}
+.odonto .arcada .cuadrante{padding:6px;border-radius:14px}
+.odonto .arcada .cuadrante:nth-child(1){background:rgba(62,123,224,.07)}
+.odonto .arcada .cuadrante:nth-child(2){background:rgba(14,124,107,.07)}
+.odonto{gap:34px}
+.arcada::after{background:#B6C1BD;width:2px}
+.hint-pieza{background:var(--clinico-claro);color:var(--clinico);border:1px dashed var(--clinico);border-radius:8px;padding:7px 10px;font-weight:600}
+.accion-rapida:disabled{opacity:.45;filter:grayscale(.4)}
+.pv-datos{display:flex;flex-direction:column;gap:6px;margin:0 0 16px;padding:0 4px}
+.pv-datos span{font-size:12.5px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.08);border-radius:8px;padding:6px 9px;overflow-wrap:anywhere}
+.pv-datos .al{background:rgba(224,86,74,.25);color:#FFD9D3;font-weight:600}
+.pv-datos .deu{background:rgba(201,150,43,.28);color:#FFE9B5;font-weight:600}
+.pv-datos .ok{background:rgba(14,124,107,.3);color:#C9F0E8}
+.hoja h1{letter-spacing:.03em}
+.hoja>img:first-child{border-radius:50%}
+.bottom-nav{display:none}
+@media (max-width:760px){
+  header.top #btnResumen,header.top #btnPacientes,header.top #btnAgenda,header.top .menu-drop{display:none}
+  .bottom-nav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--papel);border-top:1px solid var(--linea);
+    box-shadow:0 -4px 16px rgba(10,25,45,.12);padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+  .bottom-nav button{flex:1;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:1px;
+    font-size:11px;font-weight:600;color:var(--tinta-suave);padding:6px 2px;min-height:52px;border-radius:10px}
+  .bottom-nav button i{font-style:normal;font-size:20px;line-height:1.1}
+  .bottom-nav button:active{background:var(--clinico-claro);color:var(--clinico)}
+  main{padding-bottom:84px}
+  .btn,.menu-drop-lista button{min-height:42px}
+  input,select,textarea{font-size:16px}
+  .pv-nav .pv-datos{display:none}
+  table{display:block;overflow-x:auto}
+  .pieza-card{width:44px}
+}
+:root[data-tema="oscuro"]{
+  color-scheme:dark;
+  --porcelana:#0E1613;--papel:#16211D;--tinta:#E6EFEC;--tinta-suave:#9FB3AD;--linea:#2B3A35;
+  --clinico-claro:#183A33;--alerta-claro:#3A1F1A;
+  --sombra-sm:0 1px 2px rgba(0,0,0,.4);--sombra-md:0 6px 20px rgba(0,0,0,.45);
+}
+:root[data-tema="oscuro"] .pieza-card:hover{background:#1D2C27}
+:root[data-tema="oscuro"] .occ-grid{border-color:#5B6D67}
+:root[data-tema="oscuro"] input,:root[data-tema="oscuro"] select,:root[data-tema="oscuro"] textarea{background:#0F1A16;color:var(--tinta);border-color:var(--linea)}
+:root[data-tema="oscuro"] .btn{background:#1B2A25;color:var(--tinta);border-color:var(--linea)}
+:root[data-tema="oscuro"] .btn.primario{background:var(--clinico);color:#fff}
+:root[data-tema="oscuro"] .bloque{background:var(--papel)}
+:root[data-tema="oscuro"] details.bloque>summary b,:root[data-tema="oscuro"] .barra-tit b,:root[data-tema="oscuro"] .odonto-tabs button[aria-pressed="true"],:root[data-tema="oscuro"] .modo-pendiente button[aria-pressed="true"],:root[data-tema="oscuro"] .aviso{color:#0E1613}
+:root[data-tema="oscuro"] .hint-pieza{background:#183A33;color:#8FE8D4;border-color:#2F8F7B}
+:root[data-tema="oscuro"] .estado-dot:not([style*="background"]){background:#0F1A16}
+:root[data-tema="oscuro"] .estado-dots .estado-dot[title="Sano"]{background:#0F1A16}
 @media print{
   @page{margin:10mm}
   .app{display:none!important}
@@ -490,11 +545,12 @@ body.imprimiendo #impresion{display:block;padding:8px}
 <div class="app">
   <header class="top">
     <img id="logoConsultorio" src="" alt="" style="display:none;height:44px;width:44px;object-fit:contain;border-radius:8px">
-    <div class="marca" id="marcaTexto">Historia clínica <em>033</em></div>
+    <div class="marca" id="marcaTexto">MEDIKS<small>Centro médico odontológico</small></div>
     <div class="spacer"></div>
     <button class="btn" id="btnResumen">Resumen</button>
     <button class="btn" id="btnPacientes">Pacientes</button>
     <button class="btn" id="btnAgenda">Agenda</button>
+    <button class="btn" id="btnTema" title="Modo claro / oscuro" aria-label="Modo claro u oscuro">☾</button>
     <button class="btn" id="btnNube">Nube: conectando…</button>
     <div class="menu-drop">
       <button class="btn" id="btnGestion">Gestión ▾</button>
@@ -512,6 +568,12 @@ body.imprimiendo #impresion{display:block;padding:8px}
       </div>
     </div>
   </header>
+  <nav class="bottom-nav" id="bottomNav" aria-label="Navegación">
+    <button data-bn="btnResumen"><i>🏠</i>Resumen</button>
+    <button data-bn="btnPacientes"><i>👥</i>Pacientes</button>
+    <button data-bn="btnAgenda"><i>📅</i>Agenda</button>
+    <button data-bn="btnGestion"><i>⚙️</i>Gestión</button>
+  </nav>
   <div class="cuerpo">
     <main><div class="centro" id="vista"></div></main>
   </div>
@@ -595,10 +657,30 @@ function edadTexto(f){
 }
 function avisar(t){const a=$('#aviso');a.textContent=t;a.classList.add('ver');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('ver'),2200);}
 let tGuarda;
-function guardar(){clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
-  try{await almacen.set(CLAVE,JSON.stringify(datos));}
-  catch(e){console.error(e);avisar('No se pudo guardar. Descarga un respaldo.');}
-  if(almacen!==almacenLocal){try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}}
+function guardar(){try{sincronizarInicialAuto();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
+  const miSeq=++seqGuardado,json=JSON.stringify(datos),viaNube=almacen!==almacenLocal;
+  /* Lo que no se confirma en la nube queda marcado como «pendiente» y se junta con la nube al volver la conexión.
+     La «base» es la última versión que este dispositivo y la nube compartían. */
+  let baseCand='';
+  try{baseCand=ultimoSync!==null?ultimoSync:(localStorage.getItem(CLAVE)||'');}catch(e){}
+  if(usaNube()&&!hayPendiente()){
+    try{
+      localStorage.setItem(LS_PEND,'1');
+      if(!viaNube)localStorage.setItem(LS_BASE,baseCand);
+      else setTimeout(()=>{try{if(hayPendiente()&&!localStorage.getItem(LS_BASE))localStorage.setItem(LS_BASE,baseCand);}catch(e){}},2500);
+    }catch(e){}
+  }
+  let localOk=true;
+  try{await almacenLocal.set(CLAVE,json);}
+  catch(e){localOk=false;console.error(e);if(!viaNube)avisar('No se pudo guardar. Descarga un respaldo.');}
+  if(viaNube){
+    try{await almacen.set(CLAVE,json);if(miSeq===seqGuardado)limpiarPendiente(json);}
+    catch(e){
+      console.error(e);
+      try{if(usaNube()){localStorage.setItem(LS_PEND,'1');if(!localStorage.getItem(LS_BASE))localStorage.setItem(LS_BASE,baseCand);}}catch(_){}
+      avisar(localOk?'Sin conexión con la nube: se guardó en este dispositivo y se subirá al volver el internet':'No se pudo guardar. Descarga un respaldo.');
+    }
+  }
   copiaAutomatica();
 },350);}
 async function cargar(){try{const r=await almacen.get(CLAVE);if(r&&r.value)datos=JSON.parse(r.value);}catch(e){}
@@ -616,7 +698,7 @@ async function cargar(){try{const r=await almacen.get(CLAVE);if(r&&r.value)datos
 /* ================= sincronización en la nube ================= */
 function actualizarBotonNube(){
   const b=$('#btnNube');if(!b)return;
-  if(nubeActiva&&nubeAuth&&nubeAuth.currentUser){b.textContent='☁ '+nubeAuth.currentUser.email;}
+  if(nubeActiva&&nubeAuth&&nubeAuth.currentUser){b.textContent='☁ '+nubeAuth.currentUser.email+(almacen===almacenLocal?' · sin conexión':'');}
   else{b.textContent='Nube: sin conectar';}
 }
 function inicializarFirebase(){
@@ -638,13 +720,44 @@ function traducirErrorAuth(code){
   return mapa[code]||'No se pudo completar. Intenta de nuevo.';
 }
 async function migrarOCargarNube(){
-  try{
-    await almacenNube.get(CLAVE);
-    await cargar();pintar();avisar('Datos sincronizados desde la nube');
-  }catch(e){
-    await almacenNube.set(CLAVE,JSON.stringify(datos));
-    pintar();avisar('Tus datos de este dispositivo se subieron a la nube');
+  let rawNube;
+  try{rawNube=(await conTiempo(almacenNube.get(CLAVE),8000)).value;}
+  catch(e){
+    if(e&&e.code==='NOT_FOUND'){   // la nube está vacía: se suben los datos de este dispositivo
+      try{
+        const json=JSON.stringify(datos);
+        await conTiempo(almacenNube.set(CLAVE,json),8000);
+        marcarUsaNube();limpiarPendiente(json);pintar();avisar('Tus datos de este dispositivo se subieron a la nube');
+      }catch(e2){pasarAModoLocal();}
+      return;
+    }
+    pasarAModoLocal();return;   // sin conexión u otro fallo: se sigue con la copia de este dispositivo
   }
+  marcarUsaNube();
+  if(hayPendiente()){
+    // hay cosas anotadas sin conexión: se juntan con lo que haya en la nube (de este u otro dispositivo)
+    let base={},nube={};
+    try{base=JSON.parse(localStorage.getItem(LS_BASE)||'{}')||{};}catch(e){}
+    try{nube=JSON.parse(rawNube)||{};}catch(e){}
+    const v0=versionDatos;
+    const unido=unir3(base,JSON.parse(JSON.stringify(datos)),nube);
+    const json=JSON.stringify(unido);
+    try{await conTiempo(almacenNube.set(CLAVE,json),8000);}catch(e){pasarAModoLocal();return;}
+    try{await subirImagenesPendientes();}catch(e){}
+    if(versionDatos!==v0)return;   // anotaste algo mientras se juntaba: se junta de nuevo en la próxima vuelta
+    datos=unido;
+    await cargar();
+    try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}
+    limpiarPendiente(json);
+    pintar();avisar('Se juntaron los cambios hechos sin conexión con los de la nube');
+    return;
+  }
+  await cargar();
+  ultimoSync=rawNube;
+  // copia en este dispositivo: así, sin internet, siguen viéndose los pacientes de la última vez que abriste con conexión
+  try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}
+  try{await subirImagenesPendientes();}catch(e){}
+  pintar();avisar('Datos sincronizados desde la nube');
 }
 function abrirLoginNube(){
   abrirModal('Conectar con tu cuenta',`
@@ -681,6 +794,8 @@ function abrirNube(){
         <button class="btn chico" type="button" id="nb_salir">Cerrar sesión en este dispositivo</button>
       </div>`,null);
     $('#nb_salir').onclick=async()=>{
+      if(hayPendiente()&&!confirm('Tienes cambios hechos sin conexión que todavía no se subieron a la nube. Si cierras sesión ahora se quedarán solo en este dispositivo. ¿Cerrar sesión de todas formas?'))return;
+      try{localStorage.removeItem(LS_USA);localStorage.removeItem(LS_PEND);localStorage.removeItem(LS_BASE);}catch(e){}
       await nubeAuth.signOut();nubeActiva=false;almacen=almacenLocal;
       $('#modal').close();actualizarBotonNube();avisar('Sesión cerrada. Volviste al modo local en este dispositivo.');
       await cargar();pintar();
@@ -966,6 +1081,11 @@ function pintarVistaInterna(){
         <div class="avatar">${esc(inicial)}</div>
         <div class="nombre">${esc(p.nombre||'Sin nombre')}</div>
         <div class="hc">${p.hc?('HC '+esc(p.hc)):'&nbsp;'}</div>
+        <div class="pv-datos">
+          ${e!==null?`<span>🎂 ${e} años</span>`:''}${p.telefono?`<span>📞 ${esc(p.telefono)}</span>`:''}
+          ${p.alergias?`<span class="al">⚠ Alergias: ${esc(p.alergias)}</span>`:''}
+          ${saldo(p)>0.004?`<span class="deu">💲 Saldo ${usd(saldo(p))}</span>`:`<span class="ok">✓ Sin saldo pendiente</span>`}
+        </div>
         <div class="botones">${ordenPestanasActual().map(k=>`<button role="tab" aria-selected="${pestana===k}" data-t="${k}">${TABS_PACIENTE[k]}</button>`).join('')}</div>
       </aside>
       <div class="pv-content">
@@ -1221,7 +1341,9 @@ function tarjetaPieza(n,d,seleccionada){
     ?ests.map(est=>`<span class="estado-dot" style="background:${est.pendiente?'#fff':est.color};border-color:${est.color};border-style:${est.pendiente?'dashed':'solid'};color:${est.pendiente?est.color:'#fff'}" title="${esc(est.nombre||'')}">${esc(est.simbolo||'')}</span>`).join('')
     :`<span class="estado-dot" title="Sano"></span>`;
   const titulo=ests.length?ests.map(e=>e.nombre).join(' + '):'Sana';
-  return `<div class="pieza-card ${seleccionada?'sel':''}" data-pieza="${n}" title="${esc(titulo)}">${occ}${numero}<span class="estado-dots">${puntos}</span></div>`;
+  const hayCaras=Object.keys(d.caras||{}).length>0;
+  const colEst=(ests[0]&&ests[0].color)||'';
+  return `<div class="pieza-card ${seleccionada?'sel':''} ${(ests.length||hayCaras)?'con-estado':''}" ${colEst?`style="--ce:${colEst}"`:''} data-pieza="${n}" title="${esc(titulo)}">${occ}${numero}<span class="estado-dots">${puntos}</span></div>`;
 }
 function panelPiezaHTML(p,n,verInicial){
   const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
@@ -1355,7 +1477,7 @@ function tabOdonto(p,c){
         <div class="arco-titulo" style="margin-top:20px">INFERIOR</div>
         <div class="odonto"><div class="arcada">${filaGeneral([set[2],set[3]],false)}</div></div>
         <div class="acciones-rapidas">
-          <span class="mini" style="width:100%;margin-bottom:2px">Acciones rápidas${piezaSeleccionada?' · pieza '+esc(piezaSeleccionada):' · elige una pieza arriba'}</span>
+          <span class="mini ${piezaSeleccionada?'':'hint-pieza'}" style="width:100%;margin-bottom:2px">Acciones rápidas${piezaSeleccionada?' · pieza '+esc(piezaSeleccionada):' · 👆 Elige una pieza del odontograma para activar estos botones'}</span>
           ${piezaSeleccionada?`<div class="modo-pendiente" style="width:100%">
             <button data-modopieza="pendiente" aria-pressed="${modoPendienteActual(datosOdonto[piezaSeleccionada]||{})==='pendiente'}">○ Marcar como pendiente</button>
             <button data-modopieza="realizado" aria-pressed="${modoPendienteActual(datosOdonto[piezaSeleccionada]||{})==='realizado'}">● Marcar como realizado</button>
@@ -1385,7 +1507,8 @@ function tabOdonto(p,c){
       <button class="btn chico" onclick="guardarOdontogramaInicial(pac(selId))">Guardar odontograma actual como «inicial»</button>
     </div>
     ${verInicial?`<div class="bloque" style="background:var(--porcelana);border-style:dashed">
-      <p class="mini" style="margin:0">Estás viendo y editando el <b>odontograma inicial</b>, congelado el ${fechaCorta(p.odontogramaInicial.fecha)}. Los cambios aquí no afectan al odontograma «Actual» — es útil si necesitas corregir una confusión al cargarlo.</p></div>`:''}
+      <p class="mini" style="margin:0">Estás viendo y editando el <b>odontograma inicial</b>, congelado el ${fechaCorta(p.odontogramaInicial.fecha)}. Los cambios aquí no afectan al odontograma «Actual» — es útil si necesitas corregir una confusión al cargarlo.</p>
+      ${(p.tratamientos||[]).length?`<button class="btn chico" style="margin-top:8px" onclick="reconstruirInicial(pac(selId))">Reconstruir desde los tratamientos hechos</button>`:''}</div>`:''}
     <div class="bloque"><div class="barra-tit"><b>6</b><h3>Odontograma</h3>
       <div class="der"><button class="btn chico" id="cambiarSet">Ver dentición ${p.odontoLeche?'permanente':'temporal'}</button></div></div>
       <p class="mini" style="margin:-4px 0 10px">Numeración FDI (dos dígitos: cuadrante + pieza) — ${p.odontoLeche?'51–85, dentición temporal':'11–48, dentición permanente'}.</p>
@@ -1514,8 +1637,46 @@ function tabOdonto(p,c){
 }
 function asegurarInicialAntesDePrimerCambio(p){
   if(!p.odontogramaInicial){
-    p.odontogramaInicial={dientes:JSON.parse(JSON.stringify(p.odontograma)),fecha:hoy()};
+    p.odontogramaInicial={dientes:JSON.parse(JSON.stringify(p.odontograma||{})),fecha:hoy(),auto:true};
   }
+}
+/* Piezas tratadas: si en el inicial no tenían nada marcado, se anota «caries» (en las caras tratadas) porque el tratamiento lo implica. */
+function completarInicialDesdeLineas(dientes,lineas){
+  (lineas||[]).forEach(l=>{
+    const k=claveTratOdonto(l.trat);if(!k)return;
+    const mapa=TRAT_A_ODONTO[k];if(mapa.estado==='perdida_caries'||mapa.estado==='sellante_real'||mapa.estado==='implante_real')return;
+    piezasDeTexto(l.pieza).forEach(n=>{
+      const nd=dientes[n]||{};
+      if(Object.keys(nd.caras||{}).length||nd.general)return;
+      nd.caras=nd.caras||{};
+      const cs=(mapa.tipo==='cara'&&(l.caras||[]).length)?l.caras:['V','M','O','D','L'];
+      cs.forEach(c=>{if(['V','M','O','D','L'].includes(c))nd.caras[c]='caries';});
+      dientes[n]=nd;
+    });
+  });
+}
+function reconstruirInicial(p){
+  if(!confirm('Se rehará el odontograma inicial a partir del odontograma actual, anotando como «caries» las piezas/caras que ya fueron tratadas y que no tenían nada marcado. Lo que ya está marcado en el inicial se conserva. ¿Continuar?'))return;
+  const base=JSON.parse(JSON.stringify((p.odontogramaInicial&&p.odontogramaInicial.dientes)||{}));
+  Object.keys(base).length||Object.assign(base,{});
+  const ya=Object.keys(base).length?base:{};
+  const lineas=[];(p.tratamientos||[]).forEach(t=>(t.lineas||[]).forEach(l=>lineas.push(l)));
+  completarInicialDesdeLineas(ya,lineas);
+  p.odontogramaInicial={dientes:ya,fecha:(p.odontogramaInicial&&p.odontogramaInicial.fecha)||hoy()};
+  guardar();avisar('Odontograma inicial reconstruido');pintarVista();
+}
+/* El odontograma inicial se guarda solo: mientras el paciente no tenga tratamientos registrados, sigue al odontograma actual.
+   Al registrar el primer tratamiento queda congelado. Los iniciales ya guardados (sin marca auto) no se tocan. */
+function sincronizarInicialAuto(){
+  if(typeof vistaOdontoInicial!=='undefined'&&vistaOdontoInicial)return;
+  (datos.pacientes||[]).forEach(p=>{
+    const ini=p.odontogramaInicial;
+    if((p.tratamientos||[]).length){if(ini&&ini.auto)delete ini.auto;return;}
+    if(ini&&!ini.auto)return;
+    const od=p.odontograma||{};
+    if(!Object.keys(od).length&&!ini)return;
+    p.odontogramaInicial={dientes:JSON.parse(JSON.stringify(od)),fecha:(ini&&ini.fecha)||hoy(),auto:true};
+  });
 }
 
 /* ---------- tratamientos (barra 12) ---------- */
@@ -1929,8 +2090,9 @@ function editarTrat(id,pre){
     const esPrimerTratamiento=p.tratamientos.length===0;
     const i=p.tratamientos.findIndex(x=>x.id===d.id);
     i>=0?p.tratamientos[i]=d:p.tratamientos.push(d);
-    if(esPrimerTratamiento&&!p.odontogramaInicial){
-      p.odontogramaInicial={dientes:JSON.parse(JSON.stringify(p.odontograma)),fecha:hoy()};
+    if(esPrimerTratamiento){
+      if(!p.odontogramaInicial||p.odontogramaInicial.auto)p.odontogramaInicial={dientes:JSON.parse(JSON.stringify(p.odontograma||{})),fecha:(p.odontogramaInicial&&p.odontogramaInicial.fecha)||hoy()};
+      completarInicialDesdeLineas(p.odontogramaInicial.dientes,lineasOk);
     }
 
     // actualizar el odontograma solo: cada línea (pieza + tratamiento + caras) se aplica a su pieza
@@ -3124,7 +3286,7 @@ function copiaReceta(r,p,g,numeroMostrar,modo){
         ${g.codigo?`<div>Reg. ${esc(g.codigo)}</div>`:''}
         <div style="text-transform:uppercase">${esc(g.especialidad||'Odontología General')}</div>
       </div>
-      ${g.logo?`<img src="${g.logo}" style="height:46px;object-fit:contain">`:''}
+      <img src="${logoActual()}" style="height:46px;object-fit:contain">
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid #000;border-bottom:1px solid #000;padding:3px 4px;font-weight:700">
       <span>Receta N.: ${esc(numeroMostrar)}</span>
@@ -3467,7 +3629,7 @@ async function subirRx(p,files){
     try{
       const dataUrl=await comprimirImagen(file);
       const id=uid();
-      await almacen.set(claveRx(p.id,id),dataUrl);
+      await guardarImagen(claveRx(p.id,id),dataUrl);
       p.radiografias=p.radiografias||[];
       p.radiografias.push({id,fecha:hoy(),tipo:((document.getElementById('rxTipoSub')||{}).value||''),pieza:(((document.getElementById('rxPiezaSub')||{}).value)||'').trim(),nota:''});
     }catch(e){ console.error(e); avisar('No se pudo subir '+file.name); }
@@ -3550,7 +3712,7 @@ async function subirFoto(p,files){
     try{
       const dataUrl=await comprimirImagen(file);
       const id=uid();
-      await almacen.set(claveFoto(p.id,id),dataUrl);
+      await guardarImagen(claveFoto(p.id,id),dataUrl);
       p.fotografias=p.fotografias||[];
       p.fotografias.push({id,fecha:hoy(),tipo:((document.getElementById('fotoTipoSub')||{}).value||''),pieza:(((document.getElementById('fotoPiezaSub')||{}).value)||'').trim(),nota:''});
     }catch(e){ console.error(e); avisar('No se pudo subir '+file.name); }
@@ -4659,6 +4821,8 @@ function aclararColor(hex,factor){
   const mezc=(c)=>Math.round(c+(255-c)*factor);
   return `rgb(${mezc(r)},${mezc(g)},${mezc(b)})`;
 }
+const LOGO_DEFECTO='data:image/png;base64,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';
+function logoActual(){return (datos.config&&datos.config.logo)||LOGO_DEFECTO;}
 function aplicarTema(){
   const cfg=datos.config||{};
   const color=cfg.colorPrimario||'#0E7C6B';
@@ -4666,11 +4830,10 @@ function aplicarTema(){
   document.documentElement.style.setProperty('--clinico-claro',aclararColor(color,.87));
   const logoImg=document.getElementById('logoConsultorio');
   if(logoImg){
-    if(cfg.logo){logoImg.src=cfg.logo;logoImg.style.display='inline-block';}
-    else{logoImg.style.display='none';}
+    logoImg.src=cfg.logo||LOGO_DEFECTO;logoImg.style.display='inline-block';
   }
   const marca=document.getElementById('marcaTexto');
-  if(marca)marca.innerHTML=cfg.establecimiento?esc(cfg.establecimiento):'Historia clínica <em>033</em>';
+  if(marca)marca.innerHTML=cfg.establecimiento?esc(cfg.establecimiento)+'<small>Historia clínica 033</small>':'MEDIKS<small>Centro médico odontológico</small>';
 }
 function comprimirLogo(file,maxLado){
   maxLado=maxLado||200;
@@ -4814,7 +4977,7 @@ function verConfig(){
 /* ---------- impresión ---------- */
 function encabezadoHoja(p){
   const g=datos.config,e=edad(p.nacimiento);
-  return `${g.logo?`<img src="${g.logo}" style="height:40px;display:block;margin:0 auto 4px">`:''}
+  return `<img src="${logoActual()}" style="height:40px;display:block;margin:0 auto 4px">
     <h1>${esc(g.establecimiento||'CONSULTORIO ODONTOLÓGICO')}</h1>
     <div class="est">${[g.profesional,g.codigo&&('Código '+g.codigo),g.direccion,g.telefono].filter(Boolean).map(esc).join(' · ')}</div>
     <section><div class="fila">
@@ -5579,7 +5742,7 @@ function imprimirReporte(){
   const R=datosReporte(reporteMes),g=datos.config||{};
   const tabla=(obj,fmt)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td style="text-align:right">${fmt(v)}</td></tr>`).join('')||'<tr><td colspan="2">Sin datos</td></tr>';
   $('#impresion').innerHTML=`<div class="hoja">
-    ${g.logo?`<img src="${g.logo}" style="height:40px;display:block;margin:0 auto 4px">`:''}
+    <img src="${logoActual()}" style="height:40px;display:block;margin:0 auto 4px">
     <h1>${esc(g.establecimiento||'CONSULTORIO ODONTOLÓGICO')}</h1>
     <div class="est">REPORTE MENSUAL — ${esc(nombreMesAnio(reporteMes).toUpperCase())}</div>
     <section><h4>RESUMEN</h4><div class="fila">
@@ -5601,6 +5764,86 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
 }
 
+
+
+/* ---------- 9. trabajo sin internet: lo anotado se junta con la nube al volver la conexión ---------- */
+const LS_PEND='odonto-pendiente-nube',LS_BASE='odonto-base-nube',LS_USA='odonto-usa-nube',LS_IMGS='odonto-imgs-pendientes';
+const usaNube=()=>{try{return localStorage.getItem(LS_USA)==='1';}catch(e){return false;}};
+const hayPendiente=()=>{try{return localStorage.getItem(LS_PEND)==='1';}catch(e){return false;}};
+const marcarUsaNube=()=>{try{localStorage.setItem(LS_USA,'1');}catch(e){}};
+let seqGuardado=0,versionDatos=0,ultimoSync=null;
+const conTiempo=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('tiempo')),ms))]);
+function limpiarPendiente(json){
+  try{localStorage.removeItem(LS_PEND);localStorage.removeItem(LS_BASE);}catch(e){}
+  if(json!==undefined)ultimoSync=json;
+}
+/* ---- juntar dos versiones (la de este dispositivo y la de la nube) usando la última versión que ambas compartían ---- */
+const esObjeto=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+function igualProf(a,b){
+  if(a===b)return true;
+  if(typeof a!==typeof b||a===null||b===null||a===undefined||b===undefined)return false;
+  if(Array.isArray(a)){return Array.isArray(b)&&a.length===b.length&&a.every((x,i)=>igualProf(x,b[i]));}
+  if(typeof a==='object'){const ka=Object.keys(a),kb=Object.keys(b);return ka.length===kb.length&&ka.every(k=>igualProf(a[k],b[k]));}
+  return false;
+}
+const listaConId=a=>Array.isArray(a)&&a.length>0&&a.every(x=>esObjeto(x)&&x.id!==undefined);
+function unir3(base,loc,nube){
+  if(igualProf(loc,nube))return loc;
+  if(igualProf(loc,base))return nube;
+  if(igualProf(nube,base))return loc;
+  if(loc===undefined)return nube;   // lo borraste aquí pero en la nube cambió: se conserva
+  if(nube===undefined)return loc;
+  if(esObjeto(loc)&&esObjeto(nube)){
+    const b=esObjeto(base)?base:{},out={};
+    new Set([...Object.keys(nube),...Object.keys(loc)]).forEach(k=>{const v=unir3(b[k],loc[k],nube[k]);if(v!==undefined)out[k]=v;});
+    return out;
+  }
+  const okL=listaConId(loc)||(Array.isArray(loc)&&!loc.length),okN=listaConId(nube)||(Array.isArray(nube)&&!nube.length);
+  if(okL&&okN){
+    const b=Array.isArray(base)?base:[];
+    const mb=new Map(b.filter(esObjeto).map(x=>[x.id,x])),ml=new Map(loc.map(x=>[x.id,x])),mn=new Map(nube.map(x=>[x.id,x]));
+    const ids=[...nube.map(x=>x.id),...loc.map(x=>x.id).filter(id=>!mn.has(id))];
+    const out=[];
+    ids.forEach(id=>{const v=unir3(mb.get(id),ml.get(id),mn.get(id));if(v!==undefined)out.push(v);});
+    return out;
+  }
+  return loc;   // cambio distinto en ambos lados y sin forma de juntarlos: gana lo hecho en este dispositivo
+}
+/* ---- imágenes subidas sin conexión ---- */
+function guardarImagen(clave,url){
+  if(almacen===almacenLocal){
+    return almacenLocal.set(clave,url).then(()=>{
+      if(!usaNube())return;
+      try{const l=JSON.parse(localStorage.getItem(LS_IMGS)||'[]');if(!l.includes(clave)){l.push(clave);localStorage.setItem(LS_IMGS,JSON.stringify(l));}}catch(e){}
+    });
+  }
+  return almacen.set(clave,url);
+}
+async function subirImagenesPendientes(){
+  let l=[];try{l=JSON.parse(localStorage.getItem(LS_IMGS)||'[]');}catch(e){}
+  const quedan=[];
+  for(const k of l){
+    try{
+      const v=localStorage.getItem(k);
+      if(v===null)continue;
+      await conTiempo(almacenNube.set(k,v),20000);
+      localStorage.removeItem(k);
+    }catch(e){quedan.push(k);}
+  }
+  try{quedan.length?localStorage.setItem(LS_IMGS,JSON.stringify(quedan)):localStorage.removeItem(LS_IMGS);}catch(e){}
+}
+function pasarAModoLocal(){
+  almacen=almacenLocal;actualizarBotonNube();
+  avisar('Sin conexión con la nube: trabajas con la copia de este dispositivo. Lo que anotes se subirá solo al volver el internet');
+}
+async function reintentarNube(){
+  if(!nubeAuth||!nubeAuth.currentUser||!usaNube()||almacen!==almacenLocal)return;
+  const m=document.getElementById('modal');if(m&&m.open)return;   // no se cambian los datos mientras tienes una ventana abierta
+  almacen=almacenNube;
+  await migrarOCargarNube();
+}
+window.addEventListener('online',()=>setTimeout(reintentarNube,1500));
+setInterval(()=>{if(hayPendiente()&&navigator.onLine!==false)reintentarNube();},60000);
 
 /* ---------- modal ---------- */
 function abrirModal(titulo,html,onGuardar){
@@ -5629,6 +5872,20 @@ $('#btnPacientes').onclick=()=>verListaPacientes();
 $('#btnConfig').onclick=()=>verConfig();
 $('#btnPersonalizar').onclick=()=>abrirPersonalizar();
 $('#btnRespaldo').onclick=()=>verRespaldo();
+/* ---------- tema claro/oscuro y navegación inferior ---------- */
+function aplicarModoOscuro(on){
+  document.documentElement.dataset.tema=on?'oscuro':'claro';
+  const b=document.getElementById('btnTema');if(b)b.textContent=on?'☀':'☾';
+  const m=document.querySelector('meta[name=color-scheme]');if(m)m.content=on?'dark':'light';
+}
+(function(){
+  let on=false;
+  try{const g=localStorage.getItem('mediks-tema');on=g?g==='oscuro':(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);}catch(e){}
+  aplicarModoOscuro(on);
+  const b=document.getElementById('btnTema');
+  if(b)b.onclick=()=>{on=!on;aplicarModoOscuro(on);try{localStorage.setItem('mediks-tema',on?'oscuro':'claro');}catch(e){}};
+  document.querySelectorAll('#bottomNav [data-bn]').forEach(x=>x.onclick=()=>{const t=document.getElementById(x.dataset.bn);if(t)t.click();});
+})();
 arrancar();
 setTimeout(copiaAutomatica,6000);
 </script>
