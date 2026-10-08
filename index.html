@@ -528,6 +528,10 @@ header.top #logoConsultorio{border-radius:50%;background:#000}
 :root[data-tema="oscuro"] .hint-pieza{background:#183A33;color:#8FE8D4;border-color:#2F8F7B}
 :root[data-tema="oscuro"] .estado-dot:not([style*="background"]){background:#0F1A16}
 :root[data-tema="oscuro"] .estado-dots .estado-dot[title="Sano"]{background:#0F1A16}
+
+.ag-cita{touch-action:pan-x pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+.ag-cita.arrastrando{opacity:.9;box-shadow:0 8px 22px rgba(10,25,45,.35);z-index:20;cursor:grabbing;outline:2px solid var(--acento)}
+body.arrastrando-cita{cursor:grabbing;user-select:none}
 @media print{
   @page{margin:10mm}
   .app{display:none!important}
@@ -982,7 +986,7 @@ const FDI={adulto:[[18,17,16,15,14,13,12,11],[21,22,23,24,25,26,27,28],[48,47,46
   leche:[[55,54,53,52,51],[61,62,63,64,65],[85,84,83,82,81],[71,72,73,74,75]]};
 const IHOS=[['16','17','55'],['11','21','51'],['26','27','65'],['36','37','75'],['31','41','71'],['46','47','85']];
 const TABS_PACIENTE={ficha:'Ficha',hc:'Historia 033',odonto:'Odontograma',trat:'Tratamientos',
-  orto:'Ortodoncia',receta:'Receta',fotos:'Fotos',rx:'Radiografías',cons:'Consentimientos',pagos:'Pagos'};
+  orto:'Ortodoncia',receta:'Receta',fotos:'Fotos',rx:'Radiografías',cons:'Consentimientos',citas:'Citas',pagos:'Pagos'};
 function ordenPestanasActual(){
   const guardado=(datos.config&&datos.config.ordenPestanas)||[];
   const claves=Object.keys(TABS_PACIENTE);
@@ -1104,7 +1108,7 @@ function pintarVistaInterna(){
       </div>
     </div>`;
   v.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{pestana=b.dataset.t;pintarVista();});
-  const FUNCS_TAB={ficha:tabFicha,hc:tabHC,odonto:tabOdonto,trat:tabTrat,orto:tabOrto,receta:tabReceta,fotos:tabFotos,rx:tabRx,cons:tabCons,pagos:tabPagos};
+  const FUNCS_TAB={ficha:tabFicha,hc:tabHC,odonto:tabOdonto,trat:tabTrat,orto:tabOrto,receta:tabReceta,fotos:tabFotos,rx:tabRx,cons:tabCons,citas:tabCitas,pagos:tabPagos};
   (FUNCS_TAB[pestana]||tabFicha)(p,$('#panelTab'));
 }
 function ligar(cont,obj,extra){
@@ -1120,6 +1124,34 @@ function ligar(cont,obj,extra){
       else el.addEventListener('change',()=>extra(el));
     }
   });
+}
+
+/* ---------- citas del paciente ---------- */
+function citasDePaciente(p){
+  const nom=(p.nombre||'').trim().toLowerCase();
+  return (datos.citas||[]).filter(c=>c.pacienteId===p.id||(!c.pacienteId&&nom&&(c.nombre||'').trim().toLowerCase()===nom))
+    .sort((a,b)=>(a.fecha+(a.hora||'')).localeCompare(b.fecha+(b.hora||'')));
+}
+function tabCitas(p,c){
+  const f=hoy(),todas=citasDePaciente(p);
+  const prox=todas.filter(x=>x.fecha>=f&&x.estado!=='Cancelada'&&x.estado!=='No asistió');
+  const pas=todas.filter(x=>!prox.includes(x)).reverse();
+  const fila=x=>{
+    const col=(typeof COLOR_ESTADO!=='undefined'&&COLOR_ESTADO[x.estado])||'#5A706A';
+    const d=diasEntre(f,x.fecha);
+    const cuando=x.fecha===f?'Hoy':(d>0?'en '+d+' día'+(d===1?'':'s'):'hace '+(-d)+' día'+(d===-1?'':'s'));
+    return `<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--linea)">
+      <div><b class="num">${fechaCorta(x.fecha)}${x.hora?' · '+esc(x.hora):''}</b> <span class="mini">${cuando}</span><br>
+        <span class="mini">${esc(x.motivo||'Sin motivo')}${x.duracion?' · '+esc(x.duracion)+' min':''}</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><span class="mini" style="color:${col};font-weight:700">${esc(x.estado||'Agendada')}</span>
+        <button class="btn chico" onclick="abrirCita('${x.id}')">Ver / editar</button></div></div>`;
+  };
+  c.innerHTML=`<div class="bloque"><div class="barra-tit"><h3>Citas de ${esc(p.nombre||'paciente')}</h3>
+      <div class="der"><button class="btn primario chico" onclick="abrirCita(null,{pacienteId:'${p.id}',nombre:${JSON.stringify(p.nombre||'').replace(/"/g,'&quot;')},telefono:${JSON.stringify(p.telefono||'').replace(/"/g,'&quot;')}})">+ Nueva cita</button></div></div>
+    <p class="mini" style="margin:0 0 4px"><b>Próximas</b> (${prox.length})</p>
+    ${prox.length?prox.map(fila).join(''):'<p class="mini">No tiene citas agendadas.</p>'}
+    <p class="mini" style="margin:16px 0 4px"><b>Anteriores</b> (${pas.length})</p>
+    ${pas.length?pas.map(fila).join(''):'<p class="mini">Sin citas anteriores.</p>'}</div>`;
 }
 
 /* ---------- ficha ---------- */
@@ -4236,16 +4268,32 @@ function listaRecordatoriosHTML(){
       <div style="display:flex;gap:6px;align-items:center">${boton}</div></div>`;
   }).join('');
 }
+function verTodosControles(){
+  const f=hoy();
+  const filas=datos.pacientes.map(p=>({p,up:ultimaProfilaxis(p)})).filter(x=>x.up)
+    .map(x=>({...x,venc:sumarMeses(x.up,mesesControl())})).sort((a,b)=>a.venc.localeCompare(b.venc));
+  abrirModal('Controles de limpieza — todos',`<p class="mini" style="margin-top:0">Pacientes con una limpieza o profilaxis registrada, ordenados por la fecha en que les toca el próximo control (cada ${mesesControl()} meses).</p>
+    ${filas.length?`<div style="max-height:60vh;overflow:auto">${filas.map(x=>{
+      const d=diasEntre(f,x.venc),cita=tieneCitaFutura(x.p);
+      const est=cita?'<span class="mini" style="color:var(--clinico)">Ya tiene cita</span>':(d<0?`<span class="mini" style="color:var(--alerta)">Vencido hace ${-d} d</span>`:`<span class="mini">En ${d} d</span>`);
+      return `<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--linea)">
+        <div><b>${esc(x.p.nombre||'')}</b><br><span class="mini">Última limpieza ${fechaCorta(x.up)} · toca ${fechaCorta(x.venc)}</span></div>
+        <div style="display:flex;gap:6px;align-items:center">${est}${cita?'':`<button class="btn chico" onclick="agendarControl('${x.p.id}','limpieza')">Agendar</button>`}</div></div>`;}).join('')}</div>`
+    :'<p class="mini">Ningún paciente tiene todavía una limpieza registrada en Tratamientos.</p>'}`,null);
+}
 function bloqueRecordatorios(){
   const hayCitas=citasPorRecordar().length>0,ctl=controlesPorAgendar();
-  if(!hayCitas&&!ctl.length)return '';
   const n=totalRecordatoriosPendientes();
+  const conProf=datos.pacientes.filter(p=>ultimaProfilaxis(p)).length;
+  if(!hayCitas&&!ctl.length)return `<div class="bloque"><div class="barra-tit"><h3>Recordatorios y controles</h3></div>
+    <p class="mini" style="margin:0">Por ahora no hay citas de mañana ni controles por agendar. Aquí aparecerán los pacientes a los que les toca limpieza (cada ${mesesControl()} meses desde su última profilaxis o limpieza registrada en Tratamientos) y los controles de ortodoncia. Pacientes con limpieza registrada: <b>${conProf}</b>. <button class="btn chico" onclick="verTodosControles()">Ver todos los controles</button></p></div>`;
   return `<div class="bloque"><div class="barra-tit"><h3>Recordatorios</h3>
       <span class="der mini">${n?n+' por enviar':'Todo enviado ✓'}</span></div>
     ${hayCitas?`<p class="mini" style="margin-top:0">Citas de mañana y pasado mañana. Cada botón abre WhatsApp con el mensaje y el número ya listos: solo tocas «Enviar» allá.</p>
       <div class="rec-lista">${listaRecordatoriosHTML()}</div>`:''}
     ${ctl.length?`<p class="mini" style="margin:${hayCitas?'14px':'0'} 0 4px"><b>Controles por agendar</b> — la app los calcula sola: limpieza cada ${mesesControl()} meses y controles de ortodoncia.</p>
-      <div class="ctl-lista">${listaControlesHTML()}</div>`:''}</div>`;
+      <div class="ctl-lista">${listaControlesHTML()}</div>`:''}
+    <div style="margin-top:10px"><button class="btn chico" onclick="verTodosControles()">Ver todos los controles de limpieza</button></div></div>`;
 }
 function abrirRecordatorios(){
   const ctl=controlesPorAgendar();
@@ -4634,6 +4682,10 @@ function tituloDia(f){const d=new Date(f+'T00:00:00');return `${DIAS_SEM[d.getDa
 function tituloSemana(fechas){const a=new Date(fechas[0]+'T00:00:00'),b=new Date(fechas[6]+'T00:00:00');
   return `${a.getDate()} – ${b.getDate()} de ${MESES[b.getMonth()]} ${b.getFullYear()}`;}
 
+/* Si la cita se editó desde la pestaña «Citas» del paciente, se queda ahí; si no, vuelve a la agenda. */
+function refrescarTrasCita(){
+  if(pestana==='citas'&&selId&&document.getElementById('panelTab')){pintarVista();pintarLista();}else renderAgenda();
+}
 function renderAgenda(){
   pintarLista();
   if(googleConectado)sincronizarDesdeGoogle(false);
@@ -4705,8 +4757,69 @@ function pintarGridAgenda(fechas){
     </div>
     <div class="leyenda" style="margin-top:12px">${ESTADOS_CITA.map(e=>`<span><b style="color:${COLOR_ESTADO[e]}">●</b> ${e}</span>`).join('')}</div>`;
   $('#agGrid').querySelectorAll('.ag-slot').forEach(el=>el.onclick=()=>abrirCita(null,{fecha:el.dataset.fecha,hora:el.dataset.hora}));
-  $('#agGrid').querySelectorAll('.ag-cita').forEach(el=>el.onclick=ev=>{ev.stopPropagation();abrirCita(el.dataset.cita);});
+  activarArrastreCitas({iniMin,finMin,intervalo,px});
 }
+/* Arrastrar una cita a otro horario o día (ratón, lápiz o dedo con pulsación larga). Un toque sin mover abre la cita. */
+function activarArrastreCitas(g){
+  const grid=document.getElementById('agGrid');if(!grid)return;
+  grid.querySelectorAll('.ag-cita').forEach(el=>{
+    el.addEventListener('pointerdown',ev=>{
+      if(ev.button>0)return;
+      const id=el.dataset.cita,cita=(datos.citas||[]).find(x=>x.id===id);if(!cita)return;
+      const r0=el.getBoundingClientRect(),offY=ev.clientY-r0.top,sx=ev.clientX,sy=ev.clientY;
+      const tactil=ev.pointerType==='touch';
+      let arrastrando=false,listo=!tactil,tm=null,destino=null;
+      if(tactil)tm=setTimeout(()=>{listo=true;arrastrando=true;iniciar();if(navigator.vibrate)navigator.vibrate(15);},350);
+      const iniciar=()=>{el.classList.add('arrastrando');el.style.pointerEvents='none';document.body.classList.add('arrastrando-cita');};
+      const bloquearScroll=e=>{if(arrastrando)e.preventDefault();};
+      document.addEventListener('touchmove',bloquearScroll,{passive:false});
+      const calcular=(cx,cy)=>{
+        const slot=document.elementsFromPoint(cx,cy).find(x=>x.classList&&x.classList.contains('ag-slot'));
+        if(!slot)return null;
+        const rc=slot.parentElement.getBoundingClientRect();
+        const dur=Number(cita.duracion)||30;
+        let m=g.iniMin+(cy-rc.top-offY)/g.px;
+        m=Math.round(m/g.intervalo)*g.intervalo;
+        m=Math.max(g.iniMin,Math.min(m,g.finMin-Math.min(dur,g.intervalo)));
+        return {fecha:slot.dataset.fecha,hora:horaLabel(m).padStart(5,'0'),top:(m-g.iniMin)*g.px,col:slot.parentElement};
+      };
+      const mover=e=>{
+        if(!arrastrando){
+          if(Math.hypot(e.clientX-sx,e.clientY-sy)<6)return;
+          if(!listo){cancelar();return;}   // en pantalla táctil, mover antes de la pulsación larga = desplazarse
+          arrastrando=true;iniciar();
+        }
+        const d=calcular(e.clientX,e.clientY);
+        if(d){destino=d;
+          if(el.parentElement!==d.col)d.col.appendChild(el);
+          el.style.top=d.top+'px';
+          el.querySelector('.hora').textContent=d.hora;}
+      };
+      const limpiar=()=>{clearTimeout(tm);document.removeEventListener('pointermove',mover);document.removeEventListener('pointerup',soltar);
+        document.removeEventListener('pointercancel',cancelar);document.removeEventListener('touchmove',bloquearScroll);
+        document.body.classList.remove('arrastrando-cita');};
+      const cancelar=()=>{limpiar();if(arrastrando){el.style.pointerEvents='';renderAgenda();}};
+      const soltar=()=>{
+        limpiar();
+        if(!arrastrando){return;}          // fue un toque: el onclick abre la cita
+        el.style.pointerEvents='';
+        suprimirClickCita=true;setTimeout(()=>{suprimirClickCita=false;},50);
+        if(destino&&(destino.fecha!==cita.fecha||destino.hora!==cita.hora)){
+          const antes=nombreDiaFecha(cita.fecha)+' '+cita.hora;
+          cita.fecha=destino.fecha;cita.hora=destino.hora;delete cita.recordatorioEnviado;
+          guardar();try{sincronizarCitaGoogle(cita);}catch(e){}
+          avisar('Cita movida: '+cita.nombre+' → '+nombreDiaFecha(cita.fecha)+' '+cita.hora+' (antes '+antes+')');
+        }
+        renderAgenda();
+      };
+      document.addEventListener('pointermove',mover);
+      document.addEventListener('pointerup',soltar);
+      document.addEventListener('pointercancel',cancelar);
+    });
+    el.onclick=ev=>{ev.stopPropagation();if(suprimirClickCita)return;abrirCita(el.dataset.cita);};
+  });
+}
+let suprimirClickCita=false;
 
 /* ---------- recordatorio por WhatsApp ---------- */
 function telWhatsapp(tel){
@@ -4789,7 +4902,7 @@ function abrirCita(id,prefill){
     datos.citas=datos.citas||[];
     const i=datos.citas.findIndex(x=>x.id===d.id);
     i>=0?datos.citas[i]=d:datos.citas.push(d);
-    guardar();renderAgenda();avisar('Cita guardada');
+    guardar();refrescarTrasCita();avisar('Cita guardada');
     sincronizarCitaGoogle(d);
   });
   $('#ci_pac').oninput=()=>{
@@ -4812,7 +4925,7 @@ function abrirCita(id,prefill){
   if(id){const btn=document.getElementById('ci_borrar');if(btn)btn.onclick=()=>{
     if(!confirm('¿Eliminar esta cita?'))return;
     eliminarCitaGoogle(c);
-    datos.citas=datos.citas.filter(x=>x.id!==id);guardar();$('#modal').close();renderAgenda();avisar('Cita eliminada');};}
+    datos.citas=datos.citas.filter(x=>x.id!==id);guardar();$('#modal').close();refrescarTrasCita();avisar('Cita eliminada');};}
 }
 
 /* ---------- personalización: color, logo, orden de pestañas ---------- */
@@ -5482,7 +5595,7 @@ function controlesPorAgendar(){
     const up=ultimaProfilaxis(p);
     if(up){
       const venc=sumarMeses(up,mesesControl()),dif=diasEntre(f,venc);
-      if(dif<=14&&dif>=-90)res.push({tipo:'limpieza',p,fechaRef:venc,invitado});
+      if(dif<=30&&dif>=-365)res.push({tipo:'limpieza',p,fechaRef:venc,invitado});
     }
   });
   return res.sort((a,b)=>a.fechaRef.localeCompare(b.fechaRef));
