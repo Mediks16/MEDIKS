@@ -664,7 +664,7 @@ function edadTexto(f){
 }
 function avisar(t){const a=$('#aviso');a.textContent=t;a.classList.add('ver');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('ver'),2200);}
 let tGuarda;
-function guardar(){try{sincronizarInicialAuto();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
+function guardar(){try{sincronizarInicialAuto();vincularCitasPacientes();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
   const miSeq=++seqGuardado,json=JSON.stringify(datos),viaNube=almacen!==almacenLocal;
   /* Lo que no se confirma en la nube queda marcado como «pendiente» y se junta con la nube al volver la conexión.
      La «base» es la última versión que este dispositivo y la nube compartían. */
@@ -1031,6 +1031,7 @@ function ocultarPanel(){const el=$('#panel');if(el)el.classList.add('oculto');}
 function pintarLista(){
   const c=$('#lista');
   if(!c)return;
+  try{if(vincularCitasPacientes())guardar();}catch(e){}
   const q=filtro.trim().toLowerCase();
   const ps=datos.pacientes.filter(p=>!q||(p.nombre||'').toLowerCase().includes(q)||(p.cedula||'').includes(q))
     .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
@@ -1136,10 +1137,47 @@ function ligar(cont,obj,extra){
   });
 }
 
+/* ---------- vincular citas con pacientes por nombre ---------- */
+const _PALABRAS_RUIDO=new Set(['px','paciente','pcte','dr','dra','sr','sra','srta','de','del','la','las','los','y','mama','papa','hijo','hija','cita','control']);
+const _cacheTokens=new Map();
+function tokensNombre(n){
+  const k=String(n||'');if(_cacheTokens.has(k))return _cacheTokens.get(k);
+  const r=_tokensNombre(k);if(_cacheTokens.size>3000)_cacheTokens.clear();_cacheTokens.set(k,r);return r;
+}
+function _tokensNombre(n){
+  return String(n||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9ñ ]/g,' ')
+    .split(/\s+/).filter(t=>t&&!_PALABRAS_RUIDO.has(t));
+}
+/* Paciente que corresponde a un nombre escrito en una cita (sin importar el orden de nombres/apellidos ni mayúsculas ni tildes).
+   Solo devuelve un paciente si es único; con un solo nombre suelto no adivina. */
+function buscarPacientePorNombre(nombre){
+  const exacto=(datos.pacientes||[]).filter(p=>(p.nombre||'').trim().toLowerCase()===String(nombre||'').trim().toLowerCase());
+  if(exacto.length===1)return exacto[0];
+  const tc=tokensNombre(nombre);if(tc.length<2)return null;
+  const set=new Set(tc),hits=[];
+  (datos.pacientes||[]).forEach(p=>{
+    const tp=tokensNombre(p.nombre);if(tp.length<2)return;
+    const sp=new Set(tp);
+    const igual=tp.length===tc.length&&tp.every(t=>set.has(t));
+    const pEnC=tp.every(t=>set.has(t)),cEnP=tc.every(t=>sp.has(t));
+    if(igual||pEnC||cEnP)hits.push({p,igual});
+  });
+  const iguales=hits.filter(h=>h.igual);
+  if(iguales.length===1)return iguales[0].p;
+  return hits.length===1?hits[0].p:null;
+}
+function vincularCitasPacientes(){
+  let n=0;
+  (datos.citas||[]).forEach(c=>{
+    if(c.pacienteId&&pac(c.pacienteId))return;
+    const p=buscarPacientePorNombre(c.nombre);
+    if(p){c.pacienteId=p.id;if(!c.telefono&&p.telefono)c.telefono=p.telefono;n++;}
+  });
+  return n;
+}
 /* ---------- citas del paciente ---------- */
 function citasDePaciente(p){
-  const nom=(p.nombre||'').trim().toLowerCase();
-  return (datos.citas||[]).filter(c=>c.pacienteId===p.id||(!c.pacienteId&&nom&&(c.nombre||'').trim().toLowerCase()===nom))
+  return (datos.citas||[]).filter(c=>c.pacienteId===p.id||(!c.pacienteId&&buscarPacientePorNombre(c.nombre)===p))
     .sort((a,b)=>(a.fecha+(a.hora||'')).localeCompare(b.fecha+(b.hora||'')));
 }
 function tabCitas(p,c){
@@ -1156,9 +1194,30 @@ function tabCitas(p,c){
       <div style="display:flex;gap:8px;align-items:center"><span class="mini" style="color:${col};font-weight:700">${esc(x.estado||'Agendada')}</span>
         <button class="btn chico" onclick="abrirCita('${x.id}')">Ver / editar</button></div></div>`;
   };
+  /* controles que le tocan (limpieza cada X meses y ortodoncia), aunque todavía no tengan cita */
+  let ctlHTML='';
+  {
+    const up=ultimaProfilaxis(p),filasCtl=[];
+    if(up){
+      const venc=sumarMeses(up,mesesControl(p)),d=diasEntre(f,venc);
+      filasCtl.push(`<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--linea)">
+        <div><b>Limpieza y control</b><br><span class="mini">Última limpieza ${fechaCorta(up)} · le toca el ${fechaCorta(venc)} (${d<0?'venció hace '+(-d)+' d':'en '+d+' d'})</span></div>
+        <div style="display:flex;gap:6px">${tieneCitaFutura(p)?'<span class="mini" style="color:var(--clinico)">Ya tiene cita</span>':`<button class="btn chico" onclick="agendarControl('${p.id}','limpieza')">Agendar</button>`}</div></div>`);
+    }
+    if(esPacienteOrto(p)){
+      const ult=[...((p.orto&&p.orto.controles)||[])].filter(x=>x.fecha).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+      if(ult){const ref=ult.proxima||addDias(ult.fecha,30),d=diasEntre(f,ref);
+        filasCtl.push(`<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--linea)">
+        <div><b>Control de ortodoncia</b><br><span class="mini">Último control ${fechaCorta(ult.fecha)} · el próximo toca el ${fechaCorta(ref)} (${d<0?'venció hace '+(-d)+' d':'en '+d+' d'})</span></div>
+        <div style="display:flex;gap:6px">${tieneCitaFutura(p)?'<span class="mini" style="color:var(--clinico)">Ya tiene cita</span>':`<button class="btn chico" onclick="agendarControl('${p.id}','orto')">Agendar</button>`}</div></div>`);}
+    }
+    ctlHTML=`<p class="mini" style="margin:0 0 4px"><b>Controles que le tocan</b></p>
+      ${filasCtl.length?filasCtl.join(''):'<p class="mini">Aún no tiene una limpieza registrada en Tratamientos, por eso no se calcula su próximo control.</p>'}`;
+  }
   c.innerHTML=`<div class="bloque"><div class="barra-tit"><h3>Citas de ${esc(p.nombre||'paciente')}</h3>
       <div class="der"><button class="btn primario chico" onclick="abrirCita(null,{pacienteId:'${p.id}',nombre:${JSON.stringify(p.nombre||'').replace(/"/g,'&quot;')},telefono:${JSON.stringify(p.telefono||'').replace(/"/g,'&quot;')}})">+ Nueva cita</button></div></div>
-    <p class="mini" style="margin:0 0 4px"><b>Próximas</b> (${prox.length})</p>
+    ${ctlHTML}
+    <p class="mini" style="margin:16px 0 4px"><b>Próximas</b> (${prox.length})</p>
     ${prox.length?prox.map(fila).join(''):'<p class="mini">No tiene citas agendadas.</p>'}
     <p class="mini" style="margin:16px 0 4px"><b>Anteriores</b> (${pas.length})</p>
     ${pas.length?pas.map(fila).join(''):'<p class="mini">Sin citas anteriores.</p>'}</div>`;
@@ -3467,19 +3526,20 @@ function nombreDiaFecha(f){
   return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]}`;
 }
 /* Variables de una plantilla para un paciente: usa su próxima cita agendada, si tiene. */
-function variablesPlantillaWsp(p,idPlantilla){
+function variablesPlantillaWsp(p,idPlantilla,ctx){
   const g=datos.config||{};
-  const proximas=(datos.citas||[]).filter(c=>(c.pacienteId===p.id||(c.nombre||'').trim().toLowerCase()===(p.nombre||'').trim().toLowerCase())
+  const proximas=(datos.citas||[]).filter(c=>(c.pacienteId===p.id||(!c.pacienteId&&buscarPacientePorNombre(c.nombre)===p))
       &&c.fecha>=hoy()&&c.estado!=='Cancelada')
     .sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora));
   const prox=(idPlantilla==='orto_control'&&proximas.find(c=>c.origen&&c.origen.tipo==='ortoControl'))||proximas[0];
   const sal=saldo(p);
+  const dc=ctx&&ctx.cita?ctx.cita:null;   // si el mensaje sale desde una cita concreta, se usa la fecha y hora de esa cita
   return {nombre:p.nombre||'',consultorio:g.establecimiento||'nuestro consultorio',
-    fecha:prox?nombreDiaFecha(prox.fecha):'[fecha]',hora:prox?prox.hora:'[hora]',
+    fecha:dc?nombreDiaFecha(dc.fecha):(prox?nombreDiaFecha(prox.fecha):'[fecha]'),hora:dc?dc.hora:(prox?prox.hora:'[hora]'),
     saldo:sal>0?usd(sal):'[monto]'};
 }
-function abrirWhatsappPaciente(pid,plantillaId,alEnviar){
-  const p=pac(pid||selId);if(!p)return;
+function abrirWhatsappPaciente(pid,plantillaId,alEnviar,ctx){
+  const p=(ctx&&ctx.pseudo)||pac(pid||selId);if(!p)return;
   const tel=numeroWhatsappPaciente(p);
   if(!tel)return;
   const nombreOpcion=x=>{
@@ -3504,7 +3564,7 @@ function abrirWhatsappPaciente(pid,plantillaId,alEnviar){
     ?'⚠ Completa lo que está entre corchetes [ ] antes de enviar (este paciente no tiene cita próxima o saldo).':'';};
   const cargarPlantilla=()=>{
     const libre=sel.value==='__libre';
-    txt.value=libre?'':rellenarPlantilla(textoPlantillaWsp(sel.value),variablesPlantillaWsp(p,sel.value));
+    txt.value=libre?'':rellenarPlantilla(textoPlantillaWsp(sel.value),variablesPlantillaWsp(p,sel.value,ctx));
     $('#wsp_guardar').style.display=libre?'none':'';
     const ed=!libre&&datos.config&&datos.config.plantillasWsp&&datos.config.plantillasWsp[sel.value]!==undefined;
     $('#wsp_restaurar').style.display=ed?'':'none';
@@ -3518,7 +3578,7 @@ function abrirWhatsappPaciente(pid,plantillaId,alEnviar){
     const t=txt.value.trim();
     if(!t){avisar('El mensaje está vacío');return;}
     datos.config=datos.config||{};datos.config.plantillasWsp=datos.config.plantillasWsp||{};
-    datos.config.plantillasWsp[sel.value]=aPlantillaDesdeTexto(t,variablesPlantillaWsp(p,sel.value));
+    datos.config.plantillasWsp[sel.value]=aPlantillaDesdeTexto(t,variablesPlantillaWsp(p,sel.value,ctx));
     guardar();
     const op=sel.options[sel.selectedIndex],base=PLANTILLAS_WSP.find(x=>x.id===sel.value);
     op.textContent=base.titulo+' (editado)';
@@ -3538,6 +3598,13 @@ function abrirWhatsappPaciente(pid,plantillaId,alEnviar){
     if(typeof alEnviar==='function'){try{alEnviar();}catch(e){}}
     $('#modal').close();
   };
+}
+/* Mensaje de WhatsApp para una cita (con la lista de mensajes predeterminados y la posibilidad de editarlos). */
+function abrirMensajeCita(c,plantillaId,alEnviar){
+  let p=c.pacienteId?pac(c.pacienteId):null;
+  if(!p&&c.nombre)p=datos.pacientes.find(x=>(x.nombre||'').trim().toLowerCase()===c.nombre.trim().toLowerCase())||null;
+  const pseudo=Object.assign({},p||{id:'_cita',tratamientos:[],abonos:[]},{nombre:c.nombre||(p&&p.nombre)||'',telefono:telefonoDeCita(c)||(p&&p.telefono)||''});
+  abrirWhatsappPaciente(p?p.id:null,plantillaId||'recordatorio',alEnviar,{cita:c,pseudo});
 }
 function textoRecetaWhatsapp(r,p){
   const est=datos.config&&datos.config.establecimiento;
@@ -4287,8 +4354,8 @@ function listaRecordatoriosHTML(){
 function verTodosControles(){
   const f=hoy();
   const filas=datos.pacientes.map(p=>({p,up:ultimaProfilaxis(p)})).filter(x=>x.up)
-    .map(x=>({...x,venc:sumarMeses(x.up,mesesControl())})).sort((a,b)=>a.venc.localeCompare(b.venc));
-  abrirModal('Controles de limpieza — todos',`<p class="mini" style="margin-top:0">Pacientes con una limpieza o profilaxis registrada, ordenados por la fecha en que les toca el próximo control (cada ${mesesControl()} meses).</p>
+    .map(x=>({...x,venc:sumarMeses(x.up,mesesControl(x.p))})).sort((a,b)=>a.venc.localeCompare(b.venc));
+  abrirModal('Controles de limpieza — todos',`<p class="mini" style="margin-top:0">Pacientes con una limpieza o profilaxis registrada, ordenados por la fecha en que les toca el próximo control (cada ${mesesControl()} meses, ${mesesControlOrto()} si usa ortodoncia).</p>
     ${filas.length?`<div style="max-height:60vh;overflow:auto">${filas.map(x=>{
       const d=diasEntre(f,x.venc),cita=tieneCitaFutura(x.p);
       const est=cita?'<span class="mini" style="color:var(--clinico)">Ya tiene cita</span>':(d<0?`<span class="mini" style="color:var(--alerta)">Vencido hace ${-d} d</span>`:`<span class="mini">En ${d} d</span>`);
@@ -4302,12 +4369,12 @@ function bloqueRecordatorios(){
   const n=totalRecordatoriosPendientes();
   const conProf=datos.pacientes.filter(p=>ultimaProfilaxis(p)).length;
   if(!hayCitas&&!ctl.length)return `<div class="bloque"><div class="barra-tit"><h3>Recordatorios y controles</h3></div>
-    <p class="mini" style="margin:0">Por ahora no hay citas de mañana ni controles por agendar. Aquí aparecerán los pacientes a los que les toca limpieza (cada ${mesesControl()} meses desde su última profilaxis o limpieza registrada en Tratamientos) y los controles de ortodoncia. Pacientes con limpieza registrada: <b>${conProf}</b>. <button class="btn chico" onclick="verTodosControles()">Ver todos los controles</button></p></div>`;
+    <p class="mini" style="margin:0">Por ahora no hay citas de mañana ni controles por agendar. Aquí aparecerán los pacientes a los que les toca limpieza (cada ${mesesControl()} meses, o ${mesesControlOrto()} si usa ortodoncia, desde su última profilaxis o limpieza registrada en Tratamientos) y los controles de ortodoncia. Pacientes con limpieza registrada: <b>${conProf}</b>. <button class="btn chico" onclick="verTodosControles()">Ver todos los controles</button></p></div>`;
   return `<div class="bloque"><div class="barra-tit"><h3>Recordatorios</h3>
       <span class="der mini">${n?n+' por enviar':'Todo enviado ✓'}</span></div>
     ${hayCitas?`<p class="mini" style="margin-top:0">Citas de mañana y pasado mañana. Cada botón abre WhatsApp con el mensaje y el número ya listos: solo tocas «Enviar» allá.</p>
       <div class="rec-lista">${listaRecordatoriosHTML()}</div>`:''}
-    ${ctl.length?`<p class="mini" style="margin:${hayCitas?'14px':'0'} 0 4px"><b>Controles por agendar</b> — la app los calcula sola: limpieza cada ${mesesControl()} meses y controles de ortodoncia.</p>
+    ${ctl.length?`<p class="mini" style="margin:${hayCitas?'14px':'0'} 0 4px"><b>Controles por agendar</b> — la app los calcula sola: limpieza cada ${mesesControl()} meses (${mesesControlOrto()} en pacientes con ortodoncia) y controles de ortodoncia.</p>
       <div class="ctl-lista">${listaControlesHTML()}</div>`:''}
     <div style="margin-top:10px"><button class="btn chico" onclick="verTodosControles()">Ver todos los controles de limpieza</button></div></div>`;
 }
@@ -4315,16 +4382,18 @@ function abrirRecordatorios(){
   const ctl=controlesPorAgendar();
   abrirModal('Recordatorios',`<p class="mini" style="margin-top:0">Citas de mañana y pasado mañana. Cada botón abre WhatsApp con el mensaje y el número ya listos.</p>
     <div class="rec-lista">${listaRecordatoriosHTML()}</div>
-    ${ctl.length?`<p class="mini" style="margin:16px 0 4px"><b>Controles por agendar</b> — la app los calcula sola: limpieza cada ${mesesControl()} meses y controles de ortodoncia.</p>
+    ${ctl.length?`<p class="mini" style="margin:16px 0 4px"><b>Controles por agendar</b> — la app los calcula sola: limpieza cada ${mesesControl()} meses (${mesesControlOrto()} en pacientes con ortodoncia) y controles de ortodoncia.</p>
       <div class="ctl-lista">${listaControlesHTML()}</div>`:''}`,null);
 }
 function enviarRecordatorioCita(id){
   const c=(datos.citas||[]).find(x=>x.id===id);if(!c)return;
   const tel=telefonoDeCita(c);
   if(!telWhatsapp(tel)){avisar('Esta cita no tiene teléfono');return;}
-  window.open(enlaceWhatsapp(tel,c.nombre,c.fecha,c.hora),'_blank');
-  c.recordatorioEnviado=new Date().toISOString();guardar();
-  document.querySelectorAll('.rec-lista').forEach(el=>{el.innerHTML=listaRecordatoriosHTML();});
+  abrirMensajeCita(c,'recordatorio',()=>{
+    c.recordatorioEnviado=new Date().toISOString();guardar();
+    document.querySelectorAll('.rec-lista').forEach(el=>{el.innerHTML=listaRecordatoriosHTML();});
+    if(typeof refrescarPantallaTrasRecordatorio==='function')refrescarPantallaTrasRecordatorio();
+  });
 }
 
 /* ---------- «Requiere tu atención»: cosas que el sistema detecta solo ---------- */
@@ -4335,7 +4404,7 @@ function ultimaVisitaPaciente(p){
   return u;
 }
 function tieneCitaFutura(p){
-  return (datos.citas||[]).some(c=>c.pacienteId===p.id&&c.fecha>=hoy()&&c.estado!=='Cancelada'&&c.estado!=='No asistió');
+  return (datos.citas||[]).some(c=>(c.pacienteId===p.id||(!c.pacienteId&&buscarPacientePorNombre(c.nombre)===p))&&c.fecha>=hoy()&&c.estado!=='Cancelada'&&c.estado!=='No asistió');
 }
 function cambiarEstadoCita(id,estado){
   const c=(datos.citas||[]).find(x=>x.id===id);if(!c)return;
@@ -4455,7 +4524,7 @@ function verResumen(){
           <div class="fecha">${esc(c.hora)}</div>
           <div>${c.pacienteId?`<button class="btn chico" style="padding:1px 8px" onclick="abrir('${c.pacienteId}')">${esc(c.nombre)}</button>`:`<b>${esc(c.nombre)}</b>`}
           ${c.motivo?' — '+esc(c.motivo):''} <span class="mini">${esc(c.estado||'Agendada')}</span>
-          ${c.telefono?`<a href="${enlaceWhatsapp(c.telefono,c.nombre,c.fecha,c.hora)}" target="_blank" class="btn chico" style="padding:1px 8px;margin-left:6px">WhatsApp</a>`:''}
+          ${telefonoDeCita(c)?`<button class="btn chico" style="padding:1px 8px;margin-left:6px" onclick="abrirMensajeCita((datos.citas||[]).find(x=>x.id==='${c.id}'))">WhatsApp</button>`:''}
           </div></div>`).join('')
           :'<p class="mini">No hay citas agendadas para hoy.</p>'}</div>
       <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>🎂 Cumpleaños de hoy</h3></div>
@@ -4896,7 +4965,7 @@ function abrirCita(id,prefill){
     const nombre=$('#ci_pac').value.trim();
     if(!nombre){avisar('Escribe el nombre del paciente');return false;}
     if(!$('#ci_fecha').value||!$('#ci_hora').value){avisar('Falta la fecha o la hora');return false;}
-    let encontrado=datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nombre.toLowerCase());
+    let encontrado=datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nombre.toLowerCase())||buscarPacientePorNombre(nombre);
     const telEscrito=$('#ci_tel').value.trim();
     // paciente nuevo: se crea la ficha y la cita queda enlazada
     if(!encontrado&&$('#ci_nuevoWrap').style.display!=='none'&&$('#ci_crearPac').checked){
@@ -4908,7 +4977,7 @@ function abrirCita(id,prefill){
     }
     const profSel=document.getElementById('ci_prof'),profElegido=profSel?profSel.value:'';
     const profInfo=profElegido?datos.profesionales.find(x=>x.id===profElegido):null;
-    const d={id:c.id||uid(),pacienteId:encontrado?encontrado.id:null,nombre,
+    const d={id:c.id||uid(),pacienteId:encontrado?encontrado.id:(c.pacienteId||null),nombre,
       telefono:$('#ci_tel').value.trim()||(encontrado?encontrado.telefono:''),
       fecha:$('#ci_fecha').value,hora:$('#ci_hora').value,duracion:Number($('#ci_dur').value)||30,
       estado:$('#ci_estado').value,motivo:$('#ci_motivo').value.trim(),nota:$('#ci_nota').value.trim(),
@@ -4928,10 +4997,15 @@ function abrirCita(id,prefill){
     $('#ci_nuevoWrap').style.display=(nombre&&!encontrado&&!c.pacienteId)?'':'none';
   };
   $('#ci_wsp').onclick=()=>{
-    const nombre=$('#ci_pac').value.trim()||'paciente',tel=$('#ci_tel').value.trim();
+    const nombre=$('#ci_pac').value.trim()||'paciente';
+    const ptc=c.pacienteId?pac(c.pacienteId):datos.pacientes.find(x=>(x.nombre||'').trim().toLowerCase()===nombre.toLowerCase());
+    const tel=$('#ci_tel').value.trim()||(ptc&&ptc.telefono)||'';
     const fecha=$('#ci_fecha').value||c.fecha,hora=$('#ci_hora').value||c.hora;
     if(!tel){avisar('Escribe un teléfono para enviar el recordatorio');return;}
-    window.open(enlaceWhatsapp(tel,nombre,fecha,hora),'_blank');
+    const cx={id:c.id,pacienteId:c.pacienteId,nombre,telefono:tel,fecha,hora,motivo:$('#ci_motivo')?$('#ci_motivo').value:''};
+    /* al cerrar el mensaje se vuelve a la cita */
+    encolarModal(()=>abrirCita(id||null,{fecha,hora,nombre,telefono:tel,pacienteId:c.pacienteId||null,motivo:cx.motivo}));
+    abrirMensajeCita(cx,'recordatorio',id?()=>{const real=(datos.citas||[]).find(x=>x.id===id);if(real){real.recordatorioEnviado=new Date().toISOString();guardar();}}:null);
   };
   if(c.pacienteId&&id){const b2=document.getElementById('ci_sesion');if(b2)b2.onclick=()=>{
     $('#modal').close();selId=c.pacienteId;pestana='trat';ocultarPanel();pintar();
@@ -5562,7 +5636,7 @@ function avisoConsentSesion(p,lineas,esNueva){
   const faltan=consentimientosFaltantes(p,lineas.map(l=>l.trat||''));
   const limpieza=lineas.some(l=>/profilaxis|limpieza|raspado/.test(normTxt(l.trat)));
   el.innerHTML=(faltan.length?`<div class="mini" style="color:var(--alerta);margin:6px 0 2px">⚠ Falta el consentimiento firmado de: <b>${faltan.map(f=>esc(f.titulo)).join(', ')}</b>. Al guardar te ofreceré crearlo y firmarlo en pantalla.</div>`:'')
-    +(limpieza?`<div class="mini" style="color:var(--clinico);margin:6px 0 2px">✓ La app te recordará solo su próxima limpieza y control en ${mesesControl()} meses (sección Recordatorios).</div>`:'');
+    +(limpieza?`<div class="mini" style="color:var(--clinico);margin:6px 0 2px">✓ La app te recordará solo su próxima limpieza y control en ${mesesControl(p)} meses (sección Recordatorios).</div>`:'');
 }
 function avisarConsentimientoFaltante(pid,faltan){
   const p=pac(pid);if(!p||!faltan.length)return;
@@ -5586,7 +5660,9 @@ function citasHoySinConsentimiento(){
 }
 
 /* ---------- 5. controles automáticos: limpieza cada 6 meses y ortodoncia ---------- */
-function mesesControl(){return Number(datos.config&&datos.config.mesesControl)||6;}
+function mesesControlOrto(){return Number(datos.config&&datos.config.mesesControlOrto)||4;}
+/* Meses entre limpiezas: 6 en general y 4 en pacientes con ortodoncia (se puede cambiar en config.mesesControl / mesesControlOrto). */
+function mesesControl(p){return (p&&esPacienteOrto(p))?mesesControlOrto():(Number(datos.config&&datos.config.mesesControl)||6);}
 function ultimaProfilaxis(p){
   let u='';
   (p.tratamientos||[]).forEach(t=>{
@@ -5600,17 +5676,17 @@ function controlesPorAgendar(){
   datos.pacientes.forEach(p=>{
     if(tieneCitaFutura(p))return;
     const invitado=!!(p.controlInvitado&&diasEntre(p.controlInvitado,f)<14);
+    const invitadoOrto=!!(p.controlInvitadoOrto&&diasEntre(p.controlInvitadoOrto,f)<14);
     if(esPacienteOrto(p)){
       const ult=[...(p.orto.controles||[])].filter(x=>x.fecha).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
       if(ult){
         const ref=ult.proxima||addDias(ult.fecha,30),dif=diasEntre(f,ref);
-        if(dif<=7&&dif>=-90)res.push({tipo:'orto',p,fechaRef:ref,invitado});
+        if(dif<=7&&dif>=-90)res.push({tipo:'orto',p,fechaRef:ref,invitado:invitadoOrto});
       }
-      return;
     }
     const up=ultimaProfilaxis(p);
     if(up){
-      const venc=sumarMeses(up,mesesControl()),dif=diasEntre(f,venc);
+      const venc=sumarMeses(up,mesesControl(p)),dif=diasEntre(f,venc);
       if(dif<=30&&dif>=-365)res.push({tipo:'limpieza',p,fechaRef:venc,invitado});
     }
   });
@@ -5623,7 +5699,7 @@ function listaControlesHTML(){
     const p=x.p,hayTel=!!telWhatsapp(p.telefono||''),dias=diasEntre(hoy(),x.fechaRef);
     const cuando=dias<0?`venció hace ${-dias} día${dias===-1?'':'s'}`:(dias===0?'toca hoy':`toca en ${dias} día${dias===1?'':'s'}`);
     const que=x.tipo==='orto'?'Control de ortodoncia':'Limpieza y control';
-    const estado=x.invitado?`<span class="mini" style="color:var(--clinico)">✓ Invitado el ${fechaCorta(p.controlInvitado)}</span>`:'';
+    const estado=x.invitado?`<span class="mini" style="color:var(--clinico)">✓ Invitado el ${fechaCorta(x.tipo==='orto'?p.controlInvitadoOrto:p.controlInvitado)}</span>`:'';
     const boton=!hayTel
       ?`<span class="mini" style="color:var(--alerta)">Sin teléfono</span> <button class="btn chico" onclick="abrirEn('${p.id}','ficha')">Agregar</button>`
       :`<button class="btn chico ${x.invitado?'':'primario'}" onclick="invitarControl('${p.id}','${x.tipo}')">${x.invitado?'Invitar de nuevo':'Invitar por WhatsApp'}</button>`;
@@ -5637,7 +5713,7 @@ function refrescarControles(){document.querySelectorAll('.ctl-lista').forEach(el
 function invitarControl(pid,tipo){
   abrirWhatsappPaciente(pid,tipo==='orto'?'orto_agendar':'control',()=>{
     const p=pac(pid);if(!p)return;
-    p.controlInvitado=hoy();guardar();refrescarControles();
+    if(tipo==='orto')p.controlInvitadoOrto=hoy();else p.controlInvitado=hoy();guardar();refrescarControles();
   });
 }
 
