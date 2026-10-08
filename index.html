@@ -888,7 +888,17 @@ function claveTratOdonto(nombre){
   if(TRAT_A_ODONTO[nombre])return nombre;
   const n=String(nombre).trim().toLowerCase();
   const claves=Object.keys(TRAT_A_ODONTO).filter(k=>n===k.toLowerCase()||n.startsWith(k.toLowerCase()+' '));
-  return claves.sort((a,b)=>b.length-a.length)[0]||null;
+  if(claves.length)return claves.sort((a,b)=>b.length-a.length)[0];
+  /* si lo escribes a tu manera («Restauración con resina», «Calza», «Tratamiento de conducto»), se reconoce por la palabra clave */
+  const t=n.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const alias=[[/pulpotom/,'Pulpotomía'],[/endodoncia|conducto|pulpectom/,'Endodoncia unirradicular'],
+    [/exodoncia|extraccion|exodonc/,'Exodoncia simple'],[/sellante/,'Sellante'],[/implante/,'Colocacion de implante'],
+    [/protesis total|dentadura total/,'Prótesis total'],[/protesis parcial|removible/,'Prótesis parcial removible'],
+    [/puente/,'Puente'],[/carilla/,'Carilla'],[/corona/,'Corona'],
+    [/restauraci|resina|obturaci|empaste|calza|composite|amalgama|ionomero/,'Restauración simple']];
+  const hit=alias.find(([re])=>re.test(t));
+  if(!hit)return null;
+  return TRAT_A_ODONTO[hit[1]]?hit[1]:(Object.keys(TRAT_A_ODONTO).find(k=>k.normalize('NFD').replace(/[\u0300-\u036f]/g,'')===hit[1])||null);
 }
 function tipoTratamiento(nombre){
   const k=claveTratOdonto(nombre);
@@ -1684,7 +1694,7 @@ function completarInicialDesdeLineas(dientes,lineas){
       const nd=dientes[n]||{};
       if(Object.keys(nd.caras||{}).length||nd.general)return;
       nd.caras=nd.caras||{};
-      const cs=(mapa.tipo==='cara'&&(l.caras||[]).length)?l.caras:['V','M','O','D','L'];
+      const tp=tipoPieza(n),cs=mapa.tipo==='cara'?((l.caras||[]).length?l.caras:[(tp==='molar'||tp==='premolar')?'O':'V']):['V','M','O','D','L'];
       cs.forEach(c=>{if(['V','M','O','D','L'].includes(c))nd.caras[c]='caries';});
       dientes[n]=nd;
     });
@@ -2019,7 +2029,12 @@ function aplicarLineaAOdonto(p,l){
   if(!mapa)return '';
   const piezas=piezasDeTexto(l.pieza);
   if(!piezas.length)return `falta la pieza de «${l.trat}»`;
-  if(mapa.tipo==='cara'&&!(l.caras||[]).length)return `faltan las caras de «${l.trat}» en la pieza ${piezas.join(', ')}`;
+  /* si no marcaste caras, se pinta la cara principal (oclusal en molares y premolares, vestibular en el resto) y se avisa */
+  if(mapa.tipo==='cara'&&!(l.caras||[]).length){
+    const tp=tipoPieza(piezas[0]);
+    l.caras=[(tp==='molar'||tp==='premolar')?'O':'V'];
+    l.carasAsumidas=true;
+  }
   asegurarInicialAntesDePrimerCambio(p);
   p.odontograma=p.odontograma||{};
   piezas.forEach(n=>{
@@ -2139,6 +2154,7 @@ function editarTrat(id,pre){
       if(falta)faltantes.push(falta);else piezasDeTexto(l.pieza).forEach(n=>aplicadas.add(n));
     });
     if(aplicadas.size)avisoOdonto=` y odontograma actualizado (pieza${aplicadas.size===1?'':'s'} ${[...aplicadas].join(', ')})`;
+    if(lineasOk.some(l=>l.carasAsumidas))avisoOdonto+=' · no marcaste caras: se pintó la cara principal, ajústala en el odontograma si hace falta';
     if(faltantes.length)avisoOdonto+=` (no se reflejó en el odontograma: ${faltantes.join('; ')})`;
 
     // agregar también a un presupuesto, si se marcó
