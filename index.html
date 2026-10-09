@@ -1524,6 +1524,7 @@ function panelPiezaHTML(p,n,verInicial){
       <button class="btn chico" data-cancelarpieza style="flex:1">Cancelar</button>
       <button class="btn primario chico" data-guardarpieza style="flex:1">Guardar</button>
     </div>
+    ${verInicial?'':`<button class="btn chico" data-resetpieza style="width:100%;margin:-6px 0 14px" title="Deja esta pieza como estaba en el odontograma inicial (o sana, si no tenía nada)">↺ Restablecer pieza al estado inicial</button>`}
     <p class="mini" style="font-weight:600;color:var(--tinta);border-top:1px solid var(--linea);padding-top:10px;margin-bottom:4px">Historial de la pieza</p>
     ${historial.length?historial.map(t=>`<div class="hist-pieza-item"><i></i><div><b>${fechaCorta(t.fecha)} — ${esc(nombreSesion(t)||'Tratamiento')}</b>${t.profesionalNombre?esc(t.profesionalNombre):''}</div><span class="chev">›</span></div>`).join(''):'<p class="mini" style="margin:0">Sin tratamientos registrados en esta pieza.</p>'}
     ${linkImagenesPieza(p,n)}
@@ -1722,6 +1723,13 @@ function tabOdonto(p,c){
     if(pendienteChk)pendienteChk.onchange=()=>{if(fechaInp)fechaInp.style.visibility=pendienteChk.checked?'visible':'hidden';};
     const cancelarBtn=c.querySelector('[data-cancelarpieza]');
     if(cancelarBtn)cancelarBtn.onclick=()=>pintarVista();
+    const resetBtn=c.querySelector('[data-resetpieza]');
+    if(resetBtn)resetBtn.onclick=()=>{
+      const ini=p.odontogramaInicial&&p.odontogramaInicial.dientes&&p.odontogramaInicial.dientes[piezaSeleccionada];
+      if(!confirm(`La pieza ${piezaSeleccionada} volverá a como estaba en el odontograma inicial${ini?'':' (sana, porque no tenía nada marcado)'}. ¿Continuar?`))return;
+      if(ini&&Object.keys(ini).length)p.odontograma[piezaSeleccionada]=JSON.parse(JSON.stringify(ini));else delete p.odontograma[piezaSeleccionada];
+      guardar();avisar('Pieza '+piezaSeleccionada+' restablecida');pintarVista();
+    };
     const guardarBtn=c.querySelector('[data-guardarpieza]');
     if(guardarBtn)guardarBtn.onclick=()=>{
       if(!verInicial)asegurarInicialAntesDePrimerCambio(p);
@@ -2164,6 +2172,36 @@ function revertirRegistroOdonto(p,reg){
   return [...new Set(piezas)];
 }
 /* Sesiones guardadas antes de que existiera el registro: se deduce de las líneas (usa el odontograma inicial como referencia). */
+/* Después de eliminar una sesión: lo que esa sesión tocó y que ninguna otra sesión justifica (p. ej. una restauración marcada con el botón rápido
+   del odontograma) vuelve a como estaba en el odontograma inicial, o queda sano si el inicial no tenía nada ahí. */
+function limpiarHuerfanosOdonto(p,t){
+  const od=p.odontograma=p.odontograma||{},ini=(p.odontogramaInicial&&p.odontogramaInicial.dientes)||{},tocadas=[];
+  const reclamado=(n,estado,cara)=>(p.tratamientos||[]).some(r=>(r.lineas||[]).some(l=>{
+    const k=claveTratOdonto(l.trat);if(!k||TRAT_A_ODONTO[k].estado!==estado)return false;
+    if(!piezasDeTexto(l.pieza).includes(n))return false;
+    if(!cara)return true;
+    return !(l.caras||[]).length||l.caras.includes(cara);
+  }));
+  (t.lineas||[]).forEach(l=>{
+    const k=claveTratOdonto(l.trat);if(!k)return;const mapa=TRAT_A_ODONTO[k];
+    piezasDeTexto(l.pieza).forEach(n=>{
+      const act=od[n];if(!act)return;
+      if(mapa.tipo==='cara'&&act.caras){
+        ['V','M','O','D','L'].forEach(c=>{
+          if(act.caras[c]===mapa.estado&&!reclamado(n,mapa.estado,c)){
+            const antes=ini[n]&&ini[n].caras&&ini[n].caras[c];
+            if(antes)act.caras[c]=antes;else delete act.caras[c];tocadas.push(n);}
+        });
+        if(!Object.keys(act.caras).length)delete act.caras;
+      }else if(mapa.tipo==='general'&&codigosEstado(act).includes(mapa.estado)&&!reclamado(n,mapa.estado,null)){
+        const i0=ini[n]||{};
+        ['general','adicionales'].forEach(c=>{if(i0[c]!==undefined)act[c]=JSON.parse(JSON.stringify(i0[c]));else delete act[c];});tocadas.push(n);
+      }
+      if(!Object.keys(act).length)delete od[n];
+    });
+  });
+  return [...new Set(tocadas)];
+}
 function revertirSesionAntigua(p,t){
   const piezas=[],od=p.odontograma=p.odontograma||{},ini=(p.odontogramaInicial&&p.odontogramaInicial.dientes)||{};
   (t.lineas||[]).forEach(l=>{
@@ -2445,8 +2483,10 @@ function borrarItem(lista,id){const p=pac(selId);
     const tieneReg=t.odontoAplicado&&t.odontoAplicado.length;
     const pz=[...new Set(tieneReg?t.odontoAplicado.map(e=>e.pieza):(t.lineas||[]).flatMap(l=>claveTratOdonto(l.trat)?piezasDeTexto(l.pieza):[]))];
     if(!confirm('¿Eliminar esta sesión?'+(pz.length?`\n\nEl odontograma volverá a como estaba antes en la${pz.length===1?' pieza':'s piezas'} ${pz.join(', ')}.`:'')))return;
-    const rev=tieneReg?revertirRegistroOdonto(p,t.odontoAplicado):revertirSesionAntigua(p,t);
-    p.tratamientos=p.tratamientos.filter(x=>x.id!==id);guardar();pintar();
+    let rev=tieneReg?revertirRegistroOdonto(p,t.odontoAplicado):revertirSesionAntigua(p,t);
+    p.tratamientos=p.tratamientos.filter(x=>x.id!==id);
+    rev=[...new Set([...rev,...limpiarHuerfanosOdonto(p,t)])];
+    guardar();pintar();
     if(rev.length)avisar('Sesión eliminada · odontograma restablecido en '+rev.join(', '));
     return;
   }
