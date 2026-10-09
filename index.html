@@ -1524,6 +1524,7 @@ function panelPiezaHTML(p,n,verInicial){
       <button class="btn chico" data-cancelarpieza style="flex:1">Cancelar</button>
       <button class="btn primario chico" data-guardarpieza style="flex:1">Guardar</button>
     </div>
+    ${(!verInicial&&((d.caras&&Object.values(d.caras).includes('obturado'))||codigosEstado(d).some(c=>{const g=grupoDeEstado(c);return g&&g.real!==g.ind&&c===g.real;})))?`<button class="btn chico" data-volverpend style="width:100%;margin:-6px 0 8px" title="Lo realizado en esta pieza pasa a «por hacer» (caries / indicada) y aparece como pendiente al agregar una sesión">⟲ Volver a «tratamiento por hacer»</button>`:''}
     ${verInicial?'':`<button class="btn chico" data-resetpieza style="width:100%;margin:-6px 0 14px" title="Deja esta pieza como estaba en el odontograma inicial (o sana, si no tenía nada)">↺ Restablecer pieza al estado inicial</button>`}
     <p class="mini" style="font-weight:600;color:var(--tinta);border-top:1px solid var(--linea);padding-top:10px;margin-bottom:4px">Historial de la pieza</p>
     ${historial.length?historial.map(t=>`<div class="hist-pieza-item"><i></i><div><b>${fechaCorta(t.fecha)} — ${esc(nombreSesion(t)||'Tratamiento')}</b>${t.profesionalNombre?esc(t.profesionalNombre):''}</div><span class="chev">›</span></div>`).join(''):'<p class="mini" style="margin:0">Sin tratamientos registrados en esta pieza.</p>'}
@@ -1723,6 +1724,15 @@ function tabOdonto(p,c){
     if(pendienteChk)pendienteChk.onchange=()=>{if(fechaInp)fechaInp.style.visibility=pendienteChk.checked?'visible':'hidden';};
     const cancelarBtn=c.querySelector('[data-cancelarpieza]');
     if(cancelarBtn)cancelarBtn.onclick=()=>pintarVista();
+    const pendBtn=c.querySelector('[data-volverpend]');
+    if(pendBtn)pendBtn.onclick=()=>{
+      if(!confirm(`Lo realizado en la pieza ${piezaSeleccionada} pasará a «por hacer» (caries / indicada). ¿Continuar?`))return;
+      const nd=p.odontograma[piezaSeleccionada]||{};
+      if(nd.caras)Object.keys(nd.caras).forEach(k=>{if(nd.caras[k]==='obturado')nd.caras[k]='caries';});
+      guardarCodigosEstado(nd,codigosEstado(nd).map(cod=>{const g=grupoDeEstado(cod);return g&&cod===g.real&&g.ind?g.ind:cod;}));
+      p.odontograma[piezaSeleccionada]=nd;
+      guardar();avisar('Pieza '+piezaSeleccionada+' · tratamiento por hacer');pintarVista();
+    };
     const resetBtn=c.querySelector('[data-resetpieza]');
     if(resetBtn)resetBtn.onclick=()=>{
       const ini=p.odontogramaInicial&&p.odontogramaInicial.dientes&&p.odontogramaInicial.dientes[piezaSeleccionada];
@@ -2190,7 +2200,7 @@ function limpiarHuerfanosOdonto(p,t){
         ['V','M','O','D','L'].forEach(c=>{
           if(act.caras[c]===mapa.estado&&!reclamado(n,mapa.estado,c)){
             const antes=ini[n]&&ini[n].caras&&ini[n].caras[c];
-            if(antes)act.caras[c]=antes;else delete act.caras[c];tocadas.push(n);}
+            if(antes)act.caras[c]=antes;else if(mapa.estado==='obturado')act.caras[c]='caries';else delete act.caras[c];tocadas.push(n);}
         });
         if(!Object.keys(act.caras).length)delete act.caras;
       }else if(mapa.tipo==='general'&&codigosEstado(act).includes(mapa.estado)&&!reclamado(n,mapa.estado,null)){
@@ -2198,6 +2208,38 @@ function limpiarHuerfanosOdonto(p,t){
         ['general','adicionales'].forEach(c=>{if(i0[c]!==undefined)act[c]=JSON.parse(JSON.stringify(i0[c]));else delete act[c];});tocadas.push(n);
       }
       if(!Object.keys(act).length)delete od[n];
+    });
+  });
+  return [...new Set(tocadas)];
+}
+/* Al eliminar una sesión, lo que se había hecho vuelve a quedar «por hacer»: caries en las caras (restauraciones) o el estado «indicada/necesaria»
+   (endodoncia, corona, etc.). Así reaparece en «Pendiente en el odontograma» al agregar una nueva sesión. */
+function devolverAPendiente(p,t){
+  const od=p.odontograma=p.odontograma||{},tocadas=[];
+  const reclama=(n,estado,cara)=>(p.tratamientos||[]).some(r=>(r.lineas||[]).some(l=>{
+    const k=claveTratOdonto(l.trat);if(!k||TRAT_A_ODONTO[k].estado!==estado)return false;
+    if(!piezasDeTexto(l.pieza).includes(n))return false;
+    if(!cara)return true;
+    return !(l.caras||[]).length||l.caras.includes(cara);
+  }));
+  (t.lineas||[]).forEach(l=>{
+    const k=claveTratOdonto(l.trat);if(!k)return;const mapa=TRAT_A_ODONTO[k];
+    piezasDeTexto(l.pieza).forEach(n=>{
+      if(mapa.tipo==='cara'){
+        if(mapa.estado!=='obturado')return;
+        const cs=(l.caras&&l.caras.length)?l.caras:[(tipoPieza(n)==='molar'||tipoPieza(n)==='premolar')?'O':'V'];
+        cs.forEach(c=>{
+          if(reclama(n,mapa.estado,c))return;
+          const act=od[n]=od[n]||{};act.caras=act.caras||{};
+          if(!act.caras[c]){act.caras[c]='caries';tocadas.push(n);}
+        });
+      }else{
+        const g=ESTADO_GRUPOS.find(x=>x.real===mapa.estado);
+        if(!g||!g.ind||reclama(n,mapa.estado,null))return;
+        const act=od[n]=od[n]||{};
+        if(!codigosEstado(act).some(c=>grupoDeEstado(c)===g)){ponerEstadoGrupo(act,g,g.ind);tocadas.push(n);}
+      }
+      if(od[n]&&!Object.keys(od[n]).length)delete od[n];
     });
   });
   return [...new Set(tocadas)];
@@ -2482,12 +2524,12 @@ function borrarItem(lista,id){const p=pac(selId);
     const t=p.tratamientos.find(x=>x.id===id);if(!t)return;
     const tieneReg=t.odontoAplicado&&t.odontoAplicado.length;
     const pz=[...new Set(tieneReg?t.odontoAplicado.map(e=>e.pieza):(t.lineas||[]).flatMap(l=>claveTratOdonto(l.trat)?piezasDeTexto(l.pieza):[]))];
-    if(!confirm('¿Eliminar esta sesión?'+(pz.length?`\n\nEl odontograma volverá a como estaba antes en la${pz.length===1?' pieza':'s piezas'} ${pz.join(', ')}.`:'')))return;
+    if(!confirm('¿Eliminar esta sesión?'+(pz.length?`\n\nEl tratamiento volverá a quedar «por hacer» en la${pz.length===1?' pieza':'s piezas'} ${pz.join(', ')} y aparecerá como pendiente en el odontograma.`:'')))return;
     let rev=tieneReg?revertirRegistroOdonto(p,t.odontoAplicado):revertirSesionAntigua(p,t);
     p.tratamientos=p.tratamientos.filter(x=>x.id!==id);
-    rev=[...new Set([...rev,...limpiarHuerfanosOdonto(p,t)])];
+    rev=[...new Set([...rev,...limpiarHuerfanosOdonto(p,t),...devolverAPendiente(p,t)])];
     guardar();pintar();
-    if(rev.length)avisar('Sesión eliminada · odontograma restablecido en '+rev.join(', '));
+    if(rev.length)avisar('Sesión eliminada · tratamiento por hacer de nuevo en '+rev.join(', '));
     return;
   }
   if(!confirm('¿Eliminar este registro?'))return;
@@ -4177,17 +4219,17 @@ function abrirFusion(){
   abrirModal('Fusionar con otro paciente',`
     <p class="mini" style="margin-top:0">Conservas la ficha de <b>${esc(p.nombre)}</b>. Elige el paciente repetido: todo lo suyo (sesiones, pagos, citas, fotos, radiografías, consentimientos, recetas y odontograma) pasa a esta ficha y la ficha repetida se elimina. Antes se guarda una copia de seguridad.</p>
     <label class="campo"><span>Paciente repetido (se eliminará)</span>
-      <select id="fu_otro">${otros.map(x=>`<option value="${x.id}">${sug.includes(x.id)?'★ ':''}${esc(x.nombre||'Sin nombre')}${x.cedula?' · '+esc(x.cedula):''}</option>`).join('')}</select></label>
+      <select id="fu_otro"><option value="">— Elige al paciente repetido —</option>${otros.map(x=>`<option value="${x.id}">${sug.includes(x.id)?'★ ':''}${esc(x.nombre||'Sin nombre')}${x.cedula?' · '+esc(x.cedula):''}</option>`).join('')}</select></label>
     <p class="mini">★ = parece el mismo paciente (misma cédula, teléfono o nombre).</p>`,
   ()=>{
-    const o=pac($('#fu_otro').value);if(!o)return false;
+    const o=pac($('#fu_otro').value);if(!o){avisar('Elige primero al paciente repetido');return false;}
     if(!confirm(`Se pasarán a «${p.nombre}» los datos de «${o.nombre}» (${(o.tratamientos||[]).length} sesiones, ${(o.abonos||[]).length} pagos, ${(o.fotografias||[]).length+(o.radiografias||[]).length} imágenes) y «${o.nombre}» se eliminará. ¿Continuar?`))return false;
     fusionarPacientes(p.id,o.id);
   });
 }
 async function fusionarPacientes(keepId,dropId){
   const k=pac(keepId),o=pac(dropId);if(!k||!o||k===o)return;
-  try{await snapPoner({clave:'antes:'+Date.now(),tipo:'antes',fecha:new Date().toISOString(),json:JSON.stringify(datos),pacientes:datos.pacientes.length});}catch(e){}
+  try{await snapPoner({clave:'antes:'+Date.now(),tipo:'antes',fecha:new Date().toISOString(),json:JSON.stringify(datos),pacientes:datos.pacientes.length,motivo:'fusion'});}catch(e){}
   // imágenes: están guardadas con el id del paciente, así que se copian a la ficha que se queda
   for(const [lista,clave] of [['fotografias',claveFoto],['radiografias',claveRx]]){
     for(const r of (o[lista]||[])){
@@ -5758,7 +5800,7 @@ async function pintarExtraRespaldo(){
   const el=document.getElementById('bk_extra');if(!el)return;
   const kb=tamanoDatosKB(),pct=Math.min(100,Math.round(kb/1000*100)),d=diasDesdeRespaldo();
   let copias=[];try{copias=(await snapListar()).sort((a,b)=>b.fecha.localeCompare(a.fecha));}catch(e){}
-  const nombre=r=>r.tipo==='ultima'?'Última copia automática':r.tipo==='dia'?'Al abrir el '+fechaCorta(r.clave.slice(4)):'Antes de una restauración';
+  const nombre=r=>r.tipo==='ultima'?'Última copia automática':r.tipo==='dia'?'Al abrir el '+fechaCorta(r.clave.slice(4)):(r.motivo==='fusion'?'Antes de fusionar fichas':'Antes de una restauración');
   el.innerHTML=`<div style="margin-top:16px;border-top:1px solid var(--linea);padding-top:12px">
     <p class="mini" style="margin:0 0 4px"><b>Último respaldo descargado:</b> ${d===null?'ninguno todavía':(d===0?'hoy':`hace ${d} día${d===1?'':'s'}`)}</p>
     <p class="mini" style="margin:0 0 4px"><b>Tamaño de tus datos:</b> ${kb} KB de ~1000 KB que admite la nube (las fotos y radiografías van aparte y no cuentan).</p>
@@ -5769,6 +5811,64 @@ async function pintarExtraRespaldo(){
       <span>${esc(nombre(r))} <span class="mini">· ${new Date(r.fecha).toLocaleString('es-EC',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${r.pacientes} pacientes</span></span>
       <button class="btn chico" data-restcopia="${esc(r.clave)}">Restaurar</button></div>`).join(''):'<p class="mini">Aún no hay copias; se crean solas al usar la app.</p>'}</div>`;
   el.querySelectorAll('[data-restcopia]').forEach(b=>b.onclick=()=>restaurarCopia(b.dataset.restcopia));
+  /* pacientes que estaban en una copia y ya no están (fusionados o eliminados) */
+  const faltan=[],vistos=new Set();
+  for(const r of copias){
+    let S;try{S=JSON.parse(r.json);}catch(e){continue;}
+    (S.pacientes||[]).forEach(q=>{if(!q||!q.id||vistos.has(q.id)||pac(q.id))return;vistos.add(q.id);faltan.push({q,clave:r.clave,fecha:r.fecha});});
+  }
+  if(faltan.length){
+    const d2=document.createElement('div');d2.style.cssText='margin-top:16px;border-top:1px solid var(--linea);padding-top:12px';
+    d2.innerHTML=`<p class="mini" style="margin:0 0 4px"><b>Pacientes que ya no están en tu lista</b> (fusionados o eliminados). Puedes recuperarlos con todo su historial:</p>`+
+      faltan.map((x,i)=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--linea)">
+        <span>${esc(x.q.nombre||'Sin nombre')}${x.q.cedula?` <span class="mini">· ${esc(x.q.cedula)}</span>`:''} <span class="mini">· ${(x.q.tratamientos||[]).length} sesiones</span></span>
+        <button class="btn chico primario" data-recpac="${i}">Recuperar</button></div>`).join('');
+    el.appendChild(d2);
+    d2.querySelectorAll('[data-recpac]').forEach(b=>b.onclick=()=>{const x=faltan[b.dataset.recpac];recuperarPaciente(x.clave,x.q.id);});
+  }
+}
+/* Devuelve un paciente fusionado o eliminado desde una copia. Si se había fusionado con otra ficha, esa ficha vuelve a como estaba en la copia
+   (conservando lo nuevo que hayas agregado después) y las citas del paciente recuperado vuelven a su ficha. */
+async function recuperarPaciente(claveSnap,pid){
+  let r;try{r=(await snapListar()).find(x=>x.clave===claveSnap);}catch(e){}
+  if(!r){avisar('No se encontró esa copia');return;}
+  let S;try{S=JSON.parse(r.json);}catch(e){avisar('La copia está dañada');return;}
+  const o=(S.pacientes||[]).find(x=>x.id===pid);
+  if(!o||pac(pid)){avisar('Ese paciente ya está en tu lista');return;}
+  const idsO=new Set();
+  Object.values(o).forEach(v=>{if(Array.isArray(v))v.forEach(it=>{if(it&&it.id!==undefined)idsO.add(String(it.id));});});
+  let k=datos.pacientes.find(x=>Object.values(x).some(v=>Array.isArray(v)&&v.some(it=>it&&it.id!==undefined&&idsO.has(String(it.id)))));
+  if(!k){
+    const votos={};(S.citas||[]).filter(c=>c.pacienteId===pid).forEach(c=>{const a=(datos.citas||[]).find(z=>z.id===c.id);if(a&&a.pacienteId&&a.pacienteId!==pid)votos[a.pacienteId]=(votos[a.pacienteId]||0)+1;});
+    const top=Object.keys(votos).sort((a,b)=>votos[b]-votos[a])[0];k=top?pac(top):null;
+  }
+  const kS=k&&(S.pacientes||[]).find(x=>x.id===k.id);
+  if(!confirm(`Se recuperará a «${o.nombre}» con sus ${(o.tratamientos||[]).length} sesiones, pagos, imágenes y citas.`+(kS?`\n\nLa ficha de «${k.nombre}» volverá a como estaba en la copia (se conserva lo nuevo que hayas agregado después).`:'')+`\n\nAntes se guarda una copia de lo actual. ¿Continuar?`))return;
+  try{await snapPoner({clave:'antes:'+Date.now(),tipo:'antes',fecha:new Date().toISOString(),json:JSON.stringify(datos),pacientes:datos.pacientes.length,motivo:'recuperar'});}catch(e){}
+  if(kS){
+    const nuevo=JSON.parse(JSON.stringify(kS));
+    Object.keys(k).forEach(key=>{
+      if(!Array.isArray(k[key]))return;
+      const extras=k[key].filter(it=>it&&it.id!==undefined&&!(kS[key]||[]).some(x=>x&&x.id===it.id)&&!(o[key]||[]).some(x=>x&&x.id===it.id));
+      if(extras.length)nuevo[key]=[...(nuevo[key]||[]),...extras];
+    });
+    datos.pacientes[datos.pacientes.indexOf(k)]=nuevo;
+  }
+  datos.pacientes.push(JSON.parse(JSON.stringify(o)));
+  [['citas'],['tareas']].forEach(([lista])=>{
+    (S[lista]||[]).filter(c=>c.pacienteId===pid).forEach(c=>{const a=(datos[lista]||[]).find(z=>z.id===c.id);if(a&&k&&a.pacienteId===k.id)a.pacienteId=pid;});
+  });
+  if(k){
+    for(const [lista,clave] of [['fotografias',claveFoto],['radiografias',claveRx]]){
+      for(const im of (o[lista]||[])){
+        try{const v=await almacen.get(clave(k.id,im.id));const val=v&&v.value;
+          if(val){await guardarImagen(clave(pid,im.id),val);try{await almacen.delete(clave(k.id,im.id));}catch(e){}}}catch(e){}
+      }
+    }
+  }
+  normalizarDatos();selId=pid;guardar();
+  const m=$('#modal');if(m.open)m.close();
+  pintar();avisar('Paciente recuperado: '+(o.nombre||''));
 }
 function reducirFirma(cv){
   const ancho=420,esc2=Math.min(1,ancho/cv.width);
