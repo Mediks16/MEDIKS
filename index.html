@@ -664,7 +664,7 @@ function edadTexto(f){
 }
 function avisar(t){const a=$('#aviso');a.textContent=t;a.classList.add('ver');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('ver'),2200);}
 let tGuarda;
-function guardar(){try{sincronizarInicialAuto();vincularCitasPacientes();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
+function guardar(){try{sincronizarInicialAuto();vincularCitasPacientes();completarProcedimientosVacios();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
   const miSeq=++seqGuardado,json=JSON.stringify(datos),viaNube=almacen!==almacenLocal;
   /* Lo que no se confirma en la nube queda marcado como «pendiente» y se junta con la nube al volver la conexión.
      La «base» es la última versión que este dispositivo y la nube compartían. */
@@ -1114,6 +1114,7 @@ function pintarVistaInterna(){
         <div class="spacer"></div>
         ${pestana==='ficha'?'<button class="btn" onclick="abrirWhatsappPaciente()" title="Abrir chat de WhatsApp con este paciente (no necesita estar en tus contactos)">WhatsApp</button>':''}
         <button class="btn" onclick="imprimir033()">Imprimir 033</button>
+        <button class="btn" onclick="abrirFusion()" title="Unir esta ficha con otra del mismo paciente (repetido)">Fusionar</button>
         <button class="btn peligro" onclick="borrarPaciente()">Eliminar</button></div>
         <div id="panelTab"></div>
       </div>
@@ -1424,15 +1425,26 @@ function cuerpoPiezaHTML(n,d,size){
   return `<div style="width:${size}px;margin:0 auto">${svg}</div>`;
 }
 const NOMBRE_CARA=Object.fromEntries(CARAS.map(([k,n])=>[k,n]));
+/* La cara «L» se guarda igual para todos, pero en los dientes superiores se llama Palatina (P) y en los inferiores Lingual (L). */
+function letraCara(k,pieza){return (k==='L'&&pieza&&esSuperiorPieza(String(pieza).match(/\d{2}/)?String(pieza).match(/\d{2}/)[0]:pieza))?'P':k;}
+function nombreCara(k,pieza){
+  const pz=String(pieza||'').match(/\d{2}/);
+  if(k==='L'){if(!pz)return 'Lingual (inferiores) / Palatina (superiores)';return esSuperiorPieza(pz[0])?'Palatina':'Lingual';}
+  return ({V:'Vestibular',M:'Mesial',O:'Oclusal / Incisal',D:'Distal'})[k]||k;
+}
 function occlusalHTML(n,d,ausente){
   const caras=d.caras||{};
   const col=k=>caras[k]&&SIMB_CARA[caras[k]]?SIMB_CARA[caras[k]].c:'#fff';
   const esquina=()=>`<i class="og-esquina"></i>`;
-  const cara=k=>`<i data-ofcara="${k}" style="background:${col(k)}" title="${esc(NOMBRE_CARA[k]||k)}"></i>`;
+  const cara=k=>`<i data-ofcara="${k}" style="background:${col(k)}" title="${esc(nombreCara(k,n))}"></i>`;
+  /* Mesial = hacia la línea media. En el dibujo la línea media está al centro: las piezas del lado derecho del paciente
+     (cuadrantes 1, 4, 5 y 8, a la izquierda de la pantalla) tienen la mesial a la derecha; las del otro lado, a la izquierda. */
+  const ladoDerechoPac=['1','4','5','8'].includes(String(n).charAt(0));
+  const izq=ladoDerechoPac?'D':'M',der=ladoDerechoPac?'M':'D';
   return `<div class="occ-grid${ausente?' ausente':''}" data-pieza="${n}" title="Toca una cara para marcarla">
-    ${esquina()}${cara('V')}${esquina()}
-    ${cara('M')}${cara('O')}${cara('D')}
-    ${esquina()}${cara('L')}${esquina()}
+    ${esquina()}${cara(esSuperiorPieza(n)?'V':'L')}${esquina()}
+    ${cara(izq)}${cara('O')}${cara(der)}
+    ${esquina()}${cara(esSuperiorPieza(n)?'L':'V')}${esquina()}
     ${ausente?'<div class="og-x"><s></s><s></s></div>':''}
   </div>`;
 }
@@ -1482,7 +1494,7 @@ function panelPiezaHTML(p,n,verInicial){
       ${CARAS.map(([k,nombreLargo])=>{
         const col=d.caras&&d.caras[k]&&SIMB_CARA[d.caras[k]]?SIMB_CARA[d.caras[k]].c:null;
         return `<button data-caratog="${k}" aria-pressed="${panelCaraActiva===k}" style="${col?`background:${col};color:#fff;border-color:${col}`:''}">
-          <b>${k}</b><small>${esc(nombreLargo.split('/')[0].split(' ')[0])}</small></button>`;
+          <b>${letraCara(k,n)}</b><small>${esc(nombreCara(k,n).split('/')[0].split(' ')[0])}</small></button>`;
       }).join('')}
     </div>
     ${panelCaraActiva?`<div class="paleta" style="margin-bottom:12px">
@@ -1513,7 +1525,7 @@ function panelPiezaHTML(p,n,verInicial){
       <button class="btn primario chico" data-guardarpieza style="flex:1">Guardar</button>
     </div>
     <p class="mini" style="font-weight:600;color:var(--tinta);border-top:1px solid var(--linea);padding-top:10px;margin-bottom:4px">Historial de la pieza</p>
-    ${historial.length?historial.map(t=>`<div class="hist-pieza-item"><i></i><div><b>${fechaCorta(t.fecha)} — ${esc(t.proc||t.dx||'Tratamiento')}</b>${t.profesionalNombre?esc(t.profesionalNombre):''}</div><span class="chev">›</span></div>`).join(''):'<p class="mini" style="margin:0">Sin tratamientos registrados en esta pieza.</p>'}
+    ${historial.length?historial.map(t=>`<div class="hist-pieza-item"><i></i><div><b>${fechaCorta(t.fecha)} — ${esc(nombreSesion(t)||'Tratamiento')}</b>${t.profesionalNombre?esc(t.profesionalNombre):''}</div><span class="chev">›</span></div>`).join(''):'<p class="mini" style="margin:0">Sin tratamientos registrados en esta pieza.</p>'}
     ${linkImagenesPieza(p,n)}
   </div>`;
 }
@@ -1771,6 +1783,12 @@ function reconstruirInicial(p){
 }
 /* El odontograma inicial se guarda solo: mientras el paciente no tenga tratamientos registrados, sigue al odontograma actual.
    Al registrar el primer tratamiento queda congelado. Los iniciales ya guardados (sin marca auto) no se tocan. */
+/* Sesiones guardadas con «Procedimientos» vacío pero con tratamientos en sus líneas: se completa el texto (solo si estaba vacío). */
+function completarProcedimientosVacios(){
+  (datos.pacientes||[]).forEach(p=>(p.tratamientos||[]).forEach(t=>{
+    if(!(t.proc||'').trim()&&(t.lineas||[]).some(l=>(l.trat||'').trim()))t.proc=procSesion(t);
+  }));
+}
 function sincronizarInicialAuto(){
   if(typeof vistaOdontoInicial!=='undefined'&&vistaOdontoInicial)return;
   (datos.pacientes||[]).forEach(p=>{
@@ -1808,7 +1826,7 @@ function tablaTrat(items,abonadoDe){
         const abonado=abonadoDe(t.id),costo=Number(t.costo)||0,saldoT=costo-abonado;
         return `<tr><td class="num">${esc(t.sesion||'')}<br>${fechaCorta(t.fecha)}</td>
         <td>${esc(t.dx||'')}${t.pieza?`<br><span class="mini">Pieza (FDI) ${esc(t.pieza)}${t.tipoOdonto?' · '+(t.tipoOdonto==='cara'?'por cara':'diente completo'):''}</span>`:''}</td>
-        <td style="white-space:pre-wrap">${esc(t.proc||'')}${t.presc?`\n${esc(t.presc)}`:''}</td>
+        <td style="white-space:pre-wrap">${esc(procSesion(t))}${t.presc?`\n${esc(t.presc)}`:''}</td>
         <td class="der">${costo?usd(costo):'—'}</td>
         <td class="der">${abonado?usd(abonado):'—'}</td>
         <td class="der" style="color:${saldoT>0.004?'var(--alerta)':'inherit'}">${costo?usd(saldoT):'—'}</td>
@@ -1960,7 +1978,7 @@ function renderEditorPresupuesto(p,c){
         </div>
         ${tipo==='general'?'<p class="mini" style="margin:2px 0 8px">Este tratamiento es de diente completo — no necesita cara.</p>':`
         <span class="mini">${etiquetaCaras}</span>
-        <div class="caras-mini">${CARAS.map(([k,n])=>`<label><input type="checkbox" class="cara-item-chk" data-idx="${i}" value="${k}" ${it.caras.includes(k)?'checked':''}> ${k}</label>`).join('')}</div>`}
+        <div class="caras-mini">${CARAS.map(([k,n])=>`<label><input type="checkbox" class="cara-item-chk" data-idx="${i}" value="${k}" ${it.caras.includes(k)?'checked':''}> ${letraCara(k,it.pieza)}</label>`).join('')}</div>`}
         <div style="display:flex;margin-top:6px">
           <button class="btn chico peligro" style="margin-left:auto" onclick="quitarItemPresupuesto(${i})">Eliminar</button></div>
         </div>`;}).join('')}</div>
@@ -2078,12 +2096,18 @@ function sugerenciasSesion(p){
   });
   return out;
 }
+/* Lo que se hizo en una sesión: lo escrito en «Procedimientos» o, si está vacío, lo que dicen sus líneas de tratamiento. */
+function procSesion(t){
+  const p=(t.proc||'').trim();if(p)return p;
+  return (t.lineas||[]).filter(l=>(l.trat||'').trim()).map(l=>textoLinea(l)).join('\n');
+}
+function nombreSesion(t){return procSesion(t)||(t.dx||'').trim();}
 function textoLinea(l){
   const caras=(l.caras||[]).length?' ('+l.caras.join('')+')':'';
   return `${l.trat}${caras}${(l.pieza||'').trim()?' — pieza '+l.pieza.trim():''}`;
 }
 /* Aplica una línea al odontograma. Devuelve un texto si algo quedó pendiente de completar. */
-function aplicarLineaAOdonto(p,l){
+function aplicarLineaAOdonto(p,l,registro){
   const mapa=TRAT_A_ODONTO[claveTratOdonto(l.trat)];
   if(!mapa)return '';
   const piezas=piezasDeTexto(l.pieza);
@@ -2097,6 +2121,7 @@ function aplicarLineaAOdonto(p,l){
   asegurarInicialAntesDePrimerCambio(p);
   p.odontograma=p.odontograma||{};
   piezas.forEach(n=>{
+    const previo=p.odontograma[n]?JSON.parse(JSON.stringify(p.odontograma[n])):null;
     const nd=p.odontograma[n]||{};
     if(mapa.tipo==='general'){
       if(mapa.estado==='perdida_caries')guardarCodigosEstado(nd,[mapa.estado]); // el diente ya no está: quedan solo «ausente»
@@ -2105,8 +2130,63 @@ function aplicarLineaAOdonto(p,l){
       nd.caras=nd.caras||{};l.caras.forEach(k=>{nd.caras[k]=mapa.estado;});
     }
     p.odontograma[n]=nd;
+    if(registro)registro.push({pieza:n,previo,despues:JSON.parse(JSON.stringify(nd)),tipo:mapa.tipo,estado:mapa.estado,caras:mapa.tipo==='cara'?[...l.caras]:null});
   });
   return '';
+}
+/* Deshace en el odontograma lo que pintó una sesión. Devuelve las piezas que cambió. */
+function revertirRegistroOdonto(p,reg){
+  const piezas=[];
+  const igual=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  [...(reg||[])].reverse().forEach(e=>{
+    const od=p.odontograma=p.odontograma||{};
+    const act=od[e.pieza];if(!act)return;
+    if(igual(act,e.despues)){
+      if(e.previo&&Object.keys(e.previo).length)od[e.pieza]=JSON.parse(JSON.stringify(e.previo));else delete od[e.pieza];
+      piezas.push(e.pieza);return;
+    }
+    // la pieza se tocó después: se deshace solo lo que esta sesión puso
+    let toco=false;
+    if(e.tipo==='cara'){
+      (e.caras||[]).forEach(k=>{
+        if(act.caras&&act.caras[k]===e.estado){
+          const antes=e.previo&&e.previo.caras&&e.previo.caras[k];
+          if(antes)act.caras[k]=antes;else delete act.caras[k];toco=true;}
+      });
+      if(act.caras&&!Object.keys(act.caras).length)delete act.caras;
+    }else if(igual(act.general,e.despues.general)&&igual(act.adicionales,e.despues.adicionales)){
+      ['general','adicionales'].forEach(k=>{if(e.previo&&e.previo[k]!==undefined)act[k]=JSON.parse(JSON.stringify(e.previo[k]));else delete act[k];});
+      toco=true;
+    }
+    if(!Object.keys(act).length)delete od[e.pieza];
+    if(toco)piezas.push(e.pieza);
+  });
+  return [...new Set(piezas)];
+}
+/* Sesiones guardadas antes de que existiera el registro: se deduce de las líneas (usa el odontograma inicial como referencia). */
+function revertirSesionAntigua(p,t){
+  const piezas=[],od=p.odontograma=p.odontograma||{},ini=(p.odontogramaInicial&&p.odontogramaInicial.dientes)||{};
+  (t.lineas||[]).forEach(l=>{
+    const k=claveTratOdonto(l.trat);if(!k)return;const mapa=TRAT_A_ODONTO[k];
+    piezasDeTexto(l.pieza).forEach(n=>{
+      const act=od[n];if(!act)return;
+      if(mapa.tipo==='cara'){
+        const cs=(l.caras&&l.caras.length)?l.caras:[(tipoPieza(n)==='molar'||tipoPieza(n)==='premolar')?'O':'V'];
+        let toco=false;
+        cs.forEach(c=>{if(act.caras&&act.caras[c]===mapa.estado){
+          const antes=ini[n]&&ini[n].caras&&ini[n].caras[c];
+          if(antes&&antes!==mapa.estado)act.caras[c]=antes;else delete act.caras[c];toco=true;}});
+        if(act.caras&&!Object.keys(act.caras).length)delete act.caras;
+        if(toco)piezas.push(n);
+      }else if(codigosEstado(act).includes(mapa.estado)){
+        const i0=ini[n]||{};
+        ['general','adicionales'].forEach(c=>{if(i0[c]!==undefined)act[c]=JSON.parse(JSON.stringify(i0[c]));else delete act[c];});
+        piezas.push(n);
+      }
+      if(!Object.keys(act).length)delete od[n];
+    });
+  });
+  return [...new Set(piezas)];
 }
 /* Costo que ya acordaste en un presupuesto aceptado para esa pieza y tratamiento. */
 function precioPresupuestado(p,l){
@@ -2192,6 +2272,13 @@ function editarTrat(id,pre){
       labNombre:$('#t_labNombre').value.trim(),labCosto:Number($('#t_labCosto').value)||0,labAbonado:Number($('#t_labAbonado').value)||0,
       honorarioMonto:Number($('#t_honMonto').value)||0,honorarioPagado:Number($('#t_honPagado').value)||0,
       tipoOdonto:tipoCat||t.tipoOdonto||null};
+    /* si el procedimiento quedó vacío (o no se tocó a mano), se llena con lo que dicen las líneas */
+    if(lineasOk.length&&(!d.proc||!procManual))d.proc=lineasOk.map(textoLinea).join('\n');
+    /* si no se escribió diagnóstico, se toma el que ya está anotado en la(s) pieza(s) del odontograma */
+    if(!d.dx){
+      const dxs=[...new Set(piezasSesion.map(n=>p.odontograma&&p.odontograma[n]&&p.odontograma[n].diagnostico).filter(Boolean))];
+      if(dxs.length)d.dx=dxs.join('; ');
+    }
     const profSel=document.getElementById('t_prof');
     if(profSel){const info=profSel.value?datos.profesionales.find(x=>x.id===profSel.value):null;
       d.profesionalId=profSel.value||null;d.profesionalNombre=info?info.nombre:'';}
@@ -2206,12 +2293,15 @@ function editarTrat(id,pre){
 
     // actualizar el odontograma solo: cada línea (pieza + tratamiento + caras) se aplica a su pieza
     let avisoOdonto='';
-    const faltantes=[],aplicadas=new Set();
+    const faltantes=[],aplicadas=new Set(),registroOdonto=[];
+    /* si se está editando una sesión, primero se deshace lo que había pintado antes (por si cambió la pieza o el tratamiento) */
+    if(t.odontoAplicado&&t.odontoAplicado.length)revertirRegistroOdonto(p,t.odontoAplicado);
     lineasOk.forEach(l=>{
       if(!claveTratOdonto(l.trat))return;
-      const falta=aplicarLineaAOdonto(p,l);
+      const falta=aplicarLineaAOdonto(p,l,registroOdonto);
       if(falta)faltantes.push(falta);else piezasDeTexto(l.pieza).forEach(n=>aplicadas.add(n));
     });
+    d.odontoAplicado=registroOdonto;
     if(aplicadas.size)avisoOdonto=` y odontograma actualizado (pieza${aplicadas.size===1?'':'s'} ${[...aplicadas].join(', ')})`;
     if(lineasOk.some(l=>l.carasAsumidas))avisoOdonto+=' · no marcaste caras: se pintó la cara principal, ajústala en el odontograma si hace falta';
     if(faltantes.length)avisoOdonto+=` (no se reflejó en el odontograma: ${faltantes.join('; ')})`;
@@ -2247,7 +2337,7 @@ function editarTrat(id,pre){
       delete p.odontograma[pre._limpiarPlan].tratamientoPlan;delete p.odontograma[pre._limpiarPlan].fechaPendiente;
     }
     guardar();pintar();avisar('Sesión guardada'+avisoOdonto);
-    sincronizarProximaCita(p.id,'tratamiento',d.id,d.prox,d.proc||d.dx||'Control de tratamiento',d.proxHora);
+    sincronizarProximaCita(p.id,'tratamiento',d.id,d.prox,nombreSesion(d)||'Control de tratamiento',d.proxHora);
     // lo que sigue solo para sesiones nuevas: primero el aviso de consentimiento y luego el cobro
     if(!id){
       const _faltan=consentimientosFaltantes(p,[...lineasOk.map(l=>l.trat),d.proc||'']);
@@ -2266,7 +2356,21 @@ function editarTrat(id,pre){
   let costoAuto=null;
   procTxt.addEventListener('input',()=>{procManual=true;});
   const recomponer=()=>{
-    if(!procManual)procTxt.value=lineas.filter(l=>(l.trat||'').trim()).map(textoLinea).join('\n');
+    if(!procManual){
+      procTxt.value=lineas.filter(l=>(l.trat||'').trim()).map(textoLinea).join('\n');
+      lineas.forEach(l=>{l._txProc=(l.trat||'').trim()?textoLinea(l):'';});
+    }else{
+      /* aunque hayas escrito a mano en «Procedimientos», cada tratamiento que agregues arriba se suma ahí (sin borrar lo tuyo) */
+      let cur=procTxt.value;
+      lineas.forEach(l=>{
+        const tx=(l.trat||'').trim()?textoLinea(l):'',old=l._txProc||'';
+        if(tx===old)return;
+        if(old&&cur.includes(old))cur=cur.replace(old,tx).replace(/\n{2,}/g,'\n').replace(/^\n|\n$/g,'');
+        else if(tx&&!cur.includes(tx))cur=(cur.trim()?cur.replace(/\s+$/,'')+'\n':'')+tx;
+        l._txProc=tx;
+      });
+      procTxt.value=cur;
+    }
     // costo sugerido desde un presupuesto aceptado (solo si el campo está vacío o es el sugerido anterior)
     const sug=lineas.reduce((acc,l)=>acc+precioPresupuestado(p,l),0);
     if(sug>0&&(costoInp.value===''||Number(costoInp.value)===costoAuto)){costoInp.value=sug.toFixed(2);costoAuto=Number(sug.toFixed(2));}
@@ -2294,15 +2398,15 @@ function editarTrat(id,pre){
         <input type="text" data-l="${i}-pieza" value="${esc(l.pieza||'')}" placeholder="Pieza" style="width:70px" title="Número FDI de la pieza (ej. 16)">
         <input type="text" list="dl_cat_trat" data-l="${i}-trat" value="${esc(l.trat||'')}" placeholder="Tratamiento (elige o escribe)" style="flex:1;min-width:240px">
         ${tipo==='cara'?`<span class="chks" style="display:flex;gap:4px;align-items:center"><span class="mini">Caras:</span>${CARAS.map(([k,n])=>
-          `<label class="chk" title="${esc(n)}"><input type="checkbox" data-lc="${i}" value="${k}" ${(l.caras||[]).includes(k)?'checked':''}> ${k}</label>`).join('')}</span>`:''}
+          `<label class="chk" title="${esc(nombreCara(k,l.pieza))}"><input type="checkbox" data-lc="${i}" value="${k}" ${(l.caras||[]).includes(k)?'checked':''}> ${letraCara(k,l.pieza)}</label>`).join('')}</span>`:''}
         <button type="button" class="btn chico peligro" data-lx="${i}" title="Quitar esta línea">✕</button></div>`;
     }).join(''):'<p class="mini" style="margin:0">Aún no agregaste tratamientos. Usa una sugerencia o «+ Agregar tratamiento».</p>';
     cont.querySelectorAll('[data-l]').forEach(el=>{
       const [i,campo]=el.dataset.l.split('-');
-      el.oninput=()=>{lineas[i][campo]=el.value;if(campo==='trat')recomponer();};
+      el.oninput=()=>{if(!lineas[i])return;lineas[i][campo]=el.value;if(campo==='trat')recomponer();};
       // al salir del campo: solo se repinta la línea si hace falta mostrar/ocultar las caras (así no se pierde el cursor al pasar de pieza a tratamiento)
       el.onchange=()=>{
-        const l=lineas[i];
+        const l=lineas[i];if(!l)return;
         l[campo]=el.value;
         const tipo=tipoTratamiento(l.trat);
         let repintar=tipo!==l._tipo;
@@ -2320,13 +2424,33 @@ function editarTrat(id,pre){
       if(el.checked){if(!l.caras.includes(el.value))l.caras.push(el.value);}else l.caras=l.caras.filter(k=>k!==el.value);
       lineas[el.dataset.lc]=l;recomponer();
     });
-    cont.querySelectorAll('[data-lx]').forEach(b=>b.onclick=()=>{lineas.splice(+b.dataset.lx,1);recomponer();pintarLineas();pintarSugs();});
+    /* se actúa al presionar (antes de que el campo pierda el foco y se repinte la línea); así se quita al primer clic */
+    cont.querySelectorAll('[data-lx]').forEach(b=>{
+      let hecho=false;
+      const quitarLinea=()=>{if(hecho)return;hecho=true;
+      const quitada=lineas.splice(+b.dataset.lx,1)[0];
+      if(procManual&&quitada&&quitada._txProc&&procTxt.value.includes(quitada._txProc))procTxt.value=procTxt.value.replace(quitada._txProc,'').replace(/\n{2,}/g,'\n').replace(/^\n|\n$/g,'');
+      recomponer();pintarLineas();pintarSugs();};
+      b.onpointerdown=e=>{if(e.button)return;e.preventDefault();quitarLinea();};
+      b.onclick=quitarLinea;
+    });
     recomponer();
   };
   $('#t_addLinea').onclick=()=>{lineas.push({pieza:'',trat:'',caras:[]});pintarLineas();};
   pintarLineas();pintarSugs();
 }
-function borrarItem(lista,id){const p=pac(selId);if(!confirm('¿Eliminar este registro?'))return;
+function borrarItem(lista,id){const p=pac(selId);
+  if(lista==='tratamientos'){
+    const t=p.tratamientos.find(x=>x.id===id);if(!t)return;
+    const tieneReg=t.odontoAplicado&&t.odontoAplicado.length;
+    const pz=[...new Set(tieneReg?t.odontoAplicado.map(e=>e.pieza):(t.lineas||[]).flatMap(l=>claveTratOdonto(l.trat)?piezasDeTexto(l.pieza):[]))];
+    if(!confirm('¿Eliminar esta sesión?'+(pz.length?`\n\nEl odontograma volverá a como estaba antes en la${pz.length===1?' pieza':'s piezas'} ${pz.join(', ')}.`:'')))return;
+    const rev=tieneReg?revertirRegistroOdonto(p,t.odontoAplicado):revertirSesionAntigua(p,t);
+    p.tratamientos=p.tratamientos.filter(x=>x.id!==id);guardar();pintar();
+    if(rev.length)avisar('Sesión eliminada · odontograma restablecido en '+rev.join(', '));
+    return;
+  }
+  if(!confirm('¿Eliminar este registro?'))return;
   p[lista]=p[lista].filter(x=>x.id!==id);guardar();pintar();}
 
 /* ---------- consentimientos ---------- */
@@ -3899,7 +4023,7 @@ function tabPagos(p,c){
     <div class="bloque"><div class="barra-tit"><h3>Costos por tratamiento</h3>
       <span class="der mini">se registran en la pestaña Tratamientos</span></div>
       ${cobr.length?`<table><thead><tr><th>Fecha</th><th>Procedimiento</th><th class="der">Costo</th></tr></thead><tbody>
-        ${cobr.map(t=>`<tr><td class="num">${fechaCorta(t.fecha)}</td><td>${esc((t.proc||t.dx||'').slice(0,90))}</td>
+        ${cobr.map(t=>`<tr><td class="num">${fechaCorta(t.fecha)}</td><td>${esc((nombreSesion(t)||(t.sesion?'Sesión '+t.sesion+' (sin descripción)':'Sin descripción')).slice(0,90))}</td>
           <td class="der">${usd(t.costo)}</td></tr>`).join('')}</tbody></table>`:'<p class="mini">Aún no hay tratamientos con costo.</p>'}</div>
     <div class="bloque"><div class="barra-tit"><h3>Abonos recibidos</h3>
       <button class="btn chico der" onclick="editarAbono()">Registrar pago</button></div>
@@ -3907,7 +4031,7 @@ function tabPagos(p,c){
         ${abs.map(a=>{
           const trat=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
           return `<tr><td class="num">${fechaCorta(a.fecha)}</td><td>${esc(a.metodo||'')}</td>
-          <td>${esc(a.nota||'')}${trat?`<br><span class="mini" style="color:var(--clinico)">↳ ${esc(trat.proc||trat.dx||trat.sesion||'tratamiento')}</span>`:''}</td>
+          <td>${esc(a.nota||'')}${trat?`<br><span class="mini" style="color:var(--clinico)">↳ ${esc(nombreSesion(trat)||trat.sesion||'tratamiento')}</span>`:''}</td>
           <td class="der">${usd(a.monto)}</td><td class="der">
           <button class="btn chico" onclick="imprimirRecibo('${a.id}')">Recibo</button>
           <button class="btn chico" onclick="editarAbono('${a.id}')">Editar</button>
@@ -3918,7 +4042,7 @@ function editarAbono(id,tratamientoId){
   const p=pac(selId),a=p.abonos.find(x=>x.id===id)||{fecha:hoy(),metodo:'Efectivo',tratamientoId:tratamientoId||null};
   const tratLigado=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
   abrirModal(`${id?'Editar':'Registrar'} pago`,`
-    ${tratLigado?`<p class="mini" style="margin-top:0">Vinculado al tratamiento: <b>${esc(tratLigado.proc||tratLigado.dx||tratLigado.sesion||'')}</b></p>`:''}
+    ${tratLigado?`<p class="mini" style="margin-top:0">Vinculado al tratamiento: <b>${esc(nombreSesion(tratLigado)||tratLigado.sesion||'')}</b></p>`:''}
     <div class="grid">
       <label class="campo"><span>Fecha</span><input type="date" id="a_fecha" value="${esc(a.fecha||hoy())}"></label>
       <label class="campo"><span>Monto (USD)</span><input type="number" step="0.01" min="0" id="a_monto" value="${a.monto??''}"></label>
@@ -3933,8 +4057,45 @@ function editarAbono(id,tratamientoId){
 }
 
 /* ---------- pacientes / resumen / config ---------- */
+/* ---------- pacientes repetidos: aviso al registrar y fusión ---------- */
+const _soloDigitos=x=>String(x||'').replace(/\D/g,'');
+function buscarDuplicados(d,excluirId){
+  const res=[],tn=tokensNombre(d.nombre),ced=_soloDigitos(d.cedula),tel=_soloDigitos(d.telefono).slice(-9);
+  (datos.pacientes||[]).forEach(p=>{
+    if(p.id===excluirId)return;
+    const m=[];
+    if(ced.length>=5&&_soloDigitos(p.cedula)===ced)m.push('misma cédula');
+    if(tel.length>=7&&_soloDigitos(p.telefono).slice(-9)===tel)m.push('mismo teléfono');
+    const tp=tokensNombre(p.nombre);
+    if(tn.length>=2&&tp.length>=2){
+      const a=new Set(tn),b=new Set(tp);
+      if(tn.length===tp.length&&tn.every(t=>b.has(t)))m.push('mismo nombre');
+      else if(tn.every(t=>b.has(t))||tp.every(t=>a.has(t)))m.push('nombre parecido');
+    }
+    if(m.length)res.push({p,motivos:m});
+  });
+  return res;
+}
+let _crearIgual=false;
+function filaDuplicadoHTML(x,acciones){
+  return `<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--linea)">
+    <div><b>${esc(x.p.nombre||'')}</b><br><span class="mini">${[x.p.cedula&&('C.I. '+esc(x.p.cedula)),x.p.telefono&&esc(x.p.telefono),x.p.hc&&('HC '+esc(x.p.hc)),(x.p.tratamientos||[]).length+' sesiones'].filter(Boolean).join(' · ')} · <span style="color:var(--alerta)">${x.motivos.join(', ')}</span></span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${acciones}</div></div>`;
+}
+function leerFormNuevoPaciente(){
+  return {nombre:$('#n_nombre').value.trim(),cedula:$('#n_cedula').value.trim(),hc:$('#n_hc').value.trim(),telefono:$('#n_tel').value.trim(),nacimiento:$('#n_nac').value,sexo:$('#n_sexo').value};
+}
+function abrirFichaExistente(id){$('#modal').close();selId=id;pestana='ficha';vistaOdontoInicial=false;pintar();}
+function completarFichaExistente(id){
+  const ex=pac(id),f=leerFormNuevoPaciente();if(!ex)return;
+  ['cedula','hc','telefono','nacimiento','sexo'].forEach(k=>{if(!ex[k]&&f[k])ex[k]=f[k];});
+  guardar();$('#modal').close();selId=id;pestana='ficha';pintar();avisar('Ya existía: se completó su ficha con los datos nuevos y no se creó otro paciente');
+}
+function crearPacienteIgual(){_crearIgual=true;$('#mOk').click();}
 function nuevoPaciente(){
+  _crearIgual=false;
   abrirModal('Nuevo paciente',`
+    <div id="n_dup"></div>
     <label class="campo"><span>Apellidos y nombres</span><input type="text" id="n_nombre" autofocus></label>
     <div class="grid">
       <label class="campo"><span>Cédula</span><input type="text" id="n_cedula"></label>
@@ -3945,10 +4106,74 @@ function nuevoPaciente(){
     </div>`,
   ()=>{const nombre=$('#n_nombre').value.trim();
     if(!nombre){avisar('Escribe el nombre del paciente');return false;}
+    if(!_crearIgual){
+      const dups=buscarDuplicados(leerFormNuevoPaciente(),null);
+      if(dups.length){
+        $('#n_dup').innerHTML=`<div style="background:var(--alerta-claro);border:1px solid var(--alerta);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <b style="color:var(--alerta)">⚠ Puede que este paciente ya exista</b>
+          ${dups.map(x=>filaDuplicadoHTML(x,`<button class="btn chico" type="button" onclick="abrirFichaExistente('${x.p.id}')">Abrir su ficha</button>
+            <button class="btn chico primario" type="button" onclick="completarFichaExistente('${x.p.id}')" title="No crea otro paciente: completa la ficha existente con los datos que escribiste">Es el mismo (usar este)</button>`)).join('')}
+          <div style="margin-top:8px"><button class="btn chico" type="button" onclick="crearPacienteIgual()">No es el mismo, crear nuevo</button></div></div>`;
+        return false;
+      }
+    }
     const p={id:uid(),nombre,cedula:$('#n_cedula').value.trim(),hc:$('#n_hc').value.trim(),
       telefono:$('#n_tel').value.trim(),nacimiento:$('#n_nac').value,sexo:$('#n_sexo').value,
       apertura:hoy(),hc033:{},odontograma:{},indic:{filas:{}},tratamientos:[],abonos:[],consentimientos:[],fotografias:[]};
     datos.pacientes.push(p);selId=p.id;pestana='ficha';recetaEditando=null;vistaOdontoInicial=false;guardar();pintar();avisar('Paciente registrado');});
+}
+function _rellenarVacios(dest,orig){
+  Object.keys(orig||{}).forEach(k=>{
+    const a=dest[k],b=orig[k];
+    if(a===undefined||a===null||a==='')dest[k]=JSON.parse(JSON.stringify(b));
+    else if(a&&b&&typeof a==='object'&&typeof b==='object'&&!Array.isArray(a)&&!Array.isArray(b))_rellenarVacios(a,b);
+  });
+}
+function abrirFusion(){
+  const p=pac(selId);if(!p)return;
+  const sug=buscarDuplicados(p,p.id).map(x=>x.p.id);
+  const otros=datos.pacientes.filter(x=>x.id!==p.id).sort((a,b)=>(sug.includes(b.id)-sug.includes(a.id))||(a.nombre||'').localeCompare(b.nombre||'','es'));
+  if(!otros.length){avisar('No hay otro paciente con quién fusionar');return;}
+  abrirModal('Fusionar con otro paciente',`
+    <p class="mini" style="margin-top:0">Conservas la ficha de <b>${esc(p.nombre)}</b>. Elige el paciente repetido: todo lo suyo (sesiones, pagos, citas, fotos, radiografías, consentimientos, recetas y odontograma) pasa a esta ficha y la ficha repetida se elimina. Antes se guarda una copia de seguridad.</p>
+    <label class="campo"><span>Paciente repetido (se eliminará)</span>
+      <select id="fu_otro">${otros.map(x=>`<option value="${x.id}">${sug.includes(x.id)?'★ ':''}${esc(x.nombre||'Sin nombre')}${x.cedula?' · '+esc(x.cedula):''}</option>`).join('')}</select></label>
+    <p class="mini">★ = parece el mismo paciente (misma cédula, teléfono o nombre).</p>`,
+  ()=>{
+    const o=pac($('#fu_otro').value);if(!o)return false;
+    if(!confirm(`Se pasarán a «${p.nombre}» los datos de «${o.nombre}» (${(o.tratamientos||[]).length} sesiones, ${(o.abonos||[]).length} pagos, ${(o.fotografias||[]).length+(o.radiografias||[]).length} imágenes) y «${o.nombre}» se eliminará. ¿Continuar?`))return false;
+    fusionarPacientes(p.id,o.id);
+  });
+}
+async function fusionarPacientes(keepId,dropId){
+  const k=pac(keepId),o=pac(dropId);if(!k||!o||k===o)return;
+  try{await snapPoner({clave:'antes:'+Date.now(),tipo:'antes',fecha:new Date().toISOString(),json:JSON.stringify(datos),pacientes:datos.pacientes.length});}catch(e){}
+  // imágenes: están guardadas con el id del paciente, así que se copian a la ficha que se queda
+  for(const [lista,clave] of [['fotografias',claveFoto],['radiografias',claveRx]]){
+    for(const r of (o[lista]||[])){
+      try{const v=await almacen.get(clave(o.id,r.id));const val=v&&v.value;
+        if(val){await guardarImagen(clave(k.id,r.id),val);try{await almacen.delete(clave(o.id,r.id));}catch(e){}}}catch(e){}
+    }
+  }
+  const SIMPLES=['id'];
+  Object.keys(o).forEach(key=>{
+    if(SIMPLES.includes(key))return;
+    const a=k[key],b=o[key];
+    if(Array.isArray(b)){
+      k[key]=Array.isArray(a)?a:[];
+      b.forEach(it=>{if(it&&it.id!==undefined&&k[key].some(x=>x&&x.id===it.id))return;k[key].push(it);});
+    }else if(key==='alergias'){
+      if(b&&a&&a!==b&&!String(a).toLowerCase().includes(String(b).toLowerCase()))k[key]=a+'; '+b;else if(!a)k[key]=b;
+    }else if(b&&typeof b==='object'){
+      if(!a||typeof a!=='object')k[key]=JSON.parse(JSON.stringify(b));
+      else if(key==='odontograma'||key==='odontogramaInicial')_rellenarVacios(a,b);
+      else _rellenarVacios(a,b);
+    }else if(a===undefined||a===null||a==='')k[key]=b;
+  });
+  (datos.citas||[]).forEach(c=>{if(c.pacienteId===dropId)c.pacienteId=keepId;});
+  (datos.tareas||[]).forEach(c=>{if(c.pacienteId===dropId)c.pacienteId=keepId;});
+  datos.pacientes=datos.pacientes.filter(x=>x.id!==dropId);
+  selId=keepId;guardar();pintar();avisar('Fichas fusionadas');
 }
 async function borrarPaciente(){const p=pac(selId);
   if(!confirm(`Se eliminará a ${p.nombre} con su historia, consentimientos, fotografías, radiografías y pagos. ¿Continuar?`))return;
@@ -4031,7 +4256,7 @@ function listaLabPendientes(){
     if(costo>0){
       const saldo=costo-(Number(t.labAbonado)||0);
       filas.push({pacienteId:p.id,pacienteNombre:p.nombre,tratamientoId:t.id,labNombre:t.labNombre||'Laboratorio',
-        fecha:t.fecha,costo,abonado:Number(t.labAbonado)||0,saldo,proc:t.proc||t.dx||t.sesion||''});
+        fecha:t.fecha,costo,abonado:Number(t.labAbonado)||0,saldo,proc:nombreSesion(t)||t.sesion||''});
     }
   }));
   return filas.sort((a,b)=>(b.saldo>0.004)-(a.saldo>0.004)||(b.fecha||'').localeCompare(a.fecha||''));
@@ -4045,7 +4270,7 @@ function listaHonorariosPendientes(){
         const saldo=monto-(Number(t.honorarioPagado)||0);
         filas.push({pacienteId:p.id,pacienteNombre:p.nombre,tipo:'tratamiento',origenId:t.id,
           profesionalNombre:t.profesionalNombre||'Sin asignar',
-          fecha:t.fecha,monto,pagado:Number(t.honorarioPagado)||0,saldo,proc:t.proc||t.dx||t.sesion||''});
+          fecha:t.fecha,monto,pagado:Number(t.honorarioPagado)||0,saldo,proc:nombreSesion(t)||t.sesion||''});
       }
     });
     ((p.orto&&p.orto.controles)||[]).forEach(x=>{
@@ -5237,7 +5462,7 @@ Educacional: ${esc(h.planEdu||'')}</div>`)}
     ${sec(12,'TRATAMIENTO',`<table><tr><th>Sesión y fecha</th><th>Diagnósticos y complicaciones</th><th>Procedimientos y prescripciones</th><th>Firma</th></tr>
       ${[...(p.tratamientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).map(t=>
         `<tr><td>${esc(t.sesion||'')}<br>${fechaCorta(t.fecha)}</td><td>${esc(t.dx||'')}</td>
-         <td>${esc([t.pieza&&('Pieza '+t.pieza),t.proc,t.presc].filter(Boolean).join(' — '))}</td><td></td></tr>`).join('')||'<tr><td colspan="4"></td></tr>'}</table>`)}
+         <td>${esc([t.pieza&&('Pieza '+t.pieza),procSesion(t),t.presc].filter(Boolean).join(' — '))}</td><td></td></tr>`).join('')||'<tr><td colspan="4"></td></tr>'}</table>`)}
     <div class="firma"><div>${esc(g.profesional||'')}<br>Odontólogo/a — Código ${esc(g.codigo||'')}</div>
       <div>Firma del usuario</div></div></div>`;
   lanzarImpresion();
@@ -5324,7 +5549,7 @@ function ofrecerCobroSesion(pid,tid){
   if(falta<=0.004)return;
   selId=pid;
   abrirModal('¿Cobraste esta sesión?',`
-    <p style="margin-top:0">Sesión <b>${esc(t.sesion||'')}</b>${t.proc||t.dx?' · '+esc((t.proc||t.dx).split('\n')[0].slice(0,70)):''}</p>
+    <p style="margin-top:0">Sesión <b>${esc(t.sesion||'')}</b>${nombreSesion(t)?' · '+esc((nombreSesion(t)).split('\n')[0].slice(0,70)):''}</p>
     <div class="saldos">
       <div class="saldo"><b>${usd(costo)}</b><span>Costo</span></div>
       <div class="saldo"><b>${usd(abonado)}</b><span>Ya abonado</span></div>
@@ -5359,7 +5584,7 @@ function imprimirRecibo(aid){
   const acumulado=orden.slice(0,pos+1).reduce((s,o)=>s+(Number(o.x.monto)||0),0);
   const saldoDespues=Math.max(0,totalTrat(p)-acumulado);
   const trat=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
-  const concepto=a.nota||(trat?(trat.proc||trat.dx||('Sesión '+(trat.sesion||''))).split('\n')[0]:'Abono a tratamiento odontológico');
+  const concepto=a.nota||(trat?(nombreSesion(trat)||('Sesión '+(trat.sesion||''))).split('\n')[0]:'Abono a tratamiento odontológico');
   $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
     <section><h4>COMPROBANTE DE PAGO N.º ${String(pos+1).padStart(4,'0')}</h4>
       <div class="texto">Recibí de ${esc(p.nombre||'')} la suma de <b>${usd(a.monto)}</b> (${esc(montoEnLetras(a.monto))}) por concepto de: ${esc(concepto)}.
@@ -5375,7 +5600,7 @@ function imprimirEstadoCuenta(){
   const p=pac(selId);if(!p)return;
   const g=datos.config||{};
   const movs=[];
-  (p.tratamientos||[]).filter(t=>Number(t.costo)>0).forEach(t=>movs.push({f:t.fecha,det:(t.proc||t.dx||('Sesión '+(t.sesion||''))).split('\n')[0].slice(0,90),cargo:Number(t.costo)||0,abono:0}));
+  (p.tratamientos||[]).filter(t=>Number(t.costo)>0).forEach(t=>movs.push({f:t.fecha,det:(nombreSesion(t)||('Sesión '+(t.sesion||''))).split('\n')[0].slice(0,90),cargo:Number(t.costo)||0,abono:0}));
   (p.abonos||[]).forEach(a=>movs.push({f:a.fecha,det:'Pago'+(a.metodo?' ('+a.metodo+')':'')+(a.nota?' — '+a.nota:''),cargo:0,abono:Number(a.monto)||0}));
   movs.sort((x,y)=>(x.f||'').localeCompare(y.f||'')||(y.cargo>0)-(x.cargo>0));
   let acc=0;
@@ -5840,7 +6065,7 @@ function categoriaDeTratamiento(nombre){
 }
 function nombresDeSesion(t){
   if(t.lineas&&t.lineas.length)return t.lineas.map(l=>l.trat).filter(Boolean);
-  const base=(t.proc||t.dx||'').split('\n')[0].trim();
+  const base=(nombreSesion(t)||'').split('\n')[0].trim();
   return [base?base.slice(0,45):'Sesión sin detalle'];
 }
 function datosReporte(m){
