@@ -664,7 +664,7 @@ function edadTexto(f){
 }
 function avisar(t){const a=$('#aviso');a.textContent=t;a.classList.add('ver');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('ver'),2200);}
 let tGuarda;
-function guardar(){try{sincronizarInicialAuto();vincularCitasPacientes();completarProcedimientosVacios();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
+function guardar(){try{reubicarCarasDerechas();sincronizarInicialAuto();vincularCitasPacientes();completarProcedimientosVacios();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
   const miSeq=++seqGuardado,json=JSON.stringify(datos),viaNube=almacen!==almacenLocal;
   /* Lo que no se confirma en la nube queda marcado como «pendiente» y se junta con la nube al volver la conexión.
      La «base» es la última versión que este dispositivo y la nube compartían. */
@@ -1114,7 +1114,6 @@ function pintarVistaInterna(){
         <div class="spacer"></div>
         ${pestana==='ficha'?'<button class="btn" onclick="abrirWhatsappPaciente()" title="Abrir chat de WhatsApp con este paciente (no necesita estar en tus contactos)">WhatsApp</button>':''}
         <button class="btn" onclick="imprimir033()">Imprimir 033</button>
-        <button class="btn" onclick="abrirFusion()" title="Unir esta ficha con otra del mismo paciente (repetido)">Fusionar</button>
         <button class="btn peligro" onclick="borrarPaciente()">Eliminar</button></div>
         <div id="panelTab"></div>
       </div>
@@ -1432,6 +1431,36 @@ function nombreCara(k,pieza){
   if(k==='L'){if(!pz)return 'Lingual (inferiores) / Palatina (superiores)';return esSuperiorPieza(pz[0])?'Palatina':'Lingual';}
   return ({V:'Vestibular',M:'Mesial',O:'Oclusal / Incisal',D:'Distal'})[k]||k;
 }
+/* ---- Reubicar caras mesial/distal ya marcadas en los cuadrantes derechos (1, 4, 5 y 8) ----
+   Antes de corregir el dibujo, mesial iba siempre a la izquierda. Lo que se marcó tocando el dibujo se ve ahora en la cara contraria:
+   esto intercambia los valores de M y D (no borra nada). Lo que vino de una sesión con la cara escrita (M o D) ya está bien y no se toca. */
+const esPiezaDerechaPac=n=>['1','4','5','8'].includes(String(n).charAt(0));
+/* Se hace sola, una única vez (queda marcada en config). Antes guarda una copia en Respaldo. */
+function reubicarCarasDerechas(){
+  if(!datos.pacientes||!datos.pacientes.length)return;
+  datos.config=datos.config||{};
+  if(datos.config.espejoCarasV1)return;
+  try{snapPoner({clave:'antes:'+Date.now(),tipo:'antes',fecha:new Date().toISOString(),json:JSON.stringify(datos),pacientes:datos.pacientes.length,motivo:'espejo'}).catch(()=>{});}catch(e){}
+  const girar=c=>{if(!c)return false;if(c.M===undefined&&c.D===undefined)return false;const m=c.M,d=c.D;delete c.M;delete c.D;if(d!==undefined)c.M=d;if(m!==undefined)c.D=m;return true;};
+  let piezas=0,omitidas=0;
+  datos.pacientes.forEach(p=>{
+    const ini=p.odontogramaInicial&&p.odontogramaInicial.dientes;
+    if(ini)Object.keys(ini).forEach(n=>{if(esPiezaDerechaPac(n)&&ini[n]&&girar(ini[n].caras))piezas++;});
+    const od=p.odontograma||{};
+    const reclamada=n=>(p.tratamientos||[]).some(t=>{
+      const reg=(t.odontoAplicado||[]).some(e=>e.pieza===n&&e.tipo==='cara'&&(e.caras||[]).some(k=>k==='M'||k==='D'));
+      const lin=(t.lineas||[]).some(l=>piezasDeTexto(l.pieza).includes(n)&&tipoTratamiento(l.trat)==='cara'&&(l.caras||[]).some(k=>k==='M'||k==='D'));
+      return reg||lin;});
+    Object.keys(od).forEach(n=>{
+      if(!esPiezaDerechaPac(n)||!od[n]||!od[n].caras)return;
+      if(reclamada(n)){if(od[n].caras.M||od[n].caras.D)omitidas++;return;}
+      if(girar(od[n].caras)){piezas++;
+        (p.tratamientos||[]).forEach(t=>(t.odontoAplicado||[]).forEach(e=>{if(e.pieza===n){girar(e.previo&&e.previo.caras);girar(e.despues&&e.despues.caras);}}));}
+    });
+  });
+  datos.config=datos.config||{};datos.config.espejoCarasV1=new Date().toISOString();
+  return piezas;
+}
 function occlusalHTML(n,d,ausente){
   const caras=d.caras||{};
   const col=k=>caras[k]&&SIMB_CARA[caras[k]]?SIMB_CARA[caras[k]].c:'#fff';
@@ -1573,6 +1602,7 @@ function tabOdonto(p,c){
   if(ultimoPacienteOdontoId!==p.id){piezaSeleccionada=null;panelCaraActiva=null;ultimoPacienteOdontoId=p.id;}
   const set=p.odontoLeche?FDI.leche:FDI.adulto;
   const verInicial=vistaOdontoInicial&&p.odontogramaInicial;
+  if(typeof reubicarCarasDerechas()==='number')guardar();
   const datosOdonto=verInicial?p.odontogramaInicial.dientes:p.odontograma;
   const filaGeneral=(qs,superior)=>qs.map(q=>`<div class="cuadrante">${q.map(n=>tarjetaPieza(n,datosOdonto[n]||{},piezaSeleccionada===n,superior)).join('')}</div>`).join('');
   const modoAccRapidas=modoPendienteActual(datosOdonto[piezaSeleccionada]||{});
@@ -1870,7 +1900,8 @@ function quitarPendienteOdonto(n){
 }
 function tabTrat(p,c){
   p.tratamientos=p.tratamientos||[];p.abonos=p.abonos||[];
-  const abonadoDe=tId=>p.abonos.filter(a=>a.tratamientoId===tId).reduce((s,a)=>s+(Number(a.monto)||0),0);
+  const _rep=repartoAbonos(p);
+  const abonadoDe=tId=>_rep.porSesion[tId]||0;
   const ts=[...p.tratamientos];
   const grupos=agruparTratPorEspecialidad(ts);
   const hayVariasEspecialidades=grupos.length>1;
@@ -2420,8 +2451,6 @@ function editarTrat(id,pre){
     sincronizarProximaCita(p.id,'tratamiento',d.id,d.prox,nombreSesion(d)||'Control de tratamiento',d.proxHora);
     // lo que sigue solo para sesiones nuevas: primero el aviso de consentimiento y luego el cobro
     if(!id){
-      const _faltan=consentimientosFaltantes(p,[...lineasOk.map(l=>l.trat),d.proc||'']);
-      if(_faltan.length)encolarModal(()=>avisarConsentimientoFaltante(p.id,_faltan));
       if(d.costo>0)encolarModal(()=>ofrecerCobroSesion(p.id,d.id));
     }
   });
@@ -4077,9 +4106,21 @@ async function verFoto(p,id){
 }
 
 /* ---------- pagos ---------- */
+/* Cuánto está cubierto cada sesión: lo abonado a esa sesión + los pagos generales (sin sesión elegida), que se aplican a las sesiones más antiguas
+   con saldo. Solo es una vista: no cambia los pagos guardados. Así la pestaña Pagos y la de Tratamientos siempre cuadran. */
+function repartoAbonos(p){
+  const ts=[...(p.tratamientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')||(Number(a.sesion)||0)-(Number(b.sesion)||0));
+  const ids=new Set(ts.map(t=>t.id)),por={};
+  ts.forEach(t=>{por[t.id]=0;});
+  let pool=0;
+  (p.abonos||[]).forEach(a=>{const m=Number(a.monto)||0;if(a.tratamientoId&&ids.has(a.tratamientoId))por[a.tratamientoId]+=m;else pool+=m;});
+  ts.forEach(t=>{const falta=Math.max(0,(Number(t.costo)||0)-por[t.id]);const x=Math.min(falta,pool);por[t.id]+=x;pool-=x;});
+  return {porSesion:por,sobrante:Math.max(0,pool)};
+}
 function tabPagos(p,c){
   p.abonos=p.abonos||[];p.tratamientos=p.tratamientos||[];
   const d=saldo(p);
+  const rep=repartoAbonos(p);
   const abs=[...p.abonos].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
   const cobr=p.tratamientos.filter(t=>Number(t.costo)>0).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
   let bloqueOrto='';
@@ -4104,16 +4145,17 @@ function tabPagos(p,c){
     ${bloqueOrto}
     <div class="bloque"><div class="barra-tit"><h3>Costos por tratamiento</h3>
       <span class="der mini">se registran en la pestaña Tratamientos</span></div>
-      ${cobr.length?`<table><thead><tr><th>Fecha</th><th>Procedimiento</th><th class="der">Costo</th></tr></thead><tbody>
-        ${cobr.map(t=>`<tr><td class="num">${fechaCorta(t.fecha)}</td><td>${esc((nombreSesion(t)||(t.sesion?'Sesión '+t.sesion+' (sin descripción)':'Sin descripción')).slice(0,90))}</td>
-          <td class="der">${usd(t.costo)}</td></tr>`).join('')}</tbody></table>`:'<p class="mini">Aún no hay tratamientos con costo.</p>'}</div>
+      ${cobr.length?`<table><thead><tr><th>Fecha</th><th>Procedimiento</th><th class="der">Costo</th><th class="der">Abonado</th><th class="der">Saldo</th></tr></thead><tbody>
+        ${cobr.map(t=>{const ab=rep.porSesion[t.id]||0,sl=Math.max(0,(Number(t.costo)||0)-ab);return `<tr><td class="num">${fechaCorta(t.fecha)}</td><td>${esc((nombreSesion(t)||(t.sesion?'Sesión '+t.sesion+' (sin descripción)':'Sin descripción')).slice(0,90))}</td>
+          <td class="der">${usd(t.costo)}</td><td class="der">${ab?usd(ab):'—'}</td><td class="der" style="color:${sl>0.004?'var(--alerta)':'inherit'}">${sl>0.004?usd(sl):'$0.00'}</td></tr>`;}).join('')}</tbody></table>
+        ${rep.sobrante>0.004?`<p class="mini" style="margin:6px 0 0">Pagos a favor sin sesión pendiente: ${usd(rep.sobrante)}</p>`:''}`:'<p class="mini">Aún no hay tratamientos con costo.</p>'}</div>
     <div class="bloque"><div class="barra-tit"><h3>Abonos recibidos</h3>
       <button class="btn chico der" onclick="editarAbono()">Registrar pago</button></div>
       ${abs.length?`<table><thead><tr><th>Fecha</th><th>Forma de pago</th><th>Nota / tratamiento</th><th class="der">Monto</th><th></th></tr></thead><tbody>
         ${abs.map(a=>{
           const trat=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
           return `<tr><td class="num">${fechaCorta(a.fecha)}</td><td>${esc(a.metodo||'')}</td>
-          <td>${esc(a.nota||'')}${trat?`<br><span class="mini" style="color:var(--clinico)">↳ ${esc(nombreSesion(trat)||trat.sesion||'tratamiento')}</span>`:''}</td>
+          <td>${esc(a.nota||'')}${trat?`<br><span class="mini" style="color:var(--clinico)">↳ ${esc(nombreSesion(trat)||trat.sesion||'tratamiento')}</span>`:'<br><span class="mini">Pago general · se aplica a las sesiones más antiguas con saldo</span>'}</td>
           <td class="der">${usd(a.monto)}</td><td class="der">
           <button class="btn chico" onclick="imprimirRecibo('${a.id}')">Recibo</button>
           <button class="btn chico" onclick="editarAbono('${a.id}')">Editar</button>
@@ -4125,6 +4167,12 @@ function editarAbono(id,tratamientoId){
   const tratLigado=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
   abrirModal(`${id?'Editar':'Registrar'} pago`,`
     ${tratLigado?`<p class="mini" style="margin-top:0">Vinculado al tratamiento: <b>${esc(nombreSesion(tratLigado)||tratLigado.sesion||'')}</b></p>`:''}
+    <label class="campo"><span>Aplicar a</span><select id="a_trat">
+      <option value="">Pago general (se aplica a las sesiones más antiguas con saldo)</option>
+      ${(()=>{const rp=repartoAbonos(p);return [...(p.tratamientos||[])].filter(t=>Number(t.costo)>0).sort((x,y)=>(y.fecha||'').localeCompare(x.fecha||'')).map(t=>{
+        const sl=Math.max(0,(Number(t.costo)||0)-(rp.porSesion[t.id]||0));
+        return `<option value="${t.id}" ${a.tratamientoId===t.id?'selected':''}>${fechaCorta(t.fecha)} · ${esc((nombreSesion(t)||('Sesión '+(t.sesion||''))).slice(0,50))} · saldo ${usd(sl)}</option>`;}).join('');})()}
+    </select></label>
     <div class="grid">
       <label class="campo"><span>Fecha</span><input type="date" id="a_fecha" value="${esc(a.fecha||hoy())}"></label>
       <label class="campo"><span>Monto (USD)</span><input type="number" step="0.01" min="0" id="a_monto" value="${a.monto??''}"></label>
@@ -4132,7 +4180,7 @@ function editarAbono(id,tratamientoId){
         ${['Efectivo','Transferencia','Tarjeta','Otro'].map(m=>`<option ${a.metodo===m?'selected':''}>${m}</option>`).join('')}</select></label>
     </div><label class="campo"><span>Nota</span><input type="text" id="a_nota" value="${esc(a.nota||'')}" placeholder="Abono endodoncia, factura 001…"></label>`,
   ()=>{const d={id:a.id||uid(),fecha:$('#a_fecha').value,monto:Number($('#a_monto').value)||0,
-      metodo:$('#a_metodo').value,nota:$('#a_nota').value.trim(),tratamientoId:a.tratamientoId||null};
+      metodo:$('#a_metodo').value,nota:$('#a_nota').value.trim(),tratamientoId:($('#a_trat').value||null)};
     if(d.monto<=0){avisar('Ingresa un monto mayor a cero');return false;}
     const i=p.abonos.findIndex(x=>x.id===d.id);i>=0?p.abonos[i]=d:p.abonos.push(d);
     guardar();pintar();avisar('Pago registrado');});
@@ -4210,52 +4258,6 @@ function _rellenarVacios(dest,orig){
     if(a===undefined||a===null||a==='')dest[k]=JSON.parse(JSON.stringify(b));
     else if(a&&b&&typeof a==='object'&&typeof b==='object'&&!Array.isArray(a)&&!Array.isArray(b))_rellenarVacios(a,b);
   });
-}
-function abrirFusion(){
-  const p=pac(selId);if(!p)return;
-  const sug=buscarDuplicados(p,p.id).map(x=>x.p.id);
-  const otros=datos.pacientes.filter(x=>x.id!==p.id).sort((a,b)=>(sug.includes(b.id)-sug.includes(a.id))||(a.nombre||'').localeCompare(b.nombre||'','es'));
-  if(!otros.length){avisar('No hay otro paciente con quién fusionar');return;}
-  abrirModal('Fusionar con otro paciente',`
-    <p class="mini" style="margin-top:0">Conservas la ficha de <b>${esc(p.nombre)}</b>. Elige el paciente repetido: todo lo suyo (sesiones, pagos, citas, fotos, radiografías, consentimientos, recetas y odontograma) pasa a esta ficha y la ficha repetida se elimina. Antes se guarda una copia de seguridad.</p>
-    <label class="campo"><span>Paciente repetido (se eliminará)</span>
-      <select id="fu_otro"><option value="">— Elige al paciente repetido —</option>${otros.map(x=>`<option value="${x.id}">${sug.includes(x.id)?'★ ':''}${esc(x.nombre||'Sin nombre')}${x.cedula?' · '+esc(x.cedula):''}</option>`).join('')}</select></label>
-    <p class="mini">★ = parece el mismo paciente (misma cédula, teléfono o nombre).</p>`,
-  ()=>{
-    const o=pac($('#fu_otro').value);if(!o){avisar('Elige primero al paciente repetido');return false;}
-    if(!confirm(`Se pasarán a «${p.nombre}» los datos de «${o.nombre}» (${(o.tratamientos||[]).length} sesiones, ${(o.abonos||[]).length} pagos, ${(o.fotografias||[]).length+(o.radiografias||[]).length} imágenes) y «${o.nombre}» se eliminará. ¿Continuar?`))return false;
-    fusionarPacientes(p.id,o.id);
-  });
-}
-async function fusionarPacientes(keepId,dropId){
-  const k=pac(keepId),o=pac(dropId);if(!k||!o||k===o)return;
-  try{await snapPoner({clave:'antes:'+Date.now(),tipo:'antes',fecha:new Date().toISOString(),json:JSON.stringify(datos),pacientes:datos.pacientes.length,motivo:'fusion'});}catch(e){}
-  // imágenes: están guardadas con el id del paciente, así que se copian a la ficha que se queda
-  for(const [lista,clave] of [['fotografias',claveFoto],['radiografias',claveRx]]){
-    for(const r of (o[lista]||[])){
-      try{const v=await almacen.get(clave(o.id,r.id));const val=v&&v.value;
-        if(val){await guardarImagen(clave(k.id,r.id),val);try{await almacen.delete(clave(o.id,r.id));}catch(e){}}}catch(e){}
-    }
-  }
-  const SIMPLES=['id'];
-  Object.keys(o).forEach(key=>{
-    if(SIMPLES.includes(key))return;
-    const a=k[key],b=o[key];
-    if(Array.isArray(b)){
-      k[key]=Array.isArray(a)?a:[];
-      b.forEach(it=>{if(it&&it.id!==undefined&&k[key].some(x=>x&&x.id===it.id))return;k[key].push(it);});
-    }else if(key==='alergias'){
-      if(b&&a&&a!==b&&!String(a).toLowerCase().includes(String(b).toLowerCase()))k[key]=a+'; '+b;else if(!a)k[key]=b;
-    }else if(b&&typeof b==='object'){
-      if(!a||typeof a!=='object')k[key]=JSON.parse(JSON.stringify(b));
-      else if(key==='odontograma'||key==='odontogramaInicial')_rellenarVacios(a,b);
-      else _rellenarVacios(a,b);
-    }else if(a===undefined||a===null||a==='')k[key]=b;
-  });
-  (datos.citas||[]).forEach(c=>{if(c.pacienteId===dropId)c.pacienteId=keepId;});
-  (datos.tareas||[]).forEach(c=>{if(c.pacienteId===dropId)c.pacienteId=keepId;});
-  datos.pacientes=datos.pacientes.filter(x=>x.id!==dropId);
-  selId=keepId;guardar();pintar();avisar('Fichas fusionadas');
 }
 async function borrarPaciente(){const p=pac(selId);
   if(!confirm(`Se eliminará a ${p.nombre} con su historia, consentimientos, fotografías, radiografías y pagos. ¿Continuar?`))return;
@@ -4723,7 +4725,7 @@ function bloqueAtencion(){
     .sort((a,b)=>(b.fecha+b.hora).localeCompare(a.fecha+a.hora));
   const conPendientes=datos.pacientes.filter(p=>pendientesOdonto(p).length&&!tieneCitaFutura(p));
   const idsPend=new Set([...conPendientes.map(p=>p.id),...controlesPorAgendar().map(x=>x.p.id)]);
-  const sinConsent=citasHoySinConsentimiento();
+  const sinConsent=[];
   const sinVenir=datos.pacientes.filter(p=>!idsPend.has(p.id)&&!tieneCitaFutura(p)&&p.apertura
       &&Math.round((new Date(hoyF)-new Date(ultimaVisitaPaciente(p)))/864e5)>=180)
     .sort((a,b)=>ultimaVisitaPaciente(a).localeCompare(ultimaVisitaPaciente(b)));
@@ -5623,7 +5625,7 @@ document.getElementById('modal').addEventListener('close',()=>{
 });
 
 /* ---------- 1. cobros: pago al guardar la sesión, recibo y estado de cuenta ---------- */
-function totalAbonadoDe(p,tid){return (p.abonos||[]).filter(a=>a.tratamientoId===tid).reduce((s,a)=>s+(Number(a.monto)||0),0);}
+function totalAbonadoDe(p,tid){return repartoAbonos(p).porSesion[tid]||0;}
 function ofrecerCobroSesion(pid,tid){
   const p=pac(pid);if(!p)return;
   const t=(p.tratamientos||[]).find(x=>x.id===tid);if(!t)return;
@@ -5800,7 +5802,7 @@ async function pintarExtraRespaldo(){
   const el=document.getElementById('bk_extra');if(!el)return;
   const kb=tamanoDatosKB(),pct=Math.min(100,Math.round(kb/1000*100)),d=diasDesdeRespaldo();
   let copias=[];try{copias=(await snapListar()).sort((a,b)=>b.fecha.localeCompare(a.fecha));}catch(e){}
-  const nombre=r=>r.tipo==='ultima'?'Última copia automática':r.tipo==='dia'?'Al abrir el '+fechaCorta(r.clave.slice(4)):(r.motivo==='fusion'?'Antes de fusionar fichas':'Antes de una restauración');
+  const nombre=r=>r.tipo==='ultima'?'Última copia automática':r.tipo==='dia'?'Al abrir el '+fechaCorta(r.clave.slice(4)):(r.motivo==='fusion'?'Antes de fusionar fichas':r.motivo==='espejo'?'Antes de reubicar caras':'Antes de una restauración');
   el.innerHTML=`<div style="margin-top:16px;border-top:1px solid var(--linea);padding-top:12px">
     <p class="mini" style="margin:0 0 4px"><b>Último respaldo descargado:</b> ${d===null?'ninguno todavía':(d===0?'hoy':`hace ${d} día${d===1?'':'s'}`)}</p>
     <p class="mini" style="margin:0 0 4px"><b>Tamaño de tus datos:</b> ${kb} KB de ~1000 KB que admite la nube (las fotos y radiografías van aparte y no cuentan).</p>
@@ -6000,7 +6002,7 @@ function avisoConsentSesion(p,lineas,esNueva){
   if(!esNueva){el.innerHTML='';return;}
   const faltan=consentimientosFaltantes(p,lineas.map(l=>l.trat||''));
   const limpieza=lineas.some(l=>/profilaxis|limpieza|raspado/.test(normTxt(l.trat)));
-  el.innerHTML=(faltan.length?`<div class="mini" style="color:var(--alerta);margin:6px 0 2px">⚠ Falta el consentimiento firmado de: <b>${faltan.map(f=>esc(f.titulo)).join(', ')}</b>. Al guardar te ofreceré crearlo y firmarlo en pantalla.</div>`:'')
+  el.innerHTML=''
     +(limpieza?`<div class="mini" style="color:var(--clinico);margin:6px 0 2px">✓ La app te recordará solo su próxima limpieza y control en ${mesesControl(p)} meses (sección Recordatorios).</div>`:'');
 }
 function avisarConsentimientoFaltante(pid,faltan){
