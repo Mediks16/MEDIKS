@@ -2934,12 +2934,15 @@ Lugar y fecha: ______________________________________`;
 function tabCons(p,c){
   p.consentimientos=p.consentimientos||[];
   const cs=[...p.consentimientos].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  c.innerHTML=`<div class="bloque"><div class="barra-tit"><h3>Generar consentimiento</h3></div>
+  c.innerHTML=`<div class="bloque"><div class="barra-tit"><h3>Generar certificado</h3></div>
+    <div class="plantillas">${Object.entries(CERTIFICADOS).map(([k,t])=>
+      `<button data-cert="${k}"><b>${t.t}</b><span>${t.d}</span></button>`).join('')}</div></div>
+    <div class="bloque"><div class="barra-tit"><h3>Generar consentimiento</h3></div>
     <div class="plantillas">${Object.entries(PLANTILLAS).map(([k,t])=>
       `<button data-p="${k}"><b>${t.t}</b><span>${t.d}</span></button>`).join('')}</div></div>
-    <div class="bloque"><div class="barra-tit"><h3>Consentimientos del paciente</h3></div>
+    <div class="bloque"><div class="barra-tit"><h3>Documentos del paciente</h3></div>
     ${cs.length?`<table><thead><tr><th style="width:90px">Fecha</th><th>Documento</th><th style="width:150px"></th></tr></thead><tbody>
-      ${cs.map(x=>`<tr><td class="num">${fechaCorta(x.fecha)}</td>
+      ${cs.map(x=>x.tipo==='certificado'?filaCertificado(x):`<tr><td class="num">${fechaCorta(x.fecha)}</td>
         <td>${esc(x.titulo)}${x.pieza?`<br><span class="mini">Pieza ${esc(x.pieza)}</span>`:''}
           <br><span class="mini" style="color:${(x.firma||x.papel)?'var(--clinico)':'var(--tinta-suave)'}">${x.firma?'✓ Firmado':(x.papel?'✓ Firmado en papel':'Sin firmar')}</span>${x.firma?'':` <a href="#" class="mini" onclick="marcarConsentimientoPapel('${x.id}');return false">${x.papel?'(quitar)':'Marcar firmado en papel'}</a>`}</td>
         <td class="der"><button class="btn chico" onclick="imprimirConsentimiento('${x.id}')">Imprimir</button>
@@ -2948,6 +2951,80 @@ function tabCons(p,c){
       </tbody></table>`:'<p class="mini">Este paciente aún no tiene consentimientos generados.</p>'}</div>
     <p class="mini">Los textos son plantillas base: revísalas y ajústalas a tu criterio clínico y al caso antes de hacerlas firmar. El paciente debe firmar antes del procedimiento, y el documento se archiva con la historia clínica.</p>`;
   c.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>crearConsentimiento(b.dataset.p));
+  c.querySelectorAll('[data-cert]').forEach(b=>b.onclick=()=>crearCertificado(b.dataset.cert));
+}
+/* ---------- certificados: médico (reposo / diagnóstico) y de atención (asistencia a consulta) ---------- */
+const CERTIFICADOS={
+  cert_medico:{t:'Certificado médico',d:'Diagnóstico y, si aplica, reposo'},
+  cert_atencion:{t:'Certificado de atención',d:'Constancia de asistencia a consulta'}
+};
+function sumarDiasISO(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function textoCertificado(clave,p,f){
+  const g=datos.config||{},nom=p.nombre||'',ci=p.cedula?`, con C.I. ${p.cedula}`:'';
+  const yo=`Yo, ${g.profesional||'______________'}, odontólogo/a${g.codigo?` (Cód. MSP ${g.codigo})`:''}, CERTIFICO que`;
+  const fin=`Se expide el presente certificado a petición del interesado${f.para?`, para ser presentado en: ${f.para}`:', para los fines que estime convenientes'}.`;
+  if(clave==='cert_atencion'){
+    return `${yo} ${nom}${ci}, acudió a atención odontológica en este consultorio el ${fechaCorta(f.fecha)}${f.hi?`, desde las ${f.hi}`:''}${f.hf?` hasta las ${f.hf}`:''}${f.proc?`, donde se realizó: ${f.proc}`:''}.\n\n${fin}`;
+  }
+  const dias=Number(f.reposo)||0;
+  let t=`${yo} ${nom}${ci}, fue atendido/a en este consultorio el ${fechaCorta(f.fecha)}${f.diag?`, con el siguiente diagnóstico: ${f.diag}`:''}.`;
+  if(f.proc)t+=`\n\nSe realizó: ${f.proc}.`;
+  if(dias>0){const d0=f.desde||f.fecha;t+=`\n\nSe indica reposo por ${dias} día${dias===1?'':'s'}, desde el ${fechaCorta(d0)} hasta el ${fechaCorta(sumarDiasISO(d0,dias-1))}.`;}
+  return t+`\n\n${fin}`;
+}
+function crearCertificado(clave){
+  const p=pac(selId),T=CERTIFICADOS[clave];
+  const ult=[...(p.tratamientos||[])].filter(t=>t.fecha===hoy()).pop();
+  const f={fecha:hoy(),hi:'',hf:'',diag:(ult&&ult.dx)||'',proc:ult?(nombreSesion(ult)||'').split('\n').filter(Boolean).join('; '):'',reposo:0,desde:hoy(),para:''};
+  const doc={id:uid(),clave,tipo:'certificado',titulo:T.t,fecha:f.fecha,pieza:'',cert:f,texto:textoCertificado(clave,p,f)};
+  p.consentimientos=p.consentimientos||[];p.consentimientos.push(doc);guardar();verCertificado(doc.id);
+}
+function verCertificado(id){
+  const p=pac(selId),d=p.consentimientos.find(x=>x.id===id);if(!d)return;
+  const f=d.cert=d.cert||{fecha:d.fecha,reposo:0};
+  const med=d.clave==='cert_medico';
+  let manual=false;
+  abrirModal(d.titulo,`
+    <div class="grid">
+      <label class="campo"><span>Fecha</span><input type="date" id="ce_fecha" value="${esc(f.fecha||hoy())}"></label>
+      ${med?`<label class="campo"><span>Días de reposo (0 = sin reposo)</span><input type="number" min="0" id="ce_reposo" value="${Number(f.reposo)||0}"></label>
+      <label class="campo"><span>Reposo desde</span><input type="date" id="ce_desde" value="${esc(f.desde||f.fecha||hoy())}"></label>`
+      :`<label class="campo"><span>Hora de ingreso</span><input type="time" id="ce_hi" value="${esc(f.hi||'')}"></label>
+      <label class="campo"><span>Hora de salida</span><input type="time" id="ce_hf" value="${esc(f.hf||'')}"></label>`}
+    </div>
+    ${med?`<label class="campo"><span>Diagnóstico (con código CIE-10 si quieres)</span><input type="text" id="ce_diag" value="${esc(f.diag||'')}"></label>`:''}
+    <label class="campo"><span>Procedimiento realizado</span><input type="text" id="ce_proc" value="${esc(f.proc||'')}"></label>
+    <label class="campo"><span>Para presentar en (opcional)</span><input type="text" id="ce_para" value="${esc(f.para||'')}" placeholder="Trabajo, colegio, universidad…"></label>
+    <label class="campo"><span>Texto del certificado — edítalo libremente</span>
+      <textarea id="ce_texto" style="min-height:220px;font-size:13.5px">${esc(d.texto||'')}</textarea></label>
+    <p class="mini">El texto se arma solo con los datos de arriba; si lo editas a mano, deja de actualizarse.</p>`,
+  ()=>{leer();d.fecha=f.fecha;d.texto=$('#ce_texto').value;guardar();pintarVista();avisar('Certificado guardado');});
+  function leer(){
+    const v=i=>{const e=document.getElementById(i);return e?e.value:undefined;};
+    f.fecha=v('ce_fecha')||hoy();f.proc=v('ce_proc').trim();f.para=v('ce_para').trim();
+    if(med){f.reposo=Number(v('ce_reposo'))||0;f.desde=v('ce_desde')||f.fecha;f.diag=v('ce_diag').trim();}
+    else{f.hi=v('ce_hi')||'';f.hf=v('ce_hf')||'';}
+  }
+  const regen=()=>{if(manual)return;leer();$('#ce_texto').value=textoCertificado(d.clave,p,f);};
+  $('#ce_texto').addEventListener('input',()=>{manual=true;});
+  ['ce_fecha','ce_reposo','ce_desde','ce_hi','ce_hf','ce_diag','ce_proc','ce_para'].forEach(i=>{const e=document.getElementById(i);if(e){e.addEventListener('input',regen);e.addEventListener('change',regen);}});
+}
+function filaCertificado(x){
+  return `<tr><td class="num">${fechaCorta(x.fecha)}</td>
+    <td>${esc(x.titulo)}<br><span class="mini" style="color:var(--tinta-suave)">Certificado${x.cert&&Number(x.cert.reposo)>0?' · reposo '+Number(x.cert.reposo)+' día'+(Number(x.cert.reposo)===1?'':'s'):''}</span></td>
+    <td class="der"><button class="btn chico" onclick="imprimirCertificado('${x.id}')">Imprimir</button>
+      <button class="btn chico" onclick="verCertificado('${x.id}')">Editar</button>
+      <button class="btn chico peligro" onclick="borrarItem('consentimientos','${x.id}')">×</button></td></tr>`;
+}
+function imprimirCertificado(id){
+  const p=pac(selId),d=(p.consentimientos||[]).find(x=>x.id===id),g=datos.config||{};if(!d)return;
+  $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
+    <section><h4>${esc(d.titulo.toUpperCase())}</h4>
+      <div class="texto">${esc(d.texto)}
+
+Fecha: ${fechaCorta(d.fecha)}</div></section>
+    <div class="firma" style="margin-top:70px"><div></div><div>${esc(g.profesional||'')}<br>Odontólogo/a — Código ${esc(g.codigo||'')}</div></div></div>`;
+  lanzarImpresion();
 }
 function crearConsentimiento(clave){
   const p=pac(selId),T=PLANTILLAS[clave];
