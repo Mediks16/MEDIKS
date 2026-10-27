@@ -7218,7 +7218,8 @@ function ofrecerCobroSesion(pid,tid){
       <div class="saldo"><b>${usd(abonado)}</b><span>Ya abonado</span></div>
       <div class="saldo debe"><b>${usd(falta)}</b><span>Falta</span></div></div>
     <div class="grid">
-      <label class="campo"><span>Cobrado hoy (USD)</span><input type="number" step="0.01" min="0" id="cb_monto" value="${falta.toFixed(2)}"></label>
+      <label class="campo"><span>¿Cuánto abonó hoy? (USD)</span><input type="number" step="0.01" min="0" id="cb_monto" value="" placeholder="Escribe el monto" inputmode="decimal">
+        <button type="button" class="btn chico" id="cb_todo" style="margin-top:6px">Pagó todo (${usd(falta)})</button></label>
       <label class="campo"><span>Forma de pago</span><select id="cb_metodo">${['Efectivo','Transferencia','Tarjeta','Otro'].map(m=>`<option>${m}</option>`).join('')}</select></label>
     </div>
     <p class="mini" style="margin-bottom:0">Si hoy no cobraste nada, toca «Dejar pendiente»: queda como saldo del paciente.</p>`,
@@ -7230,6 +7231,8 @@ function ofrecerCobroSesion(pid,tid){
     guardar();pintar();avisar('Pago registrado');
   });
   const ok=$('#mOk'),cn=$('#mCancel');
+  $('#cb_todo').onclick=()=>{$('#cb_monto').value=falta.toFixed(2);};
+  setTimeout(()=>{const i=document.getElementById('cb_monto');if(i)i.focus();},50);
   if(ok)ok.textContent='Registrar pago';
   if(cn)cn.textContent='Dejar pendiente';
 }
