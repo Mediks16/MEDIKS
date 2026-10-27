@@ -1057,7 +1057,7 @@ const ESTADO_GRUPOS=[
   {clave:'removible',nombre:'Prótesis removible',nombreInd:'Prótesis removible indicada',nombreReal:'Prótesis removible realizada',color:'#B79AE0',ind:'removible_ind',real:'removible_real'},
   {clave:'total',nombre:'Prótesis total',nombreInd:'Prótesis total indicada',nombreReal:'Prótesis total realizada',color:'#B79AE0',ind:'total_ind',real:'total_real'},
   {clave:'implante',nombre:'Implante',nombreInd:'Implante indicado',nombreReal:'Implante realizado',color:'#3FAE6B',ind:'implante_ind',real:'implante_real'},
-  {clave:'sellante',nombre:'Sellante',nombreInd:'Sellante indicado',nombreReal:'Sellante realizado',color:'#49B6C9',ind:'sellante_nec',real:'sellante_real'},
+  {clave:'sellante',nombre:'Sellante',nombreInd:'Sellante indicado',nombreReal:'Sellante realizado',color:'#49B6C9',colorInd:'#E0564A',colorReal:'#3E7BE0',ind:'sellante_nec',real:'sellante_real'},
   {clave:'fractura',nombre:'Fractura',color:'#E0564A',ind:'fractura',real:'fractura'},
   {clave:'lesion',nombre:'Lesión',color:'#E0564A',ind:'lesion',real:'lesion'},
   {clave:'otro',nombre:'Otro / Preexistencia',color:'#5A706A',ind:'otro',real:'otro'}
@@ -1525,7 +1525,8 @@ function estadoVisualPieza(d){
   if(grupo){
     const pendiente=esPendienteSegunCodigo(d.general);
     const ausenteReal=grupo.clave==='ausente'&&!pendiente;
-    return {color:grupo.color,ausente:ausenteReal,pendiente,nombre:grupo.nombre+(pendiente?' (pendiente)':''),simbolo};
+    const colorG=(pendiente?grupo.colorInd:grupo.colorReal)||grupo.color;   // sellante: rojo si está indicado, azul si ya se hizo
+    return {color:colorG,ausente:ausenteReal,pendiente,nombre:grupo.nombre+(pendiente?' (pendiente)':''),simbolo};
   }
   if(d.general&&SIMB_GENERAL[d.general]){
     const g=SIMB_GENERAL[d.general];
@@ -1631,7 +1632,7 @@ function panelPiezaHTML(p,n,verInicial){
     </div>
     <div class="estado-grid">
       <button data-estgen2="" aria-pressed="${!codigosEstado(d).length}"><i style="background:#fff;border-color:var(--linea)"></i>Sano</button>
-      ${ESTADO_GRUPOS.map(g=>`<button data-estgen2="${g.clave}" aria-pressed="${codigosEstado(d).some(c=>c===g.ind||c===g.real)}"><i style="background:${g.color}"></i>${esc(etiquetaGrupo(g,modoPendienteActual(d)))}</button>`).join('')}
+      ${ESTADO_GRUPOS.map(g=>`<button data-estgen2="${g.clave}" aria-pressed="${codigosEstado(d).some(c=>c===g.ind||c===g.real)}"><i style="background:${(modoPendienteActual(d)==='pendiente'?g.colorInd:g.colorReal)||g.color}"></i>${esc(etiquetaGrupo(g,modoPendienteActual(d)))}</button>`).join('')}
     </div>
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Superficie</p>
     <p class="mini" style="margin:0 0 6px">Caries y restauraciones se marcan aquí, por cara — toca una superficie.</p>
@@ -1726,7 +1727,7 @@ function tabOdonto(p,c){
   const ACCIONES_RAPIDAS=[
     {clave:'caries',nombre:'Caries',color:'#E0564A',simbolo:'●'},
     {clave:'restauracion',nombre:'Restauración',color:'#3E7BE0',simbolo:'●'},
-    {clave:'grupo:sellante',nombre:nombreAccGrupo('sellante'),color:'#49B6C9',simbolo:'✳'},
+    {clave:'grupo:sellante',nombre:nombreAccGrupo('sellante'),color:modoAccRapidas==='pendiente'?'#E0564A':'#3E7BE0',simbolo:'✳'},
     {clave:'grupo:endodoncia',nombre:nombreAccGrupo('endodoncia'),color:'#D9B23C',simbolo:'▲'},
     {clave:'grupo:corona',nombre:nombreAccGrupo('corona'),color:'#8B6FC7',simbolo:'⌂'},
     {clave:'grupo:implante',nombre:nombreAccGrupo('implante'),color:'#3FAE6B',simbolo:'IM'},
@@ -1757,7 +1758,7 @@ function tabOdonto(p,c){
       <span class="leyenda-titulo">Estado de la pieza</span>
       <span><b style="color:#E0564A">●</b>Caries</span>
       <span><b style="color:#3E7BE0">●</b>Restauración</span>
-      ${ESTADO_GRUPOS.map(g=>`<span><b style="color:${g.color}">●</b>${esc(g.nombre)}</span>`).join('')}
+      ${ESTADO_GRUPOS.map(g=>g.colorInd?`<span><b style="color:${g.colorInd}">●</b>${esc(g.nombreInd)}</span><span><b style="color:${g.colorReal}">●</b>${esc(g.nombreReal)}</span>`:`<span><b style="color:${g.color}">●</b>${esc(g.nombre)}</span>`).join('')}
       <span><b style="color:var(--tinta-suave);border:1.5px solid currentColor;border-radius:50%;width:9px;height:9px;display:inline-block;background:none">&nbsp;</b>Tratamiento pendiente</span>
     </div>
     <p class="mini" style="margin-top:8px">El color relleno = condición marcada; el aro hueco = tratamiento pendiente. Movilidad (M) 1–3 y recesión (R) 1–4 solo en piezas permanentes. Equivalencia con la simbología oficial MSP disponible al imprimir el formulario 033.</p>`;
