@@ -552,6 +552,105 @@ body.arrastrando-cita{cursor:grabbing;user-select:none}
   body{background:#fff}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ---- ortodoncia: etapas, controles y pagos ---- */
+.cuota-fila .cnum{width:96px;font-weight:600;font-size:13px;flex:none}
+.cuota-fila .cctrl:empty{display:none}
+.cuota-fila .cfecha{flex:1;font-size:12.5px;color:var(--tinta-suave)}
+.cuota-fila .cfecha b{display:block;font-size:13px;color:var(--tinta);font-weight:600}
+.cuota-fila.hecho{background:#F6FBF8}
+.cuota-fila .check-vacio{width:26px;flex:none}
+.cuota-fila .cctrl{flex:2;min-width:0;font-size:13px;color:var(--tinta-suave);overflow-wrap:anywhere}
+.cuota-fila .cctrl b{display:block;color:var(--tinta);font-size:13px}
+@media (max-width:560px){.cuota-fila{flex-wrap:wrap}.cuota-fila .cnum{width:72px}.cuota-fila .cctrl{order:5;flex-basis:100%;padding-left:84px}}
+.etapas-orto{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
+.etapa-orto{border:1px solid var(--linea);border-radius:var(--r-lg);padding:12px 14px 8px;background:var(--papel)}
+.etapa-orto.actual{border-color:var(--azul);box-shadow:0 0 0 2px rgba(42,122,168,.12)}
+.etapa-orto.hecha{opacity:.75}
+.etapa-cab{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.etapa-cab .mini{margin:0}
+.etapa-n{width:26px;height:26px;border-radius:50%;background:var(--azul);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+.etapa-orto.hecha .etapa-n{background:#15803D}
+.etapa-pie{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:-4px}
+.pill-orto{font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;margin-left:8px}
+.pill-orto.ok{background:#DCFCE7;color:#15803D}.pill-orto.pend{background:#FEF3C7;color:#92400E}
+.seg-orto{display:flex;gap:4px;background:var(--porcelana);border:1px solid var(--linea);border-radius:999px;padding:4px;margin-bottom:14px;overflow-x:auto}
+.seg-orto button{flex:1;border:0;background:transparent;border-radius:999px;padding:9px 14px;font:inherit;font-weight:600;color:var(--tinta-suave);cursor:pointer;white-space:nowrap}
+.seg-orto button[aria-selected="true"]{background:var(--papel);color:var(--azul);box-shadow:var(--sombra-sm)}
+.resumen-orto{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:14px;box-shadow:var(--sombra-sm)}
+.ro-datos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:10px}
+.ro-datos b{display:block;font-size:16px;margin-top:2px}
+.ro-btn{width:100%;margin-top:12px;min-height:48px;font-size:16px}
+@media (max-width:640px){.ro-datos{grid-template-columns:1fr 1fr}}
+.evo{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;padding:14px 0;border-top:1px solid var(--linea)}
+.barra-tit+.evo,.bloque>.evo:first-of-type{border-top:0}
+.evo .fecha{font-weight:600;font-size:14px;color:var(--tinta)}
+.evo .dx{font-weight:600}
+.evo p{margin:4px 0}
+.acciones-evo{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.acciones-evo button{border:1px solid var(--linea);background:var(--papel);color:var(--azul);border-radius:999px;padding:6px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.acciones-evo button:hover{border-color:var(--azul)}
+@media (max-width:560px){.evo{grid-template-columns:1fr;gap:4px}}
+.pago-ctrl{background:var(--porcelana);border:1px solid var(--linea);border-radius:var(--r);padding:12px 14px;margin-top:4px}
+.grupo-cuotas{margin-top:14px}
+.gc-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+/* filas de pago con abonos y estados */
+.cuota-fila{padding:8px 14px;gap:10px}
+.cuota-fila .cnum{width:150px}
+.cuota-fila .cnum small.cfec{color:var(--tinta-suave);font-variant-numeric:tabular-nums}
+.cuota-fila .cnum small{display:block;font-weight:500;font-size:11.5px;color:var(--tinta-suave);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cuota-fila .cfecha{flex:none;width:92px;font-size:13px;color:var(--tinta)}
+.cuota-fila .cctrl{flex:1}
+.cuota-fila .cctrl:empty{display:block}
+.cuota-fila .cobs{display:block;margin-top:2px}
+.cuota-fila .cimp{width:96px;flex:none;text-align:right;font-variant-numeric:tabular-nums;font-size:12px;color:var(--tinta-suave);line-height:1.35}
+.cuota-fila .cimp b{display:block;font-size:13.5px;color:var(--tinta)}
+.cuota-fila .cimp span{display:block}.cuota-fila .cimp .csaldo{color:var(--alerta);font-weight:600;font-size:11.5px}
+.cuota-fila .cest{width:96px;flex:none;text-align:center}
+.cuota-fila .cacc{flex:none;display:flex;gap:4px;justify-content:flex-end;align-items:center;min-width:96px}
+.cuota-fila .cacc .btn{padding:4px 10px;font-size:12.5px}
+.btn-mas{border:0;background:none;color:var(--tinta-suave);font-size:18px;line-height:1;padding:4px 8px;border-radius:8px;cursor:pointer}
+.btn-mas:hover{background:var(--clinico-claro);color:var(--clinico)}
+.menu-fila{position:absolute;z-index:60;background:var(--papel,#fff);border:1px solid var(--linea);border-radius:14px;box-shadow:0 18px 40px -12px rgba(15,43,61,.35);padding:6px;min-width:230px}
+.menu-fila button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:9px;padding:11px 14px;font:inherit;font-size:14px;color:var(--tinta);cursor:pointer}
+.menu-fila button:hover{background:var(--clinico-claro)}
+.menu-fila button.peligro{color:var(--alerta)}
+.link-reg{border:0;background:none;color:var(--clinico);font:inherit;font-size:13px;font-weight:600;padding:2px 0;cursor:pointer;opacity:.75}
+.link-reg:hover{opacity:1;text-decoration:underline}
+.cuota-fila .cctrl .btn.primario{padding:4px 12px;font-size:12.5px}
+.estado-pago{font-size:11px;padding:2px 8px}
+.cuota-fila.anulada{opacity:.55}.cuota-fila.anulada .cimp b{text-decoration:line-through}
+.estado-pago{display:inline-block;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;border:1px solid transparent}
+.estado-pago.pend{background:#F1F4F7;color:#566573;border-color:#E1E6EB}
+.estado-pago.parcial{background:#FEF5E4;color:#9A6408;border-color:#F6E1B5}
+.estado-pago.pagado{background:#E8F5EE;color:#1F7A4A;border-color:#CBE8D7}
+.estado-pago.vencido{background:#FBECE9;color:#A23B2A;border-color:#F1D2CB}
+.estado-pago.anulada{background:#F1F1F1;color:#777}
+.acciones-pagos{display:flex;gap:8px;flex-wrap:wrap}
+.desglose-orto{margin:-4px 0 6px}
+.resumen-pago{display:flex;gap:10px;margin-bottom:12px}
+.resumen-pago>div{flex:1;background:var(--porcelana);border:1px solid var(--linea);border-radius:var(--r);padding:9px 12px}
+.resumen-pago b{display:block;font-size:16px;font-variant-numeric:tabular-nums}
+.pagos-fila{border:1px solid var(--linea);border-radius:var(--r);padding:10px 12px;margin-top:6px}
+.pagos-fila .pf-cab{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}.pagos-fila .pf-tit{font-weight:600;font-size:14px}.pagos-fila .pf-cab .der{margin-left:auto}
+.tabla-pagos{width:100%;font-size:13px}.tabla-pagos td{padding:5px 4px;border-top:1px solid var(--linea);vertical-align:top}
+tr.anulado td{color:#999}tr.anulado td.der{text-decoration:line-through}
+.historial-pagos{margin-top:14px}.historial-pagos summary{cursor:pointer;font-weight:600;font-size:13.5px;padding:6px 0}
+.historial-pagos table{width:100%;font-size:13px;margin-top:6px}
+@media (max-width:760px){
+  .cuota-fila{flex-wrap:wrap;gap:6px 10px}
+  .cuota-fila .cnum{width:auto;flex:1 1 55%}
+  .cuota-fila .cfecha{width:auto;flex:1 1 35%;text-align:right}
+  .cuota-fila .cctrl{order:5;flex-basis:100%;padding-left:0}
+  .cuota-fila .cctrl:empty{display:none}
+  .cuota-fila{padding:10px 12px}
+  .cuota-fila .cimp{order:6;width:auto;flex:0 1 auto;text-align:left}
+  .cuota-fila .cimp span{display:inline;margin-right:6px}
+  .cuota-fila .cest{order:7;width:auto;flex:none;text-align:left}
+  .cuota-fila .cacc{order:8;min-width:0;margin-left:auto}
+  .cuota-fila .cacc .btn{padding:5px 9px;font-size:12px}
+  .cuota-fila .cctrl .btn{padding:5px 10px;font-size:12px}
+  .cuota-fila .cctrl:has(> .link-reg:only-child){display:none}
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -713,6 +812,10 @@ async function cargar(){try{const r=await almacen.get(CLAVE);if(r&&r.value)datos
     if(d&&d.caras){['V','M','O','D','L'].forEach(k=>{const v=d.caras[k];
       if(v==='sellante_nec'||v==='sellante_real'){if(!d.general)d.general=v;delete d.caras[k];}});}});};
   datos.pacientes.forEach(p=>{migrarSellante(p.odontograma);if(p.odontogramaInicial)migrarSellante(p.odontogramaInicial.dientes);});
+  // alta estimada de ortodoncia guardada como número por un error anterior: se vuelve a calcular como fecha
+  datos.pacientes.forEach(p=>{if(p.orto&&typeof p.orto.altaEstimada==='number'){try{calcularEtapasOrto(p.orto);}catch(e){}}});
+  datos.pacientes.forEach(p=>{try{migrarProcsOrtoATratamientos(p);}catch(e){}});
+  datos.pacientes.forEach(p=>{if(p.orto)try{normalizarPagosOrto(p.orto);}catch(e){}});
 }
 
 /* ================= sincronización en la nube ================= */
@@ -3150,21 +3253,270 @@ function verConsentimiento(id){
 }
 
 /* ---------- ortodoncia ---------- */
-const APARATOLOGIAS=['Brackets metálicos','Brackets estéticos','Autoligado','Alineadores transparentes','Ortopedia funcional','Otro'];
+const APARATOLOGIAS=['Brackets metálicos','Brackets estéticos','Autoligado','Alineadores transparentes','Ortopedia funcional','Retención','Otro'];
+const CLASES_ORTO=['Clase I','Clase II','Clase III'];
+const HABITOS_ORTO=['Succión digital','Respiración bucal','Deglución atípica','Interposición lingual','Onicofagia','Bruxismo'];
+const PROCS_ORTO=['Microtornillo','Ventana quirúrgica y cementado de botón','Extracción indicada por ortodoncia','Frenectomía','Stripping (desgaste interproximal)','Retenedor fijo','Retenedor removible'];
+/* Etapas del tratamiento (por ejemplo: primero ortopedia y luego brackets). El plan que ya existía pasa a ser la etapa 1, tal cual. */
+function etapasOrto(o){
+  if(!Array.isArray(o.etapas))o.etapas=[{id:uid(),tipo:o.tipo||'',inicio:o.inicio||'',meses:o.duracionMeses??'',terminada:false}];
+  if(!o.etapas.length)o.etapas.push({id:uid(),tipo:'',inicio:'',meses:'',terminada:false});
+  if(!o.etapaDatosMig){o.etapaDatosMig=true;const e0=o.etapas[0];
+    if(o.objetivo&&!e0.objetivo)e0.objetivo=o.objetivo;
+    if(o.controlesPlan&&!e0.controlesPlan)e0.controlesPlan=o.controlesPlan;}
+  o.etapas.forEach(e=>{if(e.entrada!==undefined&&!Array.isArray(e.entradas)){e.entradas=[e.entrada];e.numEntradas=Number(e.entrada)>0?1:0;delete e.entrada;}});
+  return o.etapas;
+}
+/* Fechas de cada etapa: si una etapa no tiene inicio escrito, empieza cuando termina la anterior.
+   También deja al día los datos generales (aparatología actual, inicio y alta estimada) que usan los avisos. */
+function calcularEtapasOrto(o){
+  const es=etapasOrto(o),calc=[];let finPrev='';
+  es.forEach(e=>{const ini=e.inicio||finPrev||'';const fin=(ini&&Number(e.meses)>0)?sumarMeses(ini,e.meses):'';calc.push({ini,fin});if(fin)finPrev=fin;});
+  const iAct=Math.max(0,es.findIndex(e=>!e.terminada));
+  o.tipo=(es.find(e=>!e.terminada)||es[es.length-1]).tipo||'';
+  o.inicio=calc[0].ini||'';
+  o.altaEstimada=calc[calc.length-1].fin||'';
+  const total=es.reduce((t,e)=>t+(Number(e.meses)||0),0);
+  o.duracionMeses=total?String(total):'';
+  return {calc,iAct:es.every(e=>e.terminada)?-1:iAct};
+}
+/* Cuentas de ortodoncia: lo contratado sale de las etapas (entrada + cuota mensual × meses);
+   si no se pusieron precios en las etapas, se usa el cronograma de cuotas anterior. Lo pagado son las cuotas marcadas pagadas. */
+/* Cuentas de ortodoncia: lo contratado es la suma del cronograma (entradas y cuotas de cada etapa);
+   lo pagado, todo lo marcado como pagado. Los pagos sueltos (extra) suman a lo pagado pero no al total. */
+function cuentasOrto(o){
+  const vacio={total:0,pagado:0,pendiente:0,pagadoCuotas:0,saldoCuotas:0,sinAsignar:0,aFavor:0};
+  if(!o)return vacio;
+  const cs=o.cuotas||[],cargos=cs.filter(enPlanOrto);
+  const total=R2(cargos.reduce((t,q)=>t+(Number(q.monto)||0),0));
+  const pagadoCuotas=R2(cargos.reduce((t,q)=>t+pagadoFila(q),0));
+  const saldoCuotas=R2(cargos.reduce((t,q)=>t+saldoFila(q),0));
+  const sinAsignar=R2(cs.filter(q=>esSinAsignarOrto(q)&&!q.anulada).reduce((t,q)=>t+pagadoFila(q),0));
+  const pagado=R2(pagadoCuotas+sinAsignar);
+  return {total,pagado,pendiente:Math.max(0,R2(total-pagado)),pagadoCuotas,saldoCuotas,sinAsignar,aFavor:Math.max(0,R2(pagado-total))};
+}
+const esExtraOrto=q=>!!(q.extra||(q.deControl&&!q.etapaId));
+const esProcOrto=q=>!!q.procId;   // fila de cobro de un procedimiento del plan (microtornillo, stripping…)
+/* ===== Pagos de ortodoncia =====
+   Cada fila de o.cuotas (cuota, control o procedimiento) guarda sus pagos en q.pagos = [{id,monto,fecha,metodo,nota,grupo?,anulado?}].
+   Lo pagado de una fila es la suma de sus pagos no anulados; su saldo, el valor menos lo pagado.
+   q.pagada y q.fechaPago se siguen llenando (derivados) para que los datos sigan siendo legibles por versiones anteriores. */
+const R2=n=>Math.round((Number(n)||0)*100)/100;
+function pagosDeFila(q){
+  if(Array.isArray(q.pagos))return q.pagos;
+  // fila antigua sin lista de pagos: «pagada» equivale a un pago por su valor
+  return q.pagada?[{id:'ant-'+q.id,monto:Number(q.monto)||0,fecha:q.fechaPago||q.fechaVenc||hoy(),metodo:q.metodo||'',nota:q.nota||'',migrado:true}]:[];
+}
+const pagosActivosFila=q=>pagosDeFila(q).filter(x=>!x.anulado);
+const pagadoFila=q=>R2(pagosActivosFila(q).reduce((t,x)=>t+(Number(x.monto)||0),0));
+const tienePagosOrto=q=>pagosDeFila(q).length>0;
+const esSinAsignarOrto=q=>esExtraOrto(q)&&!q.controlId;            // pago que no corresponde a ninguna cuota
+const esCargoOrto=q=>!q.anulada&&!esSinAsignarOrto(q);              // fila que se cobra (tiene saldo propio)
+const enPlanOrto=q=>esCargoOrto(q)&&!esProcOrto(q);                  // suma al total del plan (los procedimientos se cobran aparte)
+const saldoFila=q=>esCargoOrto(q)?Math.max(0,R2((Number(q.monto)||0)-pagadoFila(q))):0;
+function estadoFila(q){
+  if(q.anulada)return {k:'anulada',t:'Anulada'};
+  if(esSinAsignarOrto(q))return {k:'pagado',t:q.aFavor?'Saldo a favor':'Sin asignar'};
+  const m=Number(q.monto)||0,pg=pagadoFila(q);
+  if(m<=0)return pg>0?{k:'pagado',t:'Pagado'}:{k:'',t:''};
+  if(pg>=m-0.004)return {k:'pagado',t:'Pagado'};
+  const venc=!!(q.fechaVenc&&q.fechaVenc<hoy());
+  if(pg>0)return {k:venc?'vencido':'parcial',t:venc?'Parcial · vencida':'Parcial'};
+  return venc?{k:'vencido',t:'Vencida'}:{k:'pend',t:'Pendiente'};
+}
+function actualizarFilaOrto(q){
+  const m=Number(q.monto)||0,pg=pagadoFila(q);
+  q.pagada=esSinAsignarOrto(q)?pg>0:(m>0?pg>=m-0.004:pg>0);
+  const ult=pagosActivosFila(q).map(x=>x.fecha||'').sort().pop();
+  if(ult)q.fechaPago=ult;else delete q.fechaPago;
+}
+/* migración sin pérdida: lo marcado «pagada» pasa a ser un pago registrado por ese monto y fecha; no se borra ningún campo */
+function normalizarPagosOrto(o){
+  let cambio=false;
+  (o&&o.cuotas||[]).forEach(q=>{if(!Array.isArray(q.pagos)){q.pagos=pagosDeFila(q).map(x=>({...x,id:uid()}));cambio=true;}});
+  return cambio;
+}
+function registrarHistorialOrto(q,txt){(q.historial=q.historial||[]).push({fecha:new Date().toISOString(),txt});}
+/* «Cuota 1, 2, 3…» consecutivas dentro de cada etapa (las que antes se llamaban entradas y las agregadas a mano) */
+function numerosCuotasOrto(o){
+  const num={},porEt={};
+  [...(o.cuotas||[])].filter(q=>q.esEntrada&&!q.anulada)
+    .sort((a,b)=>(a.fechaVenc||'9').localeCompare(b.fechaVenc||'9')||(a.entradaNum||99)-(b.entradaNum||99)||(a.creada||'').localeCompare(b.creada||''))
+    .forEach(q=>{const k=q.etapaId||'-';porEt[k]=(porEt[k]||0)+1;num[q.id]=porEt[k];});
+  return num;
+}
+function etiquetaFilaOrto(o,q,num){
+  num=num||numerosCuotasOrto(o);
+  if(esProcOrto(q)){const pr=(o.procedimientos||[]).find(k=>k.id===q.procId);return 'Procedimiento'+(pr?' · '+pr.nombre:'');}
+  if(q.esEntrada)return 'Cuota '+(num[q.id]||'')+(q.concepto?' · '+q.concepto:'');
+  if(esSinAsignarOrto(q))return q.aFavor?'Saldo a favor':'Pago sin asignar';
+  if(q.extra)return q.numero?'Control N.º '+q.numero:'Control';
+  return 'Control N.º '+(q.numero||'');
+}
+/* reparto de un pago: primero la fila elegida y luego las demás con saldo, de la más antigua a la más nueva */
+function filasConSaldoOrto(o,excepto){
+  return (o.cuotas||[]).filter(q=>q!==excepto&&enPlanOrto(q)&&saldoFila(q)>0.004)
+    .sort((a,b)=>(a.fechaVenc||'9').localeCompare(b.fechaVenc||'9')||(a.numero||0)-(b.numero||0));
+}
+function repartoPagoOrto(o,monto,primera){
+  const out=[];let resto=R2(monto);
+  (primera?[primera,...filasConSaldoOrto(o,primera)]:filasConSaldoOrto(o)).forEach(q=>{
+    if(resto<=0.004)return;const sd=saldoFila(q);if(sd<=0.004)return;
+    const a=Math.min(sd,resto);out.push({q,monto:R2(a)});resto=R2(resto-a);});
+  return {partes:out,sobra:resto>0.004?resto:0};
+}
+function textoRepartoOrto(o,rp){
+  const num=numerosCuotasOrto(o);
+  return (rp.partes.length?'Se aplicará a: '+rp.partes.map(x=>etiquetaFilaOrto(o,x.q,num)+' '+usd(x.monto)).join(', ')+'.':'No hay cuotas con saldo pendiente.')
+    +(rp.sobra?`\nSobran ${usd(rp.sobra)}: quedan como saldo a favor del paciente.`:'');
+}
+/* registra el pago una sola vez: cada parte queda en su fila; lo que sobre, como saldo a favor */
+function aplicarPagoOrto(o,monto,dp,primera){
+  const rp=repartoPagoOrto(o,monto,primera),grupo=(rp.partes.length+(rp.sobra?1:0))>1?uid():null;
+  const base={fecha:dp.fecha||hoy(),metodo:dp.metodo||'',nota:dp.nota||'',...(dp.libre?{libre:true}:{}),...(grupo?{grupo,total:R2(monto)}:{})};
+  rp.partes.forEach(({q,monto})=>{q.pagos=Array.isArray(q.pagos)?q.pagos:pagosDeFila(q);q.pagos.push({id:uid(),monto,...base});actualizarFilaOrto(q);});
+  if(rp.sobra){const q={id:uid(),numero:0,extra:true,aFavor:true,monto:rp.sobra,fechaVenc:base.fecha,pagos:[{id:uid(),monto:rp.sobra,...base}]};actualizarFilaOrto(q);o.cuotas.push(q);}
+  return rp;
+}
+/* control o fila sin valor fijado (etapa sin precio): el primer pago fija su valor, como hacía antes */
+function prepararFilaParaPagoOrto(q,monto){
+  if(!(Number(q.monto)>0)&&!esSinAsignarOrto(q)){registrarHistorialOrto(q,'Valor fijado en '+usd(monto)+' al registrar el pago');q.monto=R2(monto);q.editada=true;}
+}
+function pagosOrtoPaciente(p){
+  const o=p&&p.orto;if(!o)return [];
+  const num=numerosCuotasOrto(o),out=[];
+  (o.cuotas||[]).forEach(q=>pagosActivosFila(q).forEach(x=>out.push({...x,fila:etiquetaFilaOrto(o,q,num),filaId:q.id})));
+  return out;
+}
+/* Cronograma de cada etapa, armado solo desde el plan: entradas (en la fecha de inicio) y una cuota por mes.
+   Lo ya pagado o cambiado a mano no se toca; si cambia el plan, se ajustan las cuotas pendientes. */
+function sincronizarCronogramaOrto(o){
+  const es=etapasOrto(o),inf=calcularEtapasOrto(o);o.cuotas=o.cuotas||[];
+  const vivas=new Set();
+  es.forEach((e,i)=>{
+    vivas.add(e.id);
+    const ini=inf.calc[i].ini||hoy(),n=Number(e.numEntradas)||0,cuota=Number(e.cuota)||0,filas=Number(e.controlesPlan)||Number(e.meses)||0;
+    const conPrecio=cuota>0||(e.entradas||[]).slice(0,n).some(m=>Number(m)>0);
+    // paciente con cronograma anterior y etapa sin precios: sus cuotas viejas siguen siendo las filas de control
+    const usarViejas=i===0&&!conPrecio&&o.cuotas.some(q=>!q.etapaId&&!esExtraOrto(q)&&!esProcOrto(q));
+    const desead=[];
+    if(!usarViejas){
+      (e.entradas||[]).slice(0,n).forEach((m,k)=>{if(Number(m)>0)desead.push({clave:'E'+(k+1),esEntrada:true,entradaNum:k+1,numero:0,monto:Number(m),fechaVenc:ini});});
+      for(let k=1;k<=filas;k++)desead.push({clave:'C'+k,numero:k,monto:cuota,fechaVenc:sumarMeses(ini,k)});
+    }
+    const claves=new Set(desead.map(x=>x.clave));
+    desead.forEach(x=>{const q=o.cuotas.find(c=>c.etapaId===e.id&&c.clave===x.clave);
+      if(!q)o.cuotas.push({id:uid(),etapaId:e.id,pagada:false,pagos:[],...x});
+      else if(!tienePagosOrto(q)&&!q.editada&&!q.anulada)Object.assign(q,{monto:x.monto,fechaVenc:x.fechaVenc,numero:x.numero});});
+    o.cuotas=o.cuotas.filter(c=>!(c.etapaId===e.id&&c.clave&&!claves.has(c.clave)&&!tienePagosOrto(c)&&!c.controlId));
+    if(i===0&&conPrecio)absorberCuotasAnterioresOrto(o,e);
+  });
+  o.cuotas=o.cuotas.filter(c=>!(c.etapaId&&!vivas.has(c.etapaId)&&!tienePagosOrto(c)));   // etapa quitada: se van sus cuotas pendientes
+}
+/* Cronograma hecho antes a mano (sin etapa): al armarse el de la etapa 1, sus pagos pasan a las cuotas
+   equivalentes (entradas con entradas, cuotas en orden de fecha) y el cronograma viejo desaparece.
+   Ningún pago se pierde: si sobra alguno pagado, queda en «Otros pagos». */
+function absorberCuotasAnterioresOrto(o,e){
+  const viejas=(o.cuotas||[]).filter(q=>!q.etapaId&&!esExtraOrto(q)&&!esProcOrto(q));
+  if(!viejas.length)return;
+  const orden=(a,b)=>(a.fechaVenc||'').localeCompare(b.fechaVenc||'')||(a.numero||0)-(b.numero||0);
+  const nuevas=k=>(o.cuotas||[]).filter(q=>q.etapaId===e.id&&q.clave&&q.clave[0]===k&&!tienePagosOrto(q)).sort(orden);
+  const destE=nuevas('E'),destC=nuevas('C');
+  viejas.sort(orden).forEach(v=>{
+    if(tienePagosOrto(v)){
+      const d=(v.esEntrada?destE:destC).shift();
+      if(d){Object.assign(d,{monto:Number(v.monto)||d.monto,controlId:v.controlId,editada:true,pagos:[...(Array.isArray(d.pagos)?d.pagos:[]),...pagosDeFila(v)]});
+        if(v.nota&&!d.obs)d.obs=v.nota;actualizarFilaOrto(d);}
+      else o.cuotas.push({...v,id:uid(),extra:true,pagos:pagosDeFila(v)});
+    }
+  });
+  o.cuotas=o.cuotas.filter(q=>!viejas.includes(q));
+}
+/* controles de cada etapa: los anotados antes de existir las etapas cuentan para la etapa 1 */
+const etapaDeControlOrto=(o,x)=>{const es=etapasOrto(o);return (x.etapaId&&es.some(e=>e.id===x.etapaId))?x.etapaId:(etapaActualOrto(o)||es[0]||{}).id;};
+function controlesDeEtapaOrto(o,e){return (o.controles||[]).filter(x=>etapaDeControlOrto(o,x)===e.id);}
+/* fila (control planificado) libre para el próximo control de una etapa */
+function siguienteFilaControlOrto(o,etapaId){
+  const eid=etapaId||etapaActualOrto(o).id,cs=(o.cuotas||[]).filter(q=>!esExtraOrto(q)&&!esProcOrto(q)&&!q.controlId&&!q.anulada);
+  const orden=(a,b)=>(a.esEntrada?0:1)-(b.esEntrada?0:1)
+    ||(a.esEntrada?((a.fechaVenc||'9').localeCompare(b.fechaVenc||'9')||(a.entradaNum||99)-(b.entradaNum||99)||(a.creada||'').localeCompare(b.creada||''))
+                  :((a.numero||0)-(b.numero||0)||(a.fechaVenc||'').localeCompare(b.fechaVenc||'')));
+  return cs.filter(q=>q.etapaId===eid).sort(orden)[0]||cs.filter(q=>!q.etapaId).sort(orden)[0]||null;
+}
+/* cada control anotado ocupa una fila: los que no la tienen (de antes) se acomodan en orden */
+function numeroControlNuevoOrto(o,etapaId){
+  return Math.max(0,...(o.cuotas||[]).filter(q=>q.etapaId===etapaId&&!q.esEntrada&&!esProcOrto(q)&&!esSinAsignarOrto(q)).map(q=>Number(q.numero)||0))+1;
+}
+function vincularControlesOrto(o){
+  // filas que apuntan a un control que ya no existe quedan libres otra vez
+  const existen=new Set((o.controles||[]).map(x=>x.id));
+  (o.cuotas||[]).forEach(q=>{if(q.controlId&&!existen.has(q.controlId))delete q.controlId;});
+  const usados=new Set((o.cuotas||[]).filter(q=>q.controlId).map(q=>q.controlId));
+  [...(o.controles||[])].filter(x=>!usados.has(x.id)).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).forEach(x=>{
+    let q=siguienteFilaControlOrto(o,etapaDeControlOrto(o,x));
+    if(!q){const et=etapaDeControlOrto(o,x);q={id:uid(),numero:numeroControlNuevoOrto(o,et),fechaVenc:x.fecha||hoy(),extra:true,monto:0,etapaId:et,pagos:[]};o.cuotas.push(q);}
+    q.controlId=x.id;
+  });
+  // controles fuera del plan guardados antes sin número: se numeran a continuación
+  (o.cuotas||[]).filter(q=>q.extra&&q.controlId&&!(Number(q.numero)>0)).sort((a,b)=>(a.fechaVenc||'').localeCompare(b.fechaVenc||''))
+    .forEach(q=>{q.numero=numeroControlNuevoOrto(o,q.etapaId);});
+}
+/* la siguiente cuota por cobrar: primero la mensualidad de la etapa en curso */
+function siguienteCuotaOrto(o){
+  const e=etapaActualOrto(o),pend=(o.cuotas||[]).filter(q=>saldoFila(q)>0.004&&!esExtraOrto(q)&&!esProcOrto(q)).sort((a,b)=>(a.fechaVenc||'').localeCompare(b.fechaVenc||''));
+  return pend.find(q=>q.etapaId===e.id&&!q.esEntrada)||pend.find(q=>q.etapaId===e.id)||pend.find(q=>!q.etapaId&&!q.esEntrada)||pend[0]||null;
+}
+function etapaActualOrto(o){const es=etapasOrto(o);return es.find(e=>!e.terminada)||es[es.length-1];}
+function alternarEntradaOrto(i,marcado){
+  const o=pac(selId).orto,e=etapasOrto(o)[i];o.cuotas=o.cuotas||[];
+  const q=o.cuotas.find(k=>k.entradaEtapa===e.id);
+  if(marcado){
+    const monto=Number(e.entrada)||0;if(monto<=0){avisar('Escribe primero el monto de la entrada');pintarVista();return;}
+    if(q)Object.assign(q,{monto,pagada:true,fechaPago:q.fechaPago||hoy()});
+    else o.cuotas.push({id:uid(),numero:0,esEntrada:true,entradaNum:i+1,entradaEtapa:e.id,deControl:true,fechaVenc:hoy(),monto,pagada:true,fechaPago:hoy(),metodo:''});
+  }else if(q){o.cuotas=o.cuotas.filter(k=>k!==q);}
+  guardar();pintarVista();
+}
+function agregarEtapaOrto(){const o=pac(selId).orto;etapasOrto(o).push({id:uid(),tipo:'',inicio:'',meses:'',terminada:false});sincronizarCronogramaOrto(o);guardar();pintarVista();}
+function quitarEtapaOrto(i){const o=pac(selId).orto;if(!confirm('¿Quitar esta etapa del plan? Sus cuotas pendientes se quitan; los pagos ya hechos se conservan.'))return;o.etapas.splice(i,1);sincronizarCronogramaOrto(o);guardar();pintarVista();}
 function diasEntre(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);}
 function sumarMeses(fechaISO,meses){
   const d=new Date(fechaISO+'T00:00:00');
   d.setMonth(d.getMonth()+Number(meses||0));
   return d.toISOString().slice(0,10);
 }
+let ortoSub='controles',ortoSubPac=null;
 function tabOrto(p,c){
   p.orto=p.orto||{controles:[]};const o=p.orto;o.controles=o.controles||[];
-  o.plan=o.plan||{};o.cuotas=o.cuotas||[];
+  o.plan=o.plan||{};o.cuotas=o.cuotas||[];o.procedimientos=o.procedimientos||[];
   const plan=o.plan;
-  const cuotas=[...o.cuotas].sort((a,b)=>(a.fechaVenc||'').localeCompare(b.fechaVenc||''));
-  const totalPlan=cuotas.reduce((s,q)=>s+(Number(q.monto)||0),0);
-  const totalPagadoPlan=cuotas.filter(q=>q.pagada).reduce((s,q)=>s+(Number(q.monto)||0),0);
-  const saldoPlan=totalPlan-totalPagadoPlan;
+  const infoEt=calcularEtapasOrto(o),etapas=o.etapas;
+  o.diag=o.diag||{};const dg=o.diag;
+  const eAct=etapaActualOrto(o),ctrlsAct=controlesDeEtapaOrto(o,eAct);
+  const ctrlHechos=ctrlsAct.filter(x=>x.fecha&&x.fecha<=hoy()).length,ctrlPlan=Number(eAct.controlesPlan)||0;
+  const ctrlPorId={};o.controles.forEach(x=>ctrlPorId[x.id]=x);
+  {const antes=JSON.stringify(o.cuotas);normalizarPagosOrto(o);sincronizarCronogramaOrto(o);vincularControlesOrto(o);if(JSON.stringify(o.cuotas)!==antes)guardar();}
+  const sigFila=siguienteFilaControlOrto(o);
+  const gruposPago=[],numCuota=numerosCuotasOrto(o),vivasEt=new Set(etapas.map(e=>e.id));
+  const ordenFila=(a,b)=>(a.esEntrada?0:1)-(b.esEntrada?0:1)||(a.fechaVenc||'9').localeCompare(b.fechaVenc||'9')||(numCuota[a.id]||0)-(numCuota[b.id]||0)||(a.numero||0)-(b.numero||0);
+  const e0=etapas[0],e0Viejo=!!e0&&!(Number(e0.cuota)>0||(e0.entradas||[]).slice(0,Number(e0.numEntradas)||0).some(m=>Number(m)>0));
+  const deEtapa=(q,e,i)=>q.etapaId===e.id||(i===0&&e0Viejo&&!q.etapaId);
+  etapas.forEach((e,i)=>{const cs=o.cuotas.filter(q=>deEtapa(q,e,i)&&!esSinAsignarOrto(q)&&!esProcOrto(q)).sort(ordenFila);
+    if(cs.length)gruposPago.push({titulo:`Etapa ${i+1}${e.tipo?' · '+esc(e.tipo):''}`,corto:`Etapa ${i+1}`,cuotas:cs});});
+  {const pr=o.cuotas.filter(q=>esProcOrto(q)).sort(ordenFila);if(pr.length)gruposPago.push({titulo:'Procedimientos (se cobran aparte del plan)',corto:'',aparte:true,cuotas:pr});}
+  {const viejas=o.cuotas.filter(q=>!esSinAsignarOrto(q)&&!esProcOrto(q)&&!(e0Viejo&&!q.etapaId)&&(!q.etapaId||!vivasEt.has(q.etapaId))).sort(ordenFila);
+    if(viejas.length)gruposPago.push({titulo:'Otras cuotas registradas',corto:'Otras cuotas',cuotas:viejas});}
+  {const ex=o.cuotas.filter(q=>esSinAsignarOrto(q)&&pagadoFila(q)>0.004).sort((a,b)=>(b.fechaPago||'').localeCompare(a.fechaPago||''));
+    if(ex.length)gruposPago.push({titulo:'Pagos sin asignar a una cuota',corto:'',sinAsignar:true,cuotas:ex});}
+  gruposPago.forEach(g=>{const cg=g.cuotas.filter(esCargoOrto);
+    g.total=R2(cg.reduce((t,q)=>t+(Number(q.monto)||0),0));g.pagado=R2((g.sinAsignar?g.cuotas:cg).reduce((t,q)=>t+pagadoFila(q),0));g.saldo=R2(cg.reduce((t,q)=>t+saldoFila(q),0));});
+  const cta=cuentasOrto(o);
+  // pestaña interna: al abrir otro paciente, va a Controles si ya tiene plan; si no, al Plan
+  if(ortoSub==='controles')ortoSub='cuotas';
+  if(ortoSubPac!==p.id){ortoSubPac=p.id;ortoSub=(o.tipo||o.inicio)?'cuotas':'plan';}
+  const numCtrl={};etapas.forEach(e=>controlesDeEtapaOrto(o,e).filter(x=>x.fecha).sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach((x,i)=>numCtrl[x.id]=i+1));
+  const etiquetaEtapa=x=>{if(etapas.length<2)return '';const k=etapas.findIndex(e=>e.id===etapaDeControlOrto(o,x));return k>=0?`Etapa ${k+1} · `:'';};
+  const proxCtrl=[...o.controles].map(x=>x.proxima).filter(f=>f&&f>=hoy()).sort()[0]||'';
   let progreso='',alerta='';
   if(o.inicio&&o.altaEstimada){
     const total=diasEntre(o.inicio,o.altaEstimada),trans=diasEntre(o.inicio,hoy());
@@ -3179,76 +3531,116 @@ function tabOrto(p,c){
   }
   const ctrls=[...o.controles].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
   c.innerHTML=`${alerta}
+    <div class="seg-orto" role="tablist">${[['diag','Diagnóstico'],['plan','Plan'],['cuotas','Controles']].map(([k,n])=>`<button type="button" role="tab" aria-selected="${ortoSub===k}" onclick="ortoSub='${k}';pintarVista()">${n}</button>`).join('')}</div>
+    <div class="orto-sec" data-sec="diag" ${ortoSub==='diag'?'':'hidden'}>
+    <div class="bloque"><div class="barra-tit"><h3>Diagnóstico ortodóntico</h3></div>
+      <div class="grid diag-orto">
+        ${[['molarD','Clase molar derecha'],['molarI','Clase molar izquierda'],['caninaD','Clase canina derecha'],['caninaI','Clase canina izquierda']].map(([k,t])=>`<label class="campo"><span>${t}</span><select data-dk="${k}"><option value=""></option>${CLASES_ORTO.map(c=>`<option ${dg[k]===c?'selected':''}>${c}</option>`).join('')}</select></label>`).join('')}
+        <label class="campo"><span>Overjet (mm)</span><input type="number" step="0.5" data-dk="overjet" value="${esc(dg.overjet??'')}"></label>
+        <label class="campo"><span>Overbite (mm)</span><input type="number" step="0.5" data-dk="overbite" value="${esc(dg.overbite??'')}" placeholder="Negativo si es abierta"></label>
+        <label class="campo"><span>Línea media</span><select data-dk="lineaMedia"><option value=""></option>${['Centrada','Desviada a la derecha','Desviada a la izquierda'].map(c=>`<option ${dg.lineaMedia===c?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label class="campo"><span>Apiñamiento</span><select data-dk="apinamiento"><option value=""></option>${['No','Leve','Moderado','Severo'].map(c=>`<option ${dg.apinamiento===c?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label class="campo"><span>Mordida cruzada</span><select data-dk="cruzada"><option value=""></option>${['No','Anterior','Posterior derecha','Posterior izquierda','Posterior bilateral'].map(c=>`<option ${dg.cruzada===c?'selected':''}>${c}</option>`).join('')}</select></label>
+      </div>
+      <p class="mini" style="margin:2px 0 6px">Hábitos</p>
+      <div class="chks">${HABITOS_ORTO.map(h=>`<label class="chk"><input type="checkbox" data-hab="${esc(h)}" ${(dg.habitos||[]).includes(h)?'checked':''}> ${h}</label>`).join('')}</div>
+      <label class="campo" style="margin-top:10px"><span>Observaciones del diagnóstico</span><textarea data-dk="nota" placeholder="Perfil, análisis cefalométrico, otros hallazgos…">${esc(dg.nota||'')}</textarea></label>
+    </div>
+
+    </div><div class="orto-sec" data-sec="plan" ${ortoSub==='plan'?'':'hidden'}>
     <div class="bloque"><div class="barra-tit"><h3>Plan de tratamiento</h3>
       <button class="btn chico der" onclick="imprimirPlanOrto(pac(selId))">Imprimir plan</button></div>
-    <div class="grid">
-      <label class="campo"><span>Aparatología</span><select data-k="tipo">
-        <option value=""></option>${APARATOLOGIAS.map(a=>`<option ${o.tipo===a?'selected':''}>${a}</option>`).join('')}</select></label>
-      <label class="campo"><span>Fecha de inicio</span><input type="date" id="orto_inicio" value="${esc(o.inicio||'')}"></label>
-      <label class="campo"><span>Duración estimada (meses)</span><input type="number" min="0" id="orto_meses" value="${o.duracionMeses??''}" placeholder="18"></label>
+    <div class="etapas-orto">
+      ${etapas.map((e,i)=>`<div class="etapa-orto${e.terminada?' hecha':''}${i===infoEt.iAct?' actual':''}">
+        <div class="etapa-cab"><span class="etapa-n">${e.terminada?'✓':i+1}</span><b>Etapa ${i+1}</b>
+          <span class="mini">${e.terminada?'Terminada':i===infoEt.iAct?'En curso':'Siguiente'}</span>
+          ${etapas.length>1?`<button class="btn chico der" type="button" onclick="quitarEtapaOrto(${i})" title="Quitar etapa">×</button>`:''}</div>
+        <div class="grid">
+          <label class="campo"><span>Aparatología</span><select data-et="${i}" data-ek="tipo">
+            <option value=""></option>${[...APARATOLOGIAS,...(e.tipo&&!APARATOLOGIAS.includes(e.tipo)?[e.tipo]:[])].map(a=>`<option ${e.tipo===a?'selected':''}>${esc(a)}</option>`).join('')}</select></label>
+          <label class="campo"><span>Inicio</span><input type="date" data-et="${i}" data-ek="inicio" value="${esc(e.inicio||'')}"></label>
+          <label class="campo"><span>Duración (meses)</span><input type="number" min="0" data-et="${i}" data-ek="meses" value="${esc(e.meses??'')}" placeholder="12"></label>
+          <label class="campo"><span>Valor por control (USD)</span><input type="number" step="0.01" min="0" data-et="${i}" data-ek="cuota" value="${esc(e.cuota??'')}" placeholder="0"></label>
+          <label class="campo"><span>Cuotas de pago</span><select data-et="${i}" data-ek="numEntradas">${[[0,'Sin cuotas'],[1,'1 cuota'],[2,'2 cuotas'],[3,'3 cuotas']].map(([v,t])=>`<option value="${v}" ${(Number(e.numEntradas)||0)===v?'selected':''}>${t}</option>`).join('')}</select></label>
+          ${Array.from({length:Number(e.numEntradas)||0},(_,k)=>`<label class="campo"><span>Cuota ${k+1} (USD)</span><input type="number" step="0.01" min="0" data-ent="${i}" data-entk="${k}" value="${esc((e.entradas||[])[k]??'')}" placeholder="0"></label>`).join('')}
+          <label class="campo"><span>Controles planificados</span><input type="number" min="0" data-et="${i}" data-ek="controlesPlan" value="${esc(e.controlesPlan??'')}" placeholder="${esc(e.meses||'12')}"></label>
+        </div>
+        <label class="campo"><span>Objetivo de esta etapa</span><textarea data-et="${i}" data-ek="objetivo" rows="2" placeholder="${i===0?'Corrección de clase, expansión, apiñamiento, extracciones previas…':'Qué se busca en esta etapa…'}">${esc(e.objetivo||'')}</textarea></label>
+        ${(()=>{const hechos=controlesDeEtapaOrto(o,e).filter(x=>x.fecha&&x.fecha<=hoy()).length,plan=Number(e.controlesPlan)||0;
+          return plan>0?`<div class="orto-progreso" style="margin:2px 0 4px"><div style="width:${Math.min(100,Math.round(hechos/plan*100))}%;background:var(--azul)"></div></div>
+            <p class="mini" style="margin:0 0 6px">${hechos} de ${plan} controles realizados${hechos>=plan?' · completados':''}</p>`:'';})()}
+        <div class="etapa-pie">
+          ${!e.inicio&&infoEt.calc[i].ini?`<span class="mini">Empieza aprox. el ${fechaCorta(infoEt.calc[i].ini)}</span>`:''}
+          ${infoEt.calc[i].fin?`<span class="mini">Termina aprox. el ${fechaCorta(infoEt.calc[i].fin)}</span>`:''}
+          ${(()=>{const tot=R2((o.cuotas||[]).filter(q=>q.etapaId===e.id&&esCargoOrto(q)).reduce((t,q)=>t+(Number(q.monto)||0),0));
+            return tot>0?`<span class="mini">Costo de la etapa: <b>${usd(tot)}</b> · los controles y pagos están en <a href="#" onclick="ortoSub='cuotas';pintarVista();return false">Controles</a></span>`:'';})()}
+          <label class="chk" style="margin-left:auto"><input type="checkbox" data-et="${i}" data-ek="terminada" ${e.terminada?'checked':''}> Terminada</label>
+        </div></div>`).join('')}
+      <div><button class="btn chico" type="button" onclick="agregarEtapaOrto()">+ Agregar etapa</button>
+      <span class="mini" style="margin-left:8px">Por ejemplo: primero ortopedia y luego brackets.</span></div>
     </div>
-    ${o.inicio&&o.altaEstimada?`<p class="mini" style="margin-top:-6px">Alta estimada: <b style="color:var(--tinta)">${fechaCorta(o.altaEstimada)}</b></p>`:''}
-    <label class="campo"><span>Objetivo del tratamiento</span><textarea data-k="objetivo" placeholder="Corrección de clase, apiñamiento, arcada tratada, extracciones previas…">${esc(o.objetivo||'')}</textarea></label>
+    ${o.inicio&&o.altaEstimada?`<p class="mini" style="margin-top:12px">Alta estimada: <b style="color:var(--tinta)">${fechaCorta(o.altaEstimada)}</b>${etapas.length>1?` · ${o.duracionMeses} meses en total`:''}</p>`:''}
     ${progreso}
     <label class="chk" style="margin-top:6px"><input type="checkbox" data-k="altaRealizada" ${o.altaRealizada?'checked':''}> Alta ya realizada (deja de avisar el atraso)</label>
     ${o.altaRealizada?`<label class="campo" style="margin-top:8px"><span>Fecha real de alta</span><input type="date" data-k="fechaAltaReal" value="${esc(o.fechaAltaReal||'')}"></label>`:''}</div>
 
-  <div class="bloque"><div class="barra-tit"><h3>Controles</h3>
-    <button class="btn chico der" onclick="editarControlOrto()">Agregar control</button></div>
-    ${ctrls.length?ctrls.map(x=>`<div class="evo">
-      <div class="fecha">${fechaCorta(x.fecha)}</div>
-      <div><span class="dx">${esc(x.procedimiento||'Control')}</span>
-        ${x.profesionalNombre?`<span class="mini" style="margin-left:8px;color:var(--clinico)">👤 ${esc(x.profesionalNombre)}</span>`:''}
-        ${[x.arco&&('Arco: '+x.arco),x.elastico&&('Elástico: '+x.elastico)].filter(Boolean).map(esc).join(' · ')?`<p class="mini">${[x.arco&&('Arco: '+esc(x.arco)),x.elastico&&('Elástico: '+esc(x.elastico))].filter(Boolean).join(' · ')}</p>`:''}
-        ${x.nota?`<p>${esc(x.nota)}</p>`:''}
-        ${x.proxima?`<p style="color:var(--clinico);font-size:13.5px">Próximo control: ${fechaCorta(x.proxima)}</p>`:''}
-        <div class="acciones-evo"><button onclick="editarControlOrto('${x.id}')">Editar</button>
-        <button onclick="borrarControlOrto('${x.id}')">Eliminar</button></div></div></div>`).join('')
-      :'<p class="mini">Sin controles registrados.</p>'}</div>
+  <div class="bloque"><div class="barra-tit"><h3>Procedimientos del plan</h3>
+    <button class="btn chico der" onclick="editarProcOrto()">Agregar procedimiento</button></div>
+    ${o.procedimientos.length?[...o.procedimientos].sort((a,b)=>(a.realizado-b.realizado)||(a.fecha||'9').localeCompare(b.fecha||'9')).map(x=>`<div class="evo">
+      <div class="fecha">${x.fecha?fechaCorta(x.fecha):'—'}</div>
+      <div><span class="dx">${esc(x.nombre)}</span>${x.pieza?` <span class="mini">· ${esc(x.pieza)}</span>`:''}
+        <span class="pill-orto ${x.realizado?'ok':'pend'}">${x.realizado?'Realizado':'Pendiente'}</span>
+        <p class="mini">${Number(x.costo)>0?`Se cobra aparte: <b>${usd(x.costo)}</b>${x.tratId?' · registrado en Tratamientos':' · se cobra en Controles'}`:'Incluido en el plan'}${x.profesionalNombre?' · 👤 '+esc(x.profesionalNombre):''}</p>
+        <div class="acciones-evo">${x.realizado?'':`<button onclick="realizarProcOrto('${x.id}')">Marcar realizado</button>`}
+          <button onclick="editarProcOrto('${x.id}')">Editar</button><button onclick="borrarProcOrto('${x.id}')">Eliminar</button></div></div></div>`).join('')
+      :'<p class="mini">Microtornillos, ventanas quirúrgicas, extracciones, retenedores… Anótalos aquí para tenerlos presentes durante el tratamiento.</p>'}</div>
 
-  <div class="bloque"><div class="barra-tit"><h3>Cuotas mensuales</h3></div>
-    <div class="grid">
-      <label class="campo"><span>Monto de entrada 1 (opcional)</span><input type="number" step="0.01" min="0" id="op_entrada" value="${plan.montoInicial??''}"></label>
-      <label class="campo"><span>Monto de entrada 2 (opcional)</span><input type="number" step="0.01" min="0" id="op_entrada2" value="${plan.montoInicial2??''}"></label>
-      <label class="campo"><span>Cuota mensual</span><input type="number" step="0.01" min="0" id="op_cuota" value="${plan.cuotaMensual??''}"></label>
-      <label class="campo"><span>Número de cuotas</span><input type="number" min="0" id="op_num" value="${plan.numCuotas??''}"></label>
-      <label class="campo"><span>Fecha de la primera cuota</span><input type="date" id="op_inicio" value="${esc(plan.fechaInicio||'')}"></label>
+  </div><div class="orto-sec" data-sec="cuotas" ${ortoSub==='cuotas'?'':'hidden'}>
+  <div class="resumen-orto">
+    <div class="ro-datos">
+      <div><span class="mini">Etapa actual</span><b>${esc(o.tipo||'Sin definir')}</b></div>
+      <div><span class="mini">Controles</span><b>${ctrlHechos}${ctrlPlan?' de '+ctrlPlan:''}</b></div>
+      <div><span class="mini">Próximo control</span><b>${proxCtrl?fechaCorta(proxCtrl):'—'}</b></div>
+      <div><span class="mini">${cta.total>0?'Pendiente de pago':'Alta estimada'}</span><b ${cta.pendiente>0.004?'style="color:var(--alerta)"':''}>${cta.total>0?usd(cta.pendiente):(o.altaEstimada?fechaCorta(o.altaEstimada):'—')}</b></div>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="btn chico" onclick="generarCuotasOrto()">${cuotas.length?'Regenerar cronograma':'Generar cronograma'}</button>
-      <button class="btn chico" onclick="agregarCuotaManual()">Agregar cuota suelta</button>
-    </div>
-    ${cuotas.length?`
-    <div class="presu-card">
-      <span class="mini">Total contratado</span>
-      <b class="monto">${usd(totalPlan)}</b>
-      <div class="presu-barra"><div style="width:${totalPlan>0?Math.min(100,totalPagadoPlan/totalPlan*100):0}%"></div></div>
-      <div class="presu-resumen"><span>${usd(totalPagadoPlan)} pagado</span>
-        <span>${saldoPlan>0.004?usd(saldoPlan)+' pendiente':'Al día'}</span></div>
-    </div>
-    <div class="lista-cuotas">
-      ${cuotas.map(q=>{
-        const vencida=!q.pagada&&q.fechaVenc&&q.fechaVenc<hoy();
-        return `<div class="cuota-fila" onclick="editarCuotaOrto('${q.id}')">
-          <span class="cnum">${q.esEntrada?'Entrada '+(q.entradaNum||''):'Cuota '+q.numero}</span>
-          <span class="cfecha"><b>${fechaCorta(q.fechaVenc)}</b>${vencida?'Vencida':q.pagada?'Pagada':'Pendiente'}</span>
-          <span class="cmonto">${usd(q.monto)}</span>
-          <button class="check-pago ${q.pagada?'pagada':''} ${vencida?'vencida':''}" title="${q.pagada?'Marcar pendiente':'Marcar pagada'}"
-            onclick="event.stopPropagation();alternarCuotaOrto('${q.id}')">${q.pagada?'✓':''}</button>
-        </div>`;}).join('')}
-    </div>`:'<p class="mini">Aún no has generado el cronograma. Completa los tres campos de arriba y dale a «Generar cronograma».</p>'}
-    <p class="mini" style="margin-top:10px">Toca una cuota para editar su monto, fecha o eliminarla. Toca el círculo para marcarla pagada. Cada vez que pones «Próximo control» en un control de ortodoncia, la fecha de la siguiente cuota pendiente se actualiza sola para que coincida. Este plan se lleva aparte de la pestaña Pagos, aunque también aparece resumido allá.</p></div>`;
+    ${ctrlPlan>0?`<div class="orto-progreso"><div style="width:${Math.min(100,Math.round(ctrlHechos/ctrlPlan*100))}%;background:var(--azul)"></div></div>`:''}
+    <button class="btn primario ro-btn" type="button" onclick="editarControlOrto(null,'${sigFila?sigFila.id:''}')">+ Registrar ${sigFila&&sigFila.esEntrada?'· Cuota '+(numCuota[sigFila.id]||''):'control N.º '+(sigFila&&sigFila.numero?sigFila.numero:numeroControlNuevoOrto(o,etapaActualOrto(o).id))}</button>
+    ${!o.tipo&&!o.inicio?`<p class="mini" style="margin:8px 0 0">Primero arma el plan en la pestaña <a href="#" onclick="ortoSub='plan';pintarVista();return false">Plan</a>.</p>`:''}
+  </div>
+  <div class="bloque"><div class="barra-tit"><h3>Controles y pagos</h3>
+    <div class="der acciones-pagos"><button class="btn chico" onclick="regenerarCronogramaOrto()" title="Vuelve a armar las cuotas y controles según el Plan">↻ Regenerar cronograma</button><button class="btn chico" onclick="agregarCuotaOrto()">+ Agregar cuota</button>
+      <button class="btn chico primario" onclick="pagoLibreOrto()">Registrar pago</button></div></div>
+    ${cta.total>0||cta.pagado>0?`<div class="saldos"><div class="saldo"><b>${usd(cta.total)}</b><span>Total del plan</span></div>
+      <div class="saldo"><b>${usd(cta.pagado)}</b><span>Total pagado</span></div>
+      <div class="saldo ${cta.pendiente>0.004?'debe':''}"><b>${usd(cta.pendiente)}</b><span>${cta.pendiente>0.004?'Saldo pendiente':(cta.aFavor>0.004?'Saldo a favor '+usd(cta.aFavor):'Al día')}</span></div></div>
+      ${(()=>{const partes=gruposPago.filter(g=>!g.sinAsignar&&!g.aparte&&g.total>0);const ls=[];
+        if(partes.length>1)ls.push('Total del plan = '+partes.map(g=>g.corto+' '+usd(g.total)).join(' + '));
+        if(cta.sinAsignar>0.004)ls.push(`El total pagado incluye ${usd(cta.sinAsignar)} sin asignar a una cuota; por eso las cuotas suman ${usd(cta.saldoCuotas)} de saldo.`);
+        return ls.length?`<p class="mini desglose-orto">${ls.join('<br>')}</p>`:'';})()}`:''}
+    ${gruposPago.length?gruposPago.map(g=>`<div class="grupo-cuotas"><div class="gc-cab"><b>${g.titulo}</b>${g.sinAsignar?`<span class="mini">${usd(g.pagado)}</span>`:g.total>0?`<span class="mini">${usd(g.pagado)} pagado de ${usd(g.total)}${g.saldo>0.004?' · saldo '+usd(g.saldo):''}</span>`:''}</div>
+      <div class="lista-cuotas">${g.cuotas.filter(q=>!q.anulada).map(q=>filaPagoOrtoHTML(o,q,numCuota,ctrlPorId,sigFila)).join('')}</div></div>`).join('')
+      :`<p class="mini">Pon la duración o los controles planificados de cada etapa en la pestaña <a href="#" onclick="ortoSub='plan';pintarVista();return false">Plan</a>: la lista de controles (y sus pagos, si pones valor por control) se arma sola.</p>`}
+    ${historialPagosOrtoHTML(o,numCuota)}
+    <p class="mini" style="margin-top:10px">Toca un control para registrarlo o ver lo que se hizo. «Pagar» registra un pago completo o un abono; «Registrar pago» (arriba) sirve para pagos que no corresponden a una cuota exacta y se reparten solos en las cuotas pendientes.</p>
+  </div></div>`;
   ligar(c,o);
   const campoAlta=c.querySelector('[data-k="altaRealizada"]');
   if(campoAlta)campoAlta.addEventListener('change',()=>pintarVista());
-  const recalcularAlta=()=>{
-    o.inicio=$('#orto_inicio').value;
-    o.duracionMeses=$('#orto_meses').value;
-    o.altaEstimada=(o.inicio&&o.duracionMeses)?sumarMeses(o.inicio,o.duracionMeses):'';
-    guardar();pintarVista();
-  };
-  $('#orto_inicio').addEventListener('blur',recalcularAlta); // blur, no change: ver nota en ligar()
-  $('#orto_meses').onchange=recalcularAlta;
+  c.querySelectorAll('[data-dk]').forEach(el=>el.addEventListener('change',()=>{dg[el.dataset.dk]=el.value;guardar();}));
+  c.querySelectorAll('[data-hab]').forEach(el=>el.addEventListener('change',()=>{
+    const h=el.dataset.hab,l=new Set(dg.habitos||[]);el.checked?l.add(h):l.delete(h);dg.habitos=[...l];guardar();}));
+  const cp=document.getElementById('orto_ctrlPlan');
+  if(cp)cp.addEventListener('change',()=>{o.controlesPlan=cp.value;guardar();pintarVista();});
+  c.querySelectorAll('[data-ent]').forEach(el=>el.addEventListener('change',()=>{
+    const e=etapas[Number(el.dataset.ent)];e.entradas=e.entradas||[];e.entradas[Number(el.dataset.entk)]=el.value;
+    sincronizarCronogramaOrto(o);guardar();pintarVista();}));
+  c.querySelectorAll('[data-et]').forEach(el=>{
+    const e=etapas[Number(el.dataset.et)],k=el.dataset.ek;
+    const aplicar=repintar=>{e[k]=el.type==='checkbox'?el.checked:el.value;if(k==='numEntradas'){e.numEntradas=Number(el.value)||0;e.entradas=e.entradas||[];}
+      sincronizarCronogramaOrto(o);guardar();if(repintar)pintarVista();};
+    if(el.type==='date'){el.addEventListener('change',()=>aplicar(false));el.addEventListener('blur',()=>aplicar(true));}   // ver nota en ligar()
+    else el.addEventListener('change',()=>aplicar(true));
+  });
   const campoCuota=document.getElementById('op_cuota'),campoNum=document.getElementById('op_num'),
     campoInicio=document.getElementById('op_inicio'),campoEntrada=document.getElementById('op_entrada'),
     campoEntrada2=document.getElementById('op_entrada2');
@@ -3258,9 +3650,16 @@ function tabOrto(p,c){
   if(campoEntrada)campoEntrada.onchange=()=>{plan.montoInicial=campoEntrada.value;guardar();};
   if(campoEntrada2)campoEntrada2.onchange=()=>{plan.montoInicial2=campoEntrada2.value;guardar();};
 }
-function editarControlOrto(id){
+function editarControlOrto(id,cuotaId){
   const p=pac(selId),o=p.orto,x=(o.controles||[]).find(k=>k.id===id)||{fecha:hoy()};
-  abrirModal(`${id?'Editar':'Nuevo'} control de ortodoncia`,`
+  const et=etapaActualOrto(o),qPrev=(o.cuotas||[]).find(q=>q.controlId===x.id&&x.id);
+  const qElegida=cuotaId&&(o.cuotas||[]).find(q=>q.id===cuotaId&&!q.controlId),sig=qElegida||(id?null:siguienteFilaControlOrto(o));
+  const qFila=qPrev||sig,valorFila=qFila&&Number(qFila.monto)>0?Number(qFila.monto):Number(et.cuota)||0;
+  const saldoCtrl=qFila&&Number(qFila.monto)>0?saldoFila(qFila):valorFila,yaPagado=qFila?pagadoFila(qFila):0;
+  const pagoMarcado=saldoCtrl>0.004&&!(qPrev&&yaPagado>0);
+  const nTitulo=qPrev&&!qPrev.esEntrada&&qPrev.numero?qPrev.numero:(sig&&!sig.esEntrada&&sig.numero?sig.numero:'');
+  const filaCuota=(qPrev&&qPrev.esEntrada)?qPrev:(qElegida&&qElegida.esEntrada?qElegida:null);
+  abrirModal(filaCuota?`${id?'Editar':'Registrar'} · ${etiquetaFilaOrto(o,filaCuota)}`:`${id?'Editar':'Registrar'} control${nTitulo?' N.º '+nTitulo:''}`,`
     <div class="grid">
       <label class="campo"><span>Fecha</span><input type="date" id="o_fecha" value="${esc(x.fecha||hoy())}"></label>
       <label class="campo"><span>Próximo control</span><input type="date" id="o_prox" value="${esc(x.proxima||'')}"></label>
@@ -3274,6 +3673,14 @@ function editarControlOrto(id){
       <label class="campo"><span>Elástico</span><input type="text" id="o_elastico" value="${esc(x.elastico||'')}" placeholder="Clase II derecha, cadena…"></label>
     </div>
     <label class="campo"><span>Nota</span><textarea id="o_nota">${esc(x.nota||'')}</textarea></label>
+    <div class="pago-ctrl">
+      <label class="chk"><input type="checkbox" id="o_pago" ${pagoMarcado?'checked':''}> <b>${yaPagado>0?'Registrar otro pago':'Pagó en este control'}</b></label>
+      ${qFila&&(Number(qFila.monto)>0||yaPagado>0)?`<p class="mini" style="margin:4px 0 0">Valor ${usd(qFila.monto)} · pagado ${usd(yaPagado)} · saldo ${usd(saldoFila(qFila))}</p>`:''}
+      <div class="grid" style="margin-top:8px">
+        <label class="campo"><span>Monto (USD)</span><input type="number" step="0.01" min="0" id="o_monto" value="${saldoCtrl>0.004?R2(saldoCtrl):''}"></label>
+        <label class="campo"><span>Forma de pago</span><select id="o_metodo">${METODOS_PAGO.map(m=>`<option>${m}</option>`).join('')}</select></label>
+      </div></div>
+    ${id?`<button class="btn peligro chico" type="button" style="margin-top:10px" onclick="borrarControlOrto('${id}')">Eliminar control</button>`:''}
     <details class="opcional"><summary>Honorario a la especialista — <span class="mini" style="margin-left:4px">${x.honorarioMonto?('Acordado '+usd(x.honorarioMonto)):'opcional'}</span></summary>
       <div class="cont">
         <p class="mini" style="margin-top:0">No se muestra al paciente, solo en «Gastos».</p>
@@ -3282,7 +3689,11 @@ function editarControlOrto(id){
           <label class="campo"><span>Ya pagado (USD)</span><input type="number" step="0.01" min="0" id="o_honPagado" value="${x.honorarioPagado??''}"></label>
         </div>
       </div></details>`,
-  ()=>{const d={id:x.id||uid(),fecha:$('#o_fecha').value,proxima:$('#o_prox').value,proximaHora:$('#o_proxHora').value||'09:00',
+  ()=>{
+    if($('#o_pago').checked){const mm=R2($('#o_monto').value),fila=qPrev||qElegida||siguienteFilaControlOrto(o,x.etapaId||et.id);
+      const sdo=fila&&Number(fila.monto)>0?saldoFila(fila):mm;
+      if(mm>sdo+0.004&&!confirm(`El pago (${usd(mm)}) supera el saldo de este control (${usd(sdo)}).\n\n${textoRepartoOrto(o,repartoPagoOrto(o,mm,fila))}\n\n¿Registrar así?`))return false;}
+    const d={id:x.id||uid(),fecha:$('#o_fecha').value,proxima:$('#o_prox').value,proximaHora:$('#o_proxHora').value||'09:00',
       procedimiento:$('#o_proc').value.trim(),arco:$('#o_arco').value.trim(),
       elastico:$('#o_elastico').value.trim(),nota:$('#o_nota').value.trim(),
       honorarioMonto:Number($('#o_honMonto').value)||0,honorarioPagado:Number($('#o_honPagado').value)||0};
@@ -3291,22 +3702,102 @@ function editarControlOrto(id){
       d.profesionalId=profSel.value||null;d.profesionalNombre=info?info.nombre:'';}
     else{d.profesionalId=x.profesionalId||null;d.profesionalNombre=x.profesionalNombre||'';}
     o.controles=o.controles||[];const i=o.controles.findIndex(k=>k.id===d.id);
-    i>=0?o.controles[i]=d:o.controles.push(d);guardar();
+    i>=0?o.controles[i]=d:o.controles.push(d);
+    d.etapaId=x.etapaId||(qElegida&&qElegida.etapaId)||et.id;
+    registrarPagoControlOrto(o,d,$('#o_pago').checked,Number($('#o_monto').value)||0,$('#o_metodo').value,qElegida);
+    guardar();
     sincronizarCuotaConControl(p,d.proxima);
     pintarVista();avisar('Control guardado');
     sincronizarProximaCita(p.id,'ortoControl',d.id,d.proxima,'Control de ortodoncia',d.proximaHora);
   });
 }
+function editarProcOrto(id){
+  const p=pac(selId),o=p.orto;o.procedimientos=o.procedimientos||[];
+  const x=o.procedimientos.find(k=>k.id===id)||{realizado:false};
+  abrirModal(`${id?'Editar':'Agregar'} procedimiento`,`
+    <label class="campo"><span>Procedimiento</span><input type="text" id="po_nom" list="po_lista" value="${esc(x.nombre||'')}" placeholder="Elige o escribe"></label>
+    <datalist id="po_lista">${PROCS_ORTO.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    <div class="grid">
+      <label class="campo"><span>Pieza o zona</span><input type="text" id="po_pieza" value="${esc(x.pieza||'')}" placeholder="13, entre 26 y 27…"></label>
+      <label class="campo"><span>Fecha</span><input type="date" id="po_fecha" value="${esc(x.fecha||'')}"></label>
+      <label class="campo"><span>Estado</span><select id="po_est"><option value="0" ${!x.realizado?'selected':''}>Pendiente</option><option value="1" ${x.realizado?'selected':''}>Realizado</option></select></label>
+      ${(datos.profesionales&&datos.profesionales.length)?`<label class="campo"><span>Lo realiza</span><select id="po_prof">${opcionesProfesionales(x.profesionalId)}</select></label>`:''}
+    </div>
+    <label class="campo"><span>Costo aparte (USD)</span><input type="number" step="0.01" min="0" id="po_costo" value="${Number(x.costo)>0?x.costo:''}" placeholder="Déjalo vacío si va incluido en el plan"></label>
+    <p class="mini" style="margin-top:-4px">Si tiene costo aparte, se cobra en Ortodoncia → Controles, junto a los demás pagos del tratamiento.</p>`,
+  ()=>{const nombre=$('#po_nom').value.trim();if(!nombre){avisar('Escribe el procedimiento');return false;}
+    const d={...x,id:x.id||uid(),nombre,pieza:$('#po_pieza').value.trim(),fecha:$('#po_fecha').value,
+      realizado:$('#po_est').value==='1',costo:Number($('#po_costo').value)||0};
+    const profSel=document.getElementById('po_prof');
+    if(profSel){const info=profSel.value?datos.profesionales.find(k=>k.id===profSel.value):null;d.profesionalId=profSel.value||null;d.profesionalNombre=info?info.nombre:'';}
+    if(d.realizado&&!d.fecha)d.fecha=hoy();
+    const i=o.procedimientos.findIndex(k=>k.id===d.id);i>=0?o.procedimientos[i]=d:o.procedimientos.push(d);
+    enlazarProcOrtoTratamiento(p,d);
+    guardar();pintarVista();avisar('Procedimiento guardado');});
+}
+/* procedimiento con costo aparte: se cobra dentro de Ortodoncia (Controles y pagos), no en Tratamientos */
+function enlazarProcOrtoTratamiento(p,d){
+  const o=p.orto;o.cuotas=o.cuotas||[];
+  let q=o.cuotas.find(k=>k.procId===d.id);
+  const costo=Number(d.costo)||0;
+  if(costo<=0){if(q&&!tienePagosOrto(q))o.cuotas=o.cuotas.filter(k=>k!==q);return;}
+  if(!q){q={id:uid(),procId:d.id,numero:0,pagada:false,pagos:[],monto:costo,fechaVenc:d.fecha||hoy()};o.cuotas.push(q);}
+  if(costo>=pagadoFila(q)-0.004&&costo!==Number(q.monto)){if(Number(q.monto)>0)registrarHistorialOrto(q,'Valor '+usd(q.monto)+' → '+usd(costo));q.monto=costo;actualizarFilaOrto(q);}
+  q.fechaVenc=d.fecha||q.fechaVenc||hoy();
+}
+/* los procedimientos que antes pasaban a Tratamientos vuelven a Ortodoncia (solo si no tienen abonos enlazados) */
+function migrarProcsOrtoATratamientos(p){
+  const o=p.orto;if(!o||!(o.procedimientos||[]).length||!(p.tratamientos||[]).length)return false;
+  let cambio=false;
+  o.procedimientos.forEach(d=>{
+    const t=d.tratId&&p.tratamientos.find(k=>k.id===d.tratId&&k.origenOrto===d.id);
+    if(!t)return;
+    if((p.abonos||[]).some(a=>a.tratamientoId===t.id))return;
+    p.tratamientos=p.tratamientos.filter(k=>k!==t);delete d.tratId;
+    d.costo=Number(t.costo)||Number(d.costo)||0;enlazarProcOrtoTratamiento(p,d);cambio=true;
+  });
+  return cambio;
+}
+function realizarProcOrto(id){
+  const p=pac(selId),d=(p.orto.procedimientos||[]).find(k=>k.id===id);if(!d)return;
+  d.realizado=true;if(!d.fecha)d.fecha=hoy();
+  enlazarProcOrtoTratamiento(p,d);guardar();pintarVista();
+}
+function borrarProcOrto(id){
+  const p=pac(selId),o=p.orto,d=(o.procedimientos||[]).find(k=>k.id===id);if(!d)return;
+  const qp=(o.cuotas||[]).find(k=>k.procId===id);
+  if(!confirm('¿Eliminar este procedimiento del plan?'+(qp&&pagadoFila(qp)>0?' Lo que ya pagó se conserva como pago sin asignar.':'')))return;
+  o.procedimientos=o.procedimientos.filter(k=>k.id!==id);
+  if(qp){if(tienePagosOrto(qp)){delete qp.procId;qp.extra=true;qp.nota=qp.nota||d.nombre;registrarHistorialOrto(qp,'Procedimiento «'+d.nombre+'» eliminado del plan');actualizarFilaOrto(qp);}else o.cuotas=o.cuotas.filter(k=>k!==qp);}guardar();pintarVista();
+}
+/* El pago del control queda como una cuota pagada (así entra en los reportes y en la pestaña Pagos).
+   Si había un cronograma de cuotas, se marca pagada la siguiente pendiente en vez de crear otra. */
+/* El control queda en su fila (el control planificado que le toca) y, si pagó, esa fila queda pagada. */
+function filaDeControlOrto(o,d,preferida){
+  o.cuotas=o.cuotas||[];
+  let q=d.id&&o.cuotas.find(k=>k.controlId===d.id);
+  if(!q){q=(preferida&&!preferida.controlId)?preferida:siguienteFilaControlOrto(o,d.etapaId);}
+  return q||null;
+}
+function registrarPagoControlOrto(o,d,pago,monto,metodo,preferida){
+  let q=filaDeControlOrto(o,d,preferida);
+  if(!q){q={id:uid(),numero:numeroControlNuevoOrto(o,d.etapaId),fechaVenc:d.fecha||hoy(),extra:true,monto:0,etapaId:d.etapaId,pagos:[]};o.cuotas.push(q);}
+  if(!q.controlId)q.controlId=d.id;
+  if(pago&&monto>0){prepararFilaParaPagoOrto(q,monto);aplicarPagoOrto(o,R2(monto),{fecha:d.fecha||hoy(),metodo,nota:''},q);}
+}
 function sincronizarCuotaConControl(p,fechaProximoControl){
   const o=p.orto;
   if(!fechaProximoControl||!o||!o.cuotas||!o.cuotas.length)return;
-  const pendientes=o.cuotas.filter(q=>!q.pagada&&!q.esEntrada).sort((a,b)=>(a.fechaVenc||'').localeCompare(b.fechaVenc||''));
+  const pendientes=o.cuotas.filter(q=>!tienePagosOrto(q)&&!q.esEntrada&&!q.etapaId&&!esExtraOrto(q)&&!esProcOrto(q)).sort((a,b)=>(a.fechaVenc||'').localeCompare(b.fechaVenc||''));
   if(!pendientes.length)return;
   pendientes[0].fechaVenc=fechaProximoControl;
   guardar();
 }
-function borrarControlOrto(id){const o=pac(selId).orto;if(!confirm('¿Eliminar este control?'))return;
-  o.controles=o.controles.filter(k=>k.id!==id);guardar();pintarVista();}
+function borrarControlOrto(id){const o=pac(selId).orto;if(!confirm('¿Eliminar este control? Si tenía un pago, el pago se conserva.'))return;
+  o.controles=o.controles.filter(k=>k.id!==id);
+  (o.cuotas||[]).forEach(q=>{if(q.controlId===id)delete q.controlId;});
+  o.cuotas=(o.cuotas||[]).filter(q=>!(esExtraOrto(q)&&!tienePagosOrto(q)&&!q.controlId&&!(Number(q.monto)>0)));
+  $('#modal').open&&$('#modal').close();guardar();pintarVista();}
 
 function generarCuotasOrto(){
   const p=pac(selId),o=p.orto;o.plan=o.plan||{};const plan=o.plan;
@@ -3334,45 +3825,261 @@ function agregarCuotaManual(){
   o.cuotas.push({id:uid(),numero:n,fechaVenc:hoy(),monto:Number(o.plan?.cuotaMensual)||0,pagada:false});
   guardar();pintarVista();
 }
+function filaPagoOrtoHTML(o,q,num,ctrlPorId,sigFila){
+  const x=q.controlId&&ctrlPorId[q.controlId],est=estadoFila(q),m=Number(q.monto)||0,pg=pagadoFila(q),sd=saldoFila(q);
+  const sinAs=esSinAsignarOrto(q),proc=esProcOrto(q);
+  const pr=proc&&(o.procedimientos||[]).find(k=>k.id===q.procId);
+  const libre=!x&&!proc&&!sinAs&&!q.anulada;   // cuota o control sin registrar: se puede escribir en ella
+  const click=x?`editarControlOrto('${x.id}')`:libre?`editarControlOrto(null,'${q.id}')`:pr?`editarProcOrto('${pr.id}')`:`editarCuotaOrto('${q.id}')`;
+  const titulo=q.esEntrada?'Cuota '+(num[q.id]||''):proc?'Procedimiento':sinAs?(q.aFavor?'Saldo a favor':'Pago'):q.extra&&!q.numero?'Control':'Control N.º '+(q.numero||'');
+  const fecha=sinAs?(q.fechaPago||q.fechaVenc):(x&&x.fecha?x.fecha:q.fechaVenc);
+  const centro=x?`<b>${esc(x.procedimiento||'Control')}</b>${esc([x.arco&&('Arco '+x.arco),x.elastico&&('Elástico '+x.elastico)].filter(Boolean).join(' · '))}`
+    :libre?`<button class="${sigFila&&q.id===sigFila.id?'btn chico primario':'link-reg'}" type="button" onclick="event.stopPropagation();editarControlOrto(null,'${q.id}')">+ Registrar</button>`
+    :pr?`<b>${esc(pr.nombre)}</b>`:esc((pagosActivosFila(q)[0]||{}).nota||'');
+  return `<div class="cuota-fila${x?' hecho':''}${q.anulada?' anulada':''}" onclick="${click}">
+    <span class="cnum">${titulo}${q.concepto?`<small>${esc(q.concepto)}</small>`:''}<small class="cfec">${fechaCorta(fecha)||'—'}</small></span>
+    <span class="cctrl">${centro}</span>
+    <span class="cimp">${m>0||pg>0?`<b>${usd(sinAs?pg:m)}</b>${!sinAs&&pg>0.004&&sd>0.004?`<span class="csaldo">debe ${usd(sd)}</span>`:''}`:''}</span>
+    <span class="cest">${est.t?`<span class="estado-pago ${est.k}">${est.t}</span>`:''}</span>
+    <span class="cacc">${sd>0.004?`<button class="btn chico" type="button" onclick="event.stopPropagation();registrarPagoFilaOrto('${q.id}')">Pagar</button>`:''}<button class="btn-mas" type="button" title="Más opciones" aria-label="Más opciones" onclick="menuFilaOrto(event,'${q.id}')">⋯</button></span>
+  </div>`;
+}
+/* menú de los tres puntos de cada fila */
+function cerrarMenuFila(){const m=document.getElementById('menuFila');if(m)m.remove();}
+function menuFilaOrto(ev,id){
+  ev.stopPropagation();cerrarMenuFila();
+  const o=pac(selId).orto,q=(o.cuotas||[]).find(x=>x.id===id);if(!q)return;
+  const pr=esProcOrto(q)&&(o.procedimientos||[]).find(k=>k.id===q.procId);
+  const ops=[[pr?'Editar procedimiento':'Editar valor, fecha y pagos',()=>pr?editarProcOrto(pr.id):editarCuotaOrto(id)]];
+  if(pr)ops.push(['Ver pagos',()=>editarCuotaOrto(id)]);
+  if(saldoFila(q)>0.004)ops.push(['Registrar pago',()=>registrarPagoFilaOrto(id)]);
+  ops.push(['Eliminar',()=>eliminarFilaOrto(id),true]);
+  const m=document.createElement('div');m.className='menu-fila';m.id='menuFila';
+  m.innerHTML=ops.map((x,i)=>`<button type="button" data-i="${i}"${x[2]?' class="peligro"':''}>${x[0]}</button>`).join('');
+  document.body.appendChild(m);
+  const rc=ev.currentTarget.getBoundingClientRect();
+  m.style.top=(rc.bottom+window.scrollY+4)+'px';
+  m.style.left=Math.max(8,Math.min(rc.right+window.scrollX-m.offsetWidth,window.scrollX+document.documentElement.clientWidth-m.offsetWidth-8))+'px';
+  m.querySelectorAll('button').forEach(b=>b.onclick=e=>{e.stopPropagation();cerrarMenuFila();ops[+b.dataset.i][1]();});
+  setTimeout(()=>document.addEventListener('click',cerrarMenuFila,{once:true}),0);
+}
+/* eliminar una fila: lo pagado nunca se pierde (pasa a «Pagos sin asignar») y queda constancia en el historial */
+function eliminarFilaOrto(id){
+  const p=pac(selId),o=p.orto,q=(o.cuotas||[]).find(x=>x.id===id);if(!q)return;
+  const pg=pagadoFila(q),et=etiquetaFilaOrto(o,q),ahora=new Date().toISOString();
+  if(esProcOrto(q)){const pr=(o.procedimientos||[]).find(k=>k.id===q.procId);if(pr)borrarProcOrto(pr.id);return;}
+  if(esSinAsignarOrto(q)){
+    if(!confirm(`¿Eliminar este pago de ${usd(pg)}?\n\nNo se borra del todo: queda en el historial como anulado y deja de sumar a lo pagado.`))return;
+    pagosActivosFila(q).forEach(x=>{x.anulado=true;x.anuladoFecha=ahora;x.anuladoMotivo='Eliminado';});
+    q.anulada=true;registrarHistorialOrto(q,'Pago eliminado');actualizarFilaOrto(q);
+  }else{
+    const ctrl=q.controlId&&(o.controles||[]).find(k=>k.id===q.controlId);
+    let msg=`¿Eliminar «${et}»?`;
+    if(ctrl)msg+=`\n\nTambién se elimina lo registrado en ese control${ctrl.procedimiento?' ('+ctrl.procedimiento+')':''}.`;
+    if(pg>0.004)msg+=`\n\nTiene ${usd(pg)} pagados: ese dinero no se pierde, pasa a «Pagos sin asignar» para aplicarlo a otra cuota.`;
+    if(q.clave)msg+=`\n\nSi luego usas «Regenerar cronograma», esta fila vuelve a aparecer según el Plan.`;
+    if(!confirm(msg))return;
+    if(pg>0.004){
+      const nuevos=pagosActivosFila(q).map(x=>({...x,id:uid(),nota:(x.nota?x.nota+' · ':'')+'De '+et}));
+      pagosActivosFila(q).forEach(x=>{x.anulado=true;x.anuladoFecha=ahora;x.anuladoMotivo='Pasado a pagos sin asignar';});
+      const n={id:uid(),numero:0,extra:true,monto:pg,fechaVenc:hoy(),pagos:nuevos};actualizarFilaOrto(n);o.cuotas.push(n);
+    }
+    if(ctrl){o.controles=o.controles.filter(k=>k!==ctrl);}
+    delete q.controlId;
+    if(q.clave||tienePagosOrto(q)){q.anulada=true;registrarHistorialOrto(q,'Fila eliminada');actualizarFilaOrto(q);}
+    else o.cuotas=o.cuotas.filter(x=>x!==q);
+  }
+  guardar();if($('#modal').open)$('#modal').close();pintarVista();avisar('Eliminado');
+}
+/* regenerar: se vuelven a crear las filas según el Plan. Se conservan las filas con pagos y los controles registrados;
+   los controles que quedaron fuera (sin pagos) se vuelven a acomodar en orden: primero en las cuotas y luego en los controles. */
+function regenerarCronogramaOrto(){
+  const p=pac(selId),o=p.orto;o.cuotas=o.cuotas||[];normalizarPagosOrto(o);
+  {const e0=etapasOrto(o)[0],sinPrecio=!(Number(e0.cuota)>0||(e0.entradas||[]).slice(0,Number(e0.numEntradas)||0).some(m=>Number(m)>0));
+    if(sinPrecio){const pl=o.plan||{},cm=Number(pl.cuotaMensual)||0,nc=Number(pl.numCuotas)||0,ents=[pl.montoInicial,pl.montoInicial2].map(Number).filter(m=>m>0);
+      if(!(cm>0&&nc>0)){avisar('Primero escribe la cuota mensual y el número de controles en la pestaña Plan');ortoSub='plan';pintarVista();return;}
+      if(!confirm(`Este paciente tiene el cronograma anterior. Se usarán sus valores:\n${ents.length?'• Entrada'+(ents.length>1?'s':'')+': '+ents.map(usd).join(' y ')+'\n':''}• ${nc} cuotas de ${usd(cm)}\n\n¿Continuar?`))return;
+      e0.cuota=String(cm);e0.entradas=ents.map(String);e0.numEntradas=ents.length;if(!Number(e0.controlesPlan))e0.controlesPlan=String(nc);
+      if(!e0.inicio&&pl.fechaInicio)e0.inicio=pl.fechaInicio;}}
+  if(!confirm('¿Regenerar el cronograma según el Plan?\n\n• Se vuelven a crear las cuotas y los controles de cada etapa.\n• Se quitan las filas pendientes sin pagos (también las cuotas que agregaste a mano y las que eliminaste).\n• Lo pagado y los controles registrados se conservan y se vuelven a acomodar en orden.'))return;
+  const es=new Set(etapasOrto(o).map(e=>e.id));
+  o.cuotas=o.cuotas.filter(q=>esProcOrto(q)||(esSinAsignarOrto(q)&&pagadoFila(q)>0.004)||pagadoFila(q)>0.004);
+  o.cuotas.forEach(q=>{if(!esProcOrto(q)&&!esSinAsignarOrto(q)&&q.anulada&&pagadoFila(q)>0.004)q.anulada=false;});
+  (o.controles||[]).forEach(x=>{if(x.etapaId&&!es.has(x.etapaId))x.etapaId=etapaActualOrto(o).id;});
+  sincronizarCronogramaOrto(o);vincularControlesOrto(o);
+  guardar();pintarVista();avisar('Cronograma regenerado');
+}
+function historialPagosOrtoHTML(o,num){
+  const filas=[];
+  (o.cuotas||[]).forEach(q=>pagosDeFila(q).forEach(x=>filas.push({x,q})));
+  if(!filas.length)return '';
+  const grupos=new Map();
+  filas.forEach(f=>{const k=f.x.grupo||f.x.id;if(!grupos.has(k))grupos.set(k,[]);grupos.get(k).push(f);});
+  const lista=[...grupos.values()].sort((a,b)=>(b[0].x.fecha||'').localeCompare(a[0].x.fecha||''));
+  return `<details class="historial-pagos"><summary>Historial de pagos (${lista.length})</summary>
+    <table><thead><tr><th>Fecha</th><th>Aplicado a</th><th>Forma</th><th class="der">Monto</th></tr></thead><tbody>
+    ${lista.map(gr=>{const x0=gr[0].x,an=gr.every(f=>f.x.anulado),tot=R2(gr.reduce((t,f)=>t+(Number(f.x.monto)||0),0));
+      return `<tr class="${an?'anulado':''}"><td class="num">${fechaCorta(x0.fecha)}</td>
+        <td>${gr.map(f=>esc(etiquetaFilaOrto(o,f.q,num))+(gr.length>1?' '+usd(f.x.monto):'')).join('<br>')}${x0.libre?'<br><span class="mini">Pago repartido en cuotas pendientes</span>':''}${x0.nota?`<br><span class="mini">${esc(x0.nota)}</span>`:''}${an?`<br><span class="mini">Anulado${x0.anuladoMotivo?': '+esc(x0.anuladoMotivo):''}</span>`:''}</td>
+        <td>${esc(x0.metodo||'—')}</td><td class="der">${usd(tot)}</td></tr>`;}).join('')}
+    </tbody></table></details>`;
+}
+const METODOS_PAGO=['Efectivo','Transferencia','Tarjeta','Otro'];
+function camposPagoOrto(pref,monto){
+  return `<div class="grid">
+      <label class="campo"><span>Monto (USD)</span><input type="number" step="0.01" min="0" id="${pref}_monto" value="${monto>0?R2(monto):''}"></label>
+      <label class="campo"><span>Fecha</span><input type="date" id="${pref}_fecha" value="${hoy()}"></label>
+      <label class="campo"><span>Forma de pago</span><select id="${pref}_metodo">${METODOS_PAGO.map(m=>`<option>${m}</option>`).join('')}</select></label>
+    </div>
+    <label class="campo"><span>Observaciones (opcional)</span><input type="text" id="${pref}_nota" placeholder="N.º de transferencia, quién pagó…"></label>`;
+}
+function leerPagoOrto(pref){return {monto:R2($('#'+pref+'_monto').value),fecha:$('#'+pref+'_fecha').value||hoy(),metodo:$('#'+pref+'_metodo').value,nota:$('#'+pref+'_nota').value.trim()};}
+/* pago (completo o abono) de una cuota, control o procedimiento */
+function registrarPagoFilaOrto(id){
+  const p=pac(selId),o=p.orto,q=o.cuotas.find(x=>x.id===id);if(!q)return;
+  if($('#modal').open)$('#modal').close();
+  const sd=saldoFila(q),m=Number(q.monto)||0;
+  abrirModal('Registrar pago · '+etiquetaFilaOrto(o,q),`
+    <div class="resumen-pago"><div><span class="mini">Valor</span><b>${m>0?usd(m):'Sin fijar'}</b></div>
+      <div><span class="mini">Pagado</span><b>${usd(pagadoFila(q))}</b></div>
+      <div><span class="mini">Saldo</span><b ${sd>0.004?'style="color:var(--alerta)"':''}>${usd(sd)}</b></div></div>
+    ${camposPagoOrto('pg',sd)}
+    <p class="mini" style="margin-top:0">Puedes registrar un abono menor al saldo: la cuota queda «Parcial» hasta completarse.</p>`,
+  ()=>{const d=leerPagoOrto('pg');if(d.monto<=0){avisar('Escribe el monto');return false;}
+    const saldoAhora=m>0?sd:d.monto;
+    if(d.monto>saldoAhora+0.004){
+      const rp=repartoPagoOrto(o,d.monto,q);
+      if(!confirm(`El pago (${usd(d.monto)}) supera el saldo de esta fila (${usd(saldoAhora)}).\n\n${textoRepartoOrto(o,rp)}\n\n¿Registrar así?`))return false;}
+    prepararFilaParaPagoOrto(q,d.monto);
+    aplicarPagoOrto(o,d.monto,d,q);guardar();pintarVista();avisar('Pago registrado');});
+}
+/* pago que no corresponde a una cuota exacta: se reparte en las cuotas con saldo, de la más antigua a la más nueva */
+function pagoLibreOrto(){
+  const p=pac(selId),o=p.orto;o.cuotas=o.cuotas||[];normalizarPagosOrto(o);
+  const cta=cuentasOrto(o);
+  abrirModal('Registrar pago de ortodoncia',`
+    <div class="resumen-pago"><div><span class="mini">Saldo pendiente</span><b ${cta.pendiente>0.004?'style="color:var(--alerta)"':''}>${usd(cta.pendiente)}</b></div></div>
+    ${camposPagoOrto('pl',0)}
+    <p class="mini" id="pl_rep" style="margin-top:0;white-space:pre-line">Escribe el monto para ver en qué cuotas se aplica.</p>`,
+  ()=>{const d=leerPagoOrto('pl');if(d.monto<=0){avisar('Escribe el monto');return false;}
+    const rp=repartoPagoOrto(o,d.monto,null);
+    if(rp.sobra&&!confirm(`El pago (${usd(d.monto)}) supera el saldo pendiente de las cuotas.\n\n${textoRepartoOrto(o,rp)}\n\n¿Registrar así?`))return false;
+    aplicarPagoOrto(o,d.monto,{...d,libre:true},null);guardar();pintarVista();avisar('Pago registrado');});
+  $('#pl_monto').addEventListener('input',()=>{const v=R2($('#pl_monto').value);
+    $('#pl_rep').textContent=v>0?textoRepartoOrto(o,repartoPagoOrto(o,v,null)):'Escribe el monto para ver en qué cuotas se aplica.';});
+}
+function pagoSueltoOrto(){pagoLibreOrto();}
+function agregarCuotaOrto(){
+  const p=pac(selId),o=p.orto;o.cuotas=o.cuotas||[];
+  const es=etapasOrto(o),et=etapaActualOrto(o);
+  abrirModal('Agregar cuota',`
+    ${es.length>1?`<label class="campo"><span>Etapa</span><select id="nc_et">${es.map((e,i)=>`<option value="${e.id}" ${e.id===et.id?'selected':''}>Etapa ${i+1}${e.tipo?' · '+esc(e.tipo):''}</option>`).join('')}</select></label>`:''}
+    <label class="campo"><span>Concepto</span><input type="text" id="nc_concepto" placeholder="Pago inicial, mensualidad de octubre, cuota de instalación…"></label>
+    <div class="grid">
+      <label class="campo"><span>Monto (USD)</span><input type="number" step="0.01" min="0" id="nc_monto"></label>
+      <label class="campo"><span>Vence</span><input type="date" id="nc_fecha" value="${hoy()}"></label>
+    </div>
+    <label class="campo"><span>Observaciones (opcional)</span><input type="text" id="nc_obs"></label>`,
+  ()=>{const monto=R2($('#nc_monto').value);if(monto<=0){avisar('Escribe el monto de la cuota');return false;}
+    const sel=document.getElementById('nc_et');
+    const q={id:uid(),etapaId:sel?sel.value:et.id,esEntrada:true,manual:true,numero:0,monto,fechaVenc:$('#nc_fecha').value||hoy(),
+      concepto:$('#nc_concepto').value.trim(),obs:$('#nc_obs').value.trim(),pagos:[],pagada:false,creada:new Date().toISOString()};
+    registrarHistorialOrto(q,'Cuota agregada por '+usd(monto));
+    o.cuotas.push(q);guardar();pintarVista();avisar('Cuota agregada');});
+}
+function anularPagoOrto(qid,pid){
+  const o=pac(selId).orto,q=o.cuotas.find(x=>x.id===qid),x=q&&pagosDeFila(q).find(k=>k.id===pid);if(!x)return;
+  const grupo=x.grupo?o.cuotas.flatMap(k=>pagosDeFila(k).filter(y=>y.grupo===x.grupo).map(y=>({k,y}))):[{k:q,y:x}];
+  const tot=R2(grupo.reduce((t,g)=>t+(Number(g.y.monto)||0),0));
+  if(!confirm(`¿Anular este pago de ${usd(tot)} del ${fechaCorta(x.fecha)}?${grupo.length>1?'\n\nSe repartió en '+grupo.length+' filas: se anula completo.':''}\n\nNo se borra: queda en el historial como anulado.`))return;
+  const motivo=(prompt('Motivo de la anulación (opcional):','Registrado por error')||'').trim();
+  const ahora=new Date().toISOString();
+  grupo.forEach(({k,y})=>{y.anulado=true;y.anuladoFecha=ahora;if(motivo)y.anuladoMotivo=motivo;registrarHistorialOrto(k,'Pago de '+usd(y.monto)+' del '+fechaCorta(y.fecha)+' anulado'+(motivo?': '+motivo:''));actualizarFilaOrto(k);});
+  guardar();pintarVista();editarCuotaOrto(qid);
+}
+function asignarPagoSueltoOrto(qid){
+  const o=pac(selId).orto,q=o.cuotas.find(x=>x.id===qid);if(!q)return;
+  const act=pagosActivosFila(q),tot=pagadoFila(q);if(tot<=0)return;
+  const sinQ=filasConSaldoOrto(o).reduce((t,k)=>t+saldoFila(k),0);
+  if(sinQ<=0.004){avisar('No hay cuotas con saldo pendiente');return;}
+  const rp=repartoPagoOrto(o,Math.min(tot,sinQ),null);
+  if(!confirm(`Aplicar ${usd(Math.min(tot,sinQ))} de este pago a las cuotas pendientes.\n\n${textoRepartoOrto(o,rp)}${tot>sinQ+0.004?`\n\nLos ${usd(R2(tot-sinQ))} restantes siguen sin asignar.`:''}`))return;
+  // se anula el pago suelto y se registra el mismo dinero en las cuotas (misma fecha y forma de pago): no se cuenta dos veces
+  let resto=R2(Math.min(tot,sinQ));const ahora=new Date().toISOString();
+  act.forEach(x=>{if(resto<=0.004)return;const usar=Math.min(Number(x.monto)||0,resto);
+    x.anulado=true;x.anuladoFecha=ahora;x.anuladoMotivo='Aplicado a cuotas pendientes';
+    aplicarPagoOrto(o,usar,{fecha:x.fecha,metodo:x.metodo,nota:'Aplicado desde pago sin asignar'+(x.nota?' ('+x.nota+')':''),libre:true},null);
+    if((Number(x.monto)||0)-usar>0.004)q.pagos.push({id:uid(),monto:R2((Number(x.monto)||0)-usar),fecha:x.fecha,metodo:x.metodo,nota:'Restante sin asignar'});
+    resto=R2(resto-usar);});
+  registrarHistorialOrto(q,'Aplicado a cuotas pendientes');actualizarFilaOrto(q);
+  guardar();if($('#modal').open)$('#modal').close();pintarVista();avisar('Pago aplicado a las cuotas');
+}
+function quitarCuotaOrto(id){
+  const o=pac(selId).orto,q=o.cuotas.find(x=>x.id===id);if(!q)return;
+  if(pagadoFila(q)>0.004){avisar('Tiene pagos registrados: anúlalos primero si fueron un error');return;}
+  if(tienePagosOrto(q)||q.clave||q.controlId){
+    if(!confirm('¿Anular esta fila? No se borra: queda en el historial como anulada y deja de sumar al total.'))return;
+    q.anulada=true;registrarHistorialOrto(q,'Fila anulada');
+  }else{
+    if(!confirm('¿Eliminar esta cuota? No tiene pagos.'))return;
+    o.cuotas=o.cuotas.filter(x=>x!==q);
+  }
+  guardar();if($('#modal').open)$('#modal').close();pintarVista();
+}
+function restaurarCuotaOrto(id){
+  const o=pac(selId).orto,q=o.cuotas.find(x=>x.id===id);if(!q)return;
+  q.anulada=false;registrarHistorialOrto(q,'Fila restaurada');guardar();if($('#modal').open)$('#modal').close();pintarVista();
+}
 function editarCuotaOrto(id){
-  const p=pac(selId),o=p.orto,q=o.cuotas.find(x=>x.id===id);
-  abrirModal(q.esEntrada?('Entrada '+(q.entradaNum||'')):`Cuota N.º ${q.numero}`,`
+  const p=pac(selId),o=p.orto,q=o.cuotas.find(x=>x.id===id);if(!q)return;
+  if($('#modal').open)$('#modal').close();
+  normalizarPagosOrto(o);
+  const sinAs=esSinAsignarOrto(q),pg=pagadoFila(q),est=estadoFila(q),pagos=pagosDeFila(q);
+  const esCtrlFila=!q.esEntrada&&!esProcOrto(q)&&!sinAs;
+  let quitar='';
+  if(q.anulada)quitar=`<button class="btn chico" type="button" onclick="restaurarCuotaOrto('${q.id}')">Restaurar</button>`;
+  else if(!sinAs&&!esProcOrto(q)&&!(esCtrlFila&&q.controlId)){
+    quitar=pg>0.004?'<span class="mini">Tiene pagos: para quitarla, anula primero sus pagos.</span>'
+      :`<button class="btn peligro chico" type="button" onclick="quitarCuotaOrto('${q.id}')">${tienePagosOrto(q)||q.clave?'Anular':'Eliminar'} ${q.esEntrada?'cuota':'fila'}</button>`;}
+  abrirModal(etiquetaFilaOrto(o,q),`
+    ${sinAs?`<p class="mini" style="margin-top:0">${q.aFavor?'Pago que superó lo pendiente: queda como saldo a favor del paciente.':'Pago registrado sin una cuota. Puedes aplicarlo a las cuotas pendientes para que el saldo de cada una quede al día.'}</p>`:''}
+    ${sinAs?'':`<label class="campo"><span>Concepto</span><input type="text" id="q_concepto" value="${esc(q.concepto||'')}" placeholder="${q.esEntrada?'Pago inicial, mensualidad de octubre, cuota de instalación…':'Opcional'}"></label>
     <div class="grid">
-      <label class="campo"><span>Fecha de vencimiento</span><input type="date" id="q_fecha" value="${esc(q.fechaVenc||'')}"></label>
-      <label class="campo"><span>Monto</span><input type="number" step="0.01" min="0" id="q_monto" value="${q.monto??''}"></label>
-      <label class="campo"><span>Estado</span><select id="q_pagada">
-        <option value="0" ${!q.pagada?'selected':''}>Pendiente</option>
-        <option value="1" ${q.pagada?'selected':''}>Pagada</option></select></label>
+      <label class="campo"><span>Monto (USD)</span><input type="number" step="0.01" min="0" id="q_monto" value="${q.monto??''}" ${esProcOrto(q)?'disabled title="Se cambia en el procedimiento"':''}></label>
+      <label class="campo"><span>Vence</span><input type="date" id="q_fecha" value="${esc(q.fechaVenc||'')}"></label>
+      <div class="campo"><span>Estado</span><div style="padding-top:6px">${est.t?`<span class="estado-pago ${est.k}">${est.t}</span>`:'<span class="mini">Sin valor</span>'}</div></div>
+    </div>`}
+    <label class="campo"><span>Observaciones</span><input type="text" id="q_obs" value="${esc(q.obs||'')}"></label>
+    <div class="pagos-fila">
+      <div class="pf-cab"><span class="pf-tit">Pagos</span><span class="mini" style="margin-left:8px">${usd(pg)} pagado${!sinAs&&Number(q.monto)>0?' · saldo '+usd(saldoFila(q)):''}</span>
+        ${!sinAs&&!q.anulada?`<button type="button" class="btn chico primario der" onclick="registrarPagoFilaOrto('${q.id}')">Registrar pago</button>`:''}</div>
+      ${pagos.length?`<table class="tabla-pagos">${pagos.map(x=>`<tr class="${x.anulado?'anulado':''}"><td class="num">${fechaCorta(x.fecha)}</td><td>${esc(x.metodo||'—')}</td>
+        <td>${esc(x.nota||'')}${x.grupo?'<br><span class="mini">Parte de un pago de '+usd(x.total||0)+'</span>':''}${x.anulado?`<br><span class="mini">Anulado${x.anuladoMotivo?': '+esc(x.anuladoMotivo):''}</span>`:''}</td>
+        <td class="der">${usd(x.monto)}</td><td class="der">${x.anulado?'':`<button type="button" class="btn chico" onclick="anularPagoOrto('${q.id}','${x.id}')">Anular</button>`}</td></tr>`).join('')}</table>`
+        :'<p class="mini">Sin pagos todavía.</p>'}
     </div>
-    <div class="grid">
-      <label class="campo"><span>Fecha de pago</span><input type="date" id="q_fpago" value="${esc(q.fechaPago||'')}"></label>
-      <label class="campo"><span>Forma de pago</span><select id="q_metodo">
-        ${['','Efectivo','Transferencia','Tarjeta','Otro'].map(m=>`<option ${q.metodo===m?'selected':''}>${m||'—'}</option>`).join('')}</select></label>
-    </div>
-    <label class="campo"><span>Nota</span><input type="text" id="q_nota" value="${esc(q.nota||'')}"></label>
-    <button class="btn peligro chico" type="button" id="q_borrar">Eliminar esta cuota</button>`,
+    ${(q.historial||[]).length?`<details class="opcional"><summary>Historial de cambios (${q.historial.length})</summary><div class="cont">${q.historial.map(h=>`<p class="mini" style="margin:2px 0">${new Date(h.fecha).toLocaleString('es-EC')} — ${esc(h.txt)}</p>`).join('')}</div></details>`:''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
+      ${sinAs&&pg>0.004?`<button type="button" class="btn chico" onclick="asignarPagoSueltoOrto('${q.id}')">Aplicar a cuotas pendientes</button>`:''}${quitar}</div>`,
   ()=>{
-    q.fechaVenc=$('#q_fecha').value;q.monto=Number($('#q_monto').value)||0;
-    q.pagada=$('#q_pagada').value==='1';q.fechaPago=$('#q_fpago').value;
-    q.metodo=$('#q_metodo').value;q.nota=$('#q_nota').value.trim();
-    guardar();pintarVista();avisar('Cuota actualizada');});
-  $('#q_borrar').onclick=()=>{
-    if(!confirm('¿Eliminar esta cuota?'))return;
-    o.cuotas=o.cuotas.filter(x=>x.id!==id);guardar();$('#modal').close();pintarVista();
-  };
+    const cambios=[];
+    if(!sinAs){
+      const conc=$('#q_concepto').value.trim();if(conc!==(q.concepto||'')){cambios.push(`Concepto «${q.concepto||''}» → «${conc}»`);q.concepto=conc;}
+      if(!esProcOrto(q)){const nm=R2($('#q_monto').value);
+        if(nm!==R2(q.monto)){
+          if(nm<pg-0.004){avisar(`Ya tiene ${usd(pg)} pagado: el monto no puede ser menor. Anula un pago si fue un error.`);return false;}
+          cambios.push(`Monto ${usd(q.monto)} → ${usd(nm)}`);q.monto=nm;q.editada=true;}}
+      const nf=$('#q_fecha').value;if(nf!==(q.fechaVenc||'')){cambios.push(`Vence ${fechaCorta(q.fechaVenc)||'—'} → ${fechaCorta(nf)||'—'}`);q.fechaVenc=nf;q.editada=true;}
+    }
+    const ob=$('#q_obs').value.trim();if(ob!==(q.obs||'')){q.obs=ob;}
+    cambios.forEach(t=>registrarHistorialOrto(q,t));
+    actualizarFilaOrto(q);guardar();pintarVista();avisar('Guardado');});
 }
 function alternarCuotaOrto(id){
-  const p=pac(selId),o=p.orto,q=o.cuotas.find(x=>x.id===id);
-  const etiqueta=q.esEntrada?('Entrada '+(q.entradaNum||'')):('Cuota N.º '+q.numero);
-  const msg=q.pagada
-    ?`¿Quitar el pago de "${etiqueta}" (${usd(q.monto)}) y dejarla como pendiente otra vez?`
-    :`¿Confirmar que "${etiqueta}" (${usd(q.monto)}, vence ${fechaCorta(q.fechaVenc)}) ya fue pagada?`;
-  if(!confirm(msg))return;
-  q.pagada=!q.pagada;if(q.pagada&&!q.fechaPago)q.fechaPago=hoy();
-  guardar();pintarVista();
+  const q=pac(selId).orto.cuotas.find(x=>x.id===id);if(!q)return;
+  saldoFila(q)>0.004?registrarPagoFilaOrto(id):editarCuotaOrto(id);
 }
-function borrarCuotaOrto(id){const o=pac(selId).orto;if(!confirm('¿Eliminar esta cuota?'))return;
-  o.cuotas=o.cuotas.filter(x=>x.id!==id);guardar();pintarVista();}
+function borrarCuotaOrto(id){quitarCuotaOrto(id);}
 
 /* ---------- receta médica ---------- */
 function tabReceta(p,c){
@@ -3387,7 +4094,7 @@ function tabReceta(p,c){
       return `<div class="evo">
         <div class="fecha">${fechaCorta(r.fecha)}</div>
         <div><span class="dx">${esc(r.diagnostico||'Sin diagnóstico')}</span>
-          <p class="mini">${meds?esc(meds):'Sin medicamentos registrados'}</p>
+          <p class="mini">${meds?esc(meds):'Sin medicamentos registrados'}${r.firmaElectronica?` · <span style="color:var(--clinico)">✓ Firmada electrónicamente</span>`:''}</p>
           <div class="acciones-evo"><button onclick="editarRecetaId('${r.id}')">Editar / imprimir</button>
           <button onclick="borrarRecetaLista('${r.id}')">Eliminar</button></div></div></div>`;
     }).join(''):'<p class="mini">Este paciente aún no tiene recetas.</p>'}</div>
@@ -3650,8 +4357,9 @@ function renderEditorReceta(p,c){
       <label class="campo"><span>Indicaciones generales</span><textarea data-rk="indicaciones">${esc(r.indicaciones||'')}</textarea></label>
       <label class="campo"><span>Próximo control (opcional)</span><input type="date" data-rk="proximoControl" value="${esc(r.proximoControl||'')}"></label>
       <label class="campo"><span>Hora</span><input type="time" data-rk="proximoControlHora" value="${esc(r.proximoControlHora||'09:00')}"></label></div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn primario" onclick="imprimirReceta('${r.id}')">Guardar e imprimir</button>
+      <button class="btn" onclick="firmarRecetaElectronica('${r.id}')" title="Firma el PDF con tu firma electrónica (.p12) para enviarlo">Firmar electrónicamente</button>
       <button class="btn" onclick="enviarRecetaWhatsapp('${r.id}')" title="Abre el chat con el número del paciente; no necesita estar en tus contactos">Enviar por WhatsApp</button>
       <button class="btn peligro" onclick="borrarReceta('${r.id}')">Eliminar receta</button>
     </div>`;
@@ -3698,39 +4406,50 @@ function borrarReceta(id){
 function imprimirPlanOrto(p){
   const o=p.orto||{},g=datos.config;
   const ctrls=[...(o.controles||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-  const cuotas=[...(o.cuotas||[])].sort((a,b)=>(a.fechaVenc||'').localeCompare(b.fechaVenc||''));
-  const totalPlan=cuotas.reduce((s,q)=>s+(Number(q.monto)||0),0);
-  const totalPagado=cuotas.filter(q=>q.pagada).reduce((s,q)=>s+(Number(q.monto)||0),0);
+  const cuotas=[...(o.cuotas||[])].filter(q=>enPlanOrto(q)&&(Number(q.monto)>0||pagadoFila(q)>0)).sort((a,b)=>(a.fechaVenc||'').localeCompare(b.fechaVenc||''));
+  const ctaI=cuentasOrto(o),numI=numerosCuotasOrto(o);
   $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
     <section><h4 style="text-align:center">PLAN DE TRATAMIENTO DE ORTODONCIA</h4>
+      ${(o.etapas||[]).length>1?`<table style="margin-bottom:8px"><tr><th>Etapa</th><th>Aparatología</th><th>Inicio</th><th>Duración</th><th>Objetivo</th><th>Estado</th></tr>
+        ${(()=>{const inf=calcularEtapasOrto(o);return o.etapas.map((e,i)=>`<tr><td>${i+1}</td><td>${esc(e.tipo||'—')}</td><td>${fechaCorta(inf.calc[i].ini)||'—'}</td><td>${e.meses?esc(e.meses)+' meses':'—'}</td><td>${esc(e.objetivo||'')}</td><td>${e.terminada?'Terminada':i===inf.iAct?'En curso':'Pendiente'}</td></tr>`).join('');})()}</table>`:''}
       <div class="fila">
         <div><span class="rot">Aparatología</span>${esc(o.tipo||'—')}</div>
         <div><span class="rot">Fecha de inicio</span>${fechaCorta(o.inicio)||'—'}</div>
         <div><span class="rot">Duración estimada</span>${o.duracionMeses?o.duracionMeses+' meses':'—'}</div>
         <div><span class="rot">Alta estimada</span>${fechaCorta(o.altaEstimada)||'—'}</div>
+        ${(()=>{const e=etapaActualOrto(o),pl=Number(e.controlesPlan)||0;return pl>0?`<div><span class="rot">Controles (etapa actual)</span>${controlesDeEtapaOrto(o,e).filter(x=>x.fecha&&x.fecha<=hoy()).length} de ${pl} realizados</div>`:'';})()}
         <div><span class="rot">Estado</span>${o.altaRealizada?('Alta realizada'+(o.fechaAltaReal?' ('+fechaCorta(o.fechaAltaReal)+')':'')):'En tratamiento'}</div>
       </div>
-      ${o.objetivo?`<div style="margin-top:6px"><span class="rot">Objetivo</span>${esc(o.objetivo)}</div>`:''}
+      ${(()=>{const es=o.etapas||[],obj=es.length===1?es[0].objetivo:(es.length?'':o.objetivo);return obj?`<div style="margin-top:6px"><span class="rot">Objetivo</span>${esc(obj)}</div>`:'';})()}
     </section>
+    ${(()=>{const d=o.diag||{};const filas=[['Clase molar',[d.molarD&&'Der. '+d.molarD,d.molarI&&'Izq. '+d.molarI].filter(Boolean).join(' · ')],
+        ['Clase canina',[d.caninaD&&'Der. '+d.caninaD,d.caninaI&&'Izq. '+d.caninaI].filter(Boolean).join(' · ')],
+        ['Overjet',d.overjet!==undefined&&d.overjet!==''?d.overjet+' mm':''],['Overbite',d.overbite!==undefined&&d.overbite!==''?d.overbite+' mm':''],
+        ['Línea media',d.lineaMedia],['Apiñamiento',d.apinamiento],['Mordida cruzada',d.cruzada],['Hábitos',(d.habitos||[]).join(', ')]].filter(f=>f[1]);
+      return filas.length||d.nota?`<section><h4>DIAGNÓSTICO ORTODÓNTICO</h4><div class="fila">${filas.map(f=>`<div><span class="rot">${f[0]}</span>${esc(f[1])}</div>`).join('')}</div>
+        ${d.nota?`<div style="margin-top:6px"><span class="rot">Observaciones</span>${esc(d.nota)}</div>`:''}</section>`:'';})()}
+    ${(o.procedimientos||[]).length?`<section><h4>PROCEDIMIENTOS DEL PLAN</h4>
+      <table><tr><th>Procedimiento</th><th>Pieza / zona</th><th>Fecha</th><th>Estado</th><th>Costo</th></tr>
+        ${o.procedimientos.map(x=>`<tr><td>${esc(x.nombre)}</td><td>${esc(x.pieza||'')}</td><td>${fechaCorta(x.fecha)||'—'}</td><td>${x.realizado?'Realizado':'Pendiente'}</td><td>${Number(x.costo)>0?usd(x.costo):'Incluido'}</td></tr>`).join('')}</table></section>`:''}
     <section><h4>HISTORIAL DE CONTROLES</h4>
       <table><tr><th>Fecha</th><th>Procedimiento</th><th>Arco / elástico</th><th>Próximo control</th></tr>
         ${ctrls.length?ctrls.map(x=>`<tr><td>${fechaCorta(x.fecha)}</td><td>${esc(x.procedimiento||'')}</td>
           <td>${esc([x.arco,x.elastico].filter(Boolean).join(' · '))}</td><td>${fechaCorta(x.proxima)||'—'}</td></tr>`).join('')
           :'<tr><td colspan="4">Sin controles registrados</td></tr>'}</table></section>
     ${cuotas.length?`<section><h4>PLAN DE PAGOS</h4>
-      <div class="fila"><div><span class="rot">Total contratado</span>${usd(totalPlan)}</div>
-        <div><span class="rot">Pagado</span>${usd(totalPagado)}</div>
-        <div><span class="rot">Saldo</span>${usd(totalPlan-totalPagado)}</div></div>
-      <table style="margin-top:6px"><tr><th>Cuota</th><th>Vence</th><th>Estado</th><th>Monto</th></tr>
-        ${cuotas.map(q=>`<tr><td>${q.esEntrada?'Entrada '+(q.entradaNum||''):'N.º '+q.numero}</td><td>${fechaCorta(q.fechaVenc)}</td><td>${q.pagada?'Pagada':'Pendiente'}</td><td>${usd(q.monto)}</td></tr>`).join('')}
-      </table></section>`:''}
+      <div class="fila"><div><span class="rot">Total del plan</span>${usd(ctaI.total)}</div>
+        <div><span class="rot">Total pagado</span>${usd(ctaI.pagado)}</div>
+        <div><span class="rot">Saldo pendiente</span>${usd(ctaI.pendiente)}</div></div>
+      <table style="margin-top:6px"><tr><th>Concepto</th><th>Vence</th><th>Valor</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr>
+        ${cuotas.map(q=>`<tr><td>${esc(etiquetaFilaOrto(o,q,numI))}</td><td>${fechaCorta(q.fechaVenc)}</td><td>${usd(q.monto)}</td><td>${usd(pagadoFila(q))}</td><td>${usd(saldoFila(q))}</td><td>${estadoFila(q).t||'—'}</td></tr>`).join('')}
+      </table>${ctaI.sinAsignar>0.004?`<p style="font-size:9px">Incluye ${usd(ctaI.sinAsignar)} pagados sin asignar a una cuota.</p>`:''}</section>`:''}
     <div class="firma" style="margin-top:46px">
       <div>${esc(p.nombre||'')}<br>Paciente</div>
       <div>${esc(g.profesional||'')}<br>Odontólogo/a — Cód. MSP ${esc(g.codigo||'')}</div></div>
     </div>`;
   lanzarImpresion();
 }
-function copiaReceta(r,p,g,numeroMostrar,modo){
+function copiaReceta(r,p,g,numeroMostrar,modo,sello){
   modo=modo||'medicamento';
   const meds=(r.medicamentos||[]).filter(m=>m.dci);
   const detalleMed=m=>[m.via&&('Vía '+m.via),m.dosis&&(m.dosis+(m.duracion?' por '+m.duracion:''))].filter(Boolean).map(esc).join('. ');
@@ -3791,7 +4510,7 @@ function copiaReceta(r,p,g,numeroMostrar,modo){
     <div style="padding:6px 4px 0;font-weight:700">Datos del Prescriptor:</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:4px 4px 2px">
       <div>
-        ${g.firma?`<img src="${g.firma}" style="max-width:150px;max-height:60px;object-fit:contain;display:block;margin-bottom:2px">`
+        ${sello?selloFirmaEHTML(sello):g.firma?`<img src="${g.firma}" style="max-width:150px;max-height:60px;object-fit:contain;display:block;margin-bottom:2px">`
           :'<div style="height:40px;border-bottom:1px solid #000;width:150px;margin-bottom:2px"></div>'}
         <div style="font-weight:700">${esc(g.profesional||'')}</div>
         ${g.codigo?`<div>Reg. ${esc(g.codigo)}</div>`:''}
@@ -3804,11 +4523,11 @@ function copiaReceta(r,p,g,numeroMostrar,modo){
     <p style="margin-top:6px">Esta receta tiene validez para la entrega de medicamento, de 5 días en casos crónicos y 2 días en casos agudos.</p>
   </div>`;
 }
-function hojaReceta(r,p){
+function hojaReceta(r,p,sello){
   const g=datos.config;
   const numeroMostrar=r.numero||String(((p.recetas||[]).findIndex(x=>x.id===r.id)+1)||1).padStart(4,'0');
-  const copiaMed=copiaReceta(r,p,g,numeroMostrar,'medicamento');
-  const copiaIndic=copiaReceta(r,p,g,numeroMostrar,'indicaciones');
+  const copiaMed=copiaReceta(r,p,g,numeroMostrar,'medicamento',sello);
+  const copiaIndic=copiaReceta(r,p,g,numeroMostrar,'indicaciones',sello);
   return `<div class="hoja hoja-receta"><div class="receta-dos">${copiaMed}${copiaIndic}</div></div>`;
 }
 function imprimirReceta(id){
@@ -3817,19 +4536,24 @@ function imprimirReceta(id){
   $('#impresion').innerHTML=hojaReceta(r,p);
   lanzarImpresion();
 }
-async function generarPDFReceta(id){
+async function generarPDFReceta(id,sello){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
-  $('#impresion').innerHTML=hojaReceta(r,p);
+  $('#impresion').innerHTML=hojaReceta(r,p,sello);
   document.body.classList.add('imprimiendo');
   try{
     const hoja=$('#impresion').querySelector('.hoja');
-    const canvas=await html2canvas(hoja,{scale:2,backgroundColor:'#ffffff'});
+    // la hoja se arma siempre con ancho de computadora (en el celular no sale angosta)
+    // y se mide dónde quedó cada QR del sello, para repintarlo nítido al firmar
+    let qrs=[];
+    const canvas=await html2canvas(hoja,{scale:2,backgroundColor:'#ffffff',windowWidth:1200,onclone:doc=>{
+      const h=doc.querySelector('#impresion .hoja');if(!h)return;const hr=h.getBoundingClientRect(),kmm=210/hr.width;
+      qrs=[...h.querySelectorAll('.qr-fe')].map(el=>{const b=el.getBoundingClientRect();return {x:(b.left-hr.left)*kmm,y:(b.top-hr.top)*kmm,w:b.width*kmm};});}});
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF({unit:'mm',format:'a4'});
     const anchoMM=210,altoMM=(canvas.height*anchoMM)/canvas.width;
     pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,anchoMM,altoMM);
     const nombreArchivo=`receta-${(p.nombre||'paciente').replace(/[^a-z0-9]+/gi,'-')}-${r.fecha||hoy()}.pdf`;
-    return {blob:pdf.output('blob'),nombreArchivo};
+    return {blob:pdf.output('blob'),nombreArchivo,altoMM,qrs};
   }finally{
     document.body.classList.remove('imprimiendo');
   }
@@ -4045,6 +4769,447 @@ async function compartirRecetaPDF(id){
   avisar('Tu dispositivo no permite compartir directo; el PDF se descargó.');
 }
 
+/* ================= Firma electrónica (.p12) — sin librerías externas =================
+   Todo ocurre en el equipo del profesional: se abre el .p12 con su clave, se firma el PDF y nada sale del dispositivo.
+   - ASN.1/DER: lectura (acepta BER de longitud indefinida) y escritura.
+   - PKCS#12: bolsas de clave y certificados; cifrados PBES2 (PBKDF2 + AES/3DES), PKCS#12 3DES y RC2 (formatos antiguos).
+   - Firma CMS/PKCS#7 separada (adbe.pkcs7.detached) con RSA-SHA256 usando WebCrypto. */
+const FE=(()=>{
+  const sub=()=>{const c=globalThis.crypto&&globalThis.crypto.subtle;if(!c)throw new Error('Este navegador no permite firmar (requiere conexión segura https).');return c;};
+  const u8=x=>x instanceof Uint8Array?x:new Uint8Array(x);
+  const cat=(...a)=>{const n=a.reduce((t,x)=>t+x.length,0),o=new Uint8Array(n);let p=0;a.forEach(x=>{o.set(x,p);p+=x.length;});return o;};
+  const hex=b=>Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');
+  const igual=(a,b)=>a.length===b.length&&a.every((x,i)=>x===b[i]);
+  /* ---------- ASN.1 ---------- */
+  function leer(b,pos){
+    pos=pos||0;const ini=pos,t=b[pos++];let len=b[pos++],indef=false;
+    if(len===0x80){indef=true;len=-1;}
+    else if(len&0x80){const n=len&0x7f;len=0;for(let i=0;i<n;i++)len=len*256+b[pos++];}
+    const nodo={tag:t,cls:t>>6,cons:!!(t&0x20),num:t&0x1f,ini,vini:pos};
+    if(nodo.cons){
+      nodo.hijos=[];let p=pos;
+      if(indef){while(!(b[p]===0&&b[p+1]===0)){const h=leer(b,p);nodo.hijos.push(h);p=h.fin;}nodo.vfin=p;nodo.fin=p+2;}
+      else{const fin=pos+len;while(p<fin){const h=leer(b,p);nodo.hijos.push(h);p=h.fin;}nodo.vfin=fin;nodo.fin=fin;}
+    }else{if(indef)throw new Error('ASN.1 inválido');nodo.vfin=pos+len;nodo.fin=pos+len;}
+    nodo.b=b;return nodo;
+  }
+  const valor=n=>n.b.subarray(n.vini,n.vfin);
+  const crudo=n=>n.b.subarray(n.ini,n.fin);
+  // OCTET STRING primitivo o construido (BER): bytes concatenados
+  const octetos=n=>n.cons?cat(...n.hijos.map(octetos)):valor(n);
+  function oid(n){const v=valor(n),r=[Math.floor(v[0]/40),v[0]%40];let x=0;for(let i=1;i<v.length;i++){x=x*128+(v[i]&0x7f);if(!(v[i]&0x80)){r.push(x);x=0;}}return r.join('.');}
+  const entero=n=>{let x=0;valor(n).forEach(c=>{x=x*256+c;});return x;};
+  // escritura DER
+  function largo(n){if(n<128)return Uint8Array.of(n);const a=[];while(n>0){a.unshift(n&255);n=Math.floor(n/256);}return Uint8Array.of(0x80|a.length,...a);}
+  const tlv=(t,...c)=>{const v=cat(...c.map(u8));return cat(Uint8Array.of(t),largo(v.length),v);};
+  const SEQ=(...c)=>tlv(0x30,...c),SET=(...c)=>tlv(0x31,...c);
+  const OCT=v=>tlv(0x04,v),NULL=()=>Uint8Array.of(5,0);
+  const INT=n=>{const a=[];do{a.unshift(n&255);n=Math.floor(n/256);}while(n>0);if(a[0]&0x80)a.unshift(0);return tlv(0x02,Uint8Array.from(a));};
+  function OID(s){const p=s.split('.').map(Number),o=[p[0]*40+p[1]];for(let i=2;i<p.length;i++){let x=p[i];const t=[x&0x7f];while(x>=128){x=Math.floor(x/128);t.unshift((x&0x7f)|0x80);}o.push(...t);}return tlv(0x06,Uint8Array.from(o));}
+  const CTX=(n,...c)=>tlv(0xa0+n,...c);
+  function UTCTIME(d){const p=x=>String(x).padStart(2,'0');return tlv(0x17,new TextEncoder().encode(p(d.getUTCFullYear()%100)+p(d.getUTCMonth()+1)+p(d.getUTCDate())+p(d.getUTCHours())+p(d.getUTCMinutes())+p(d.getUTCSeconds())+'Z'));}
+  /* ---------- DES / 3DES (formato antiguo de .p12) ---------- */
+  const DES=(()=>{
+    const PC1=[57,49,41,33,25,17,9,1,58,50,42,34,26,18,10,2,59,51,43,35,27,19,11,3,60,52,44,36,63,55,47,39,31,23,15,7,62,54,46,38,30,22,14,6,61,53,45,37,29,21,13,5,28,20,12,4];
+    const PC2=[14,17,11,24,1,5,3,28,15,6,21,10,23,19,12,4,26,8,16,7,27,20,13,2,41,52,31,37,47,55,30,40,51,45,33,48,44,49,39,56,34,53,46,42,50,36,29,32];
+    const ROT=[1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1];
+    const IP=[58,50,42,34,26,18,10,2,60,52,44,36,28,20,12,4,62,54,46,38,30,22,14,6,64,56,48,40,32,24,16,8,57,49,41,33,25,17,9,1,59,51,43,35,27,19,11,3,61,53,45,37,29,21,13,5,63,55,47,39,31,23,15,7];
+    const FP=[40,8,48,16,56,24,64,32,39,7,47,15,55,23,63,31,38,6,46,14,54,22,62,30,37,5,45,13,53,21,61,29,36,4,44,12,52,20,60,28,35,3,43,11,51,19,59,27,34,2,42,10,50,18,58,26,33,1,41,9,49,17,57,25];
+    const E=[32,1,2,3,4,5,4,5,6,7,8,9,8,9,10,11,12,13,12,13,14,15,16,17,16,17,18,19,20,21,20,21,22,23,24,25,24,25,26,27,28,29,28,29,30,31,32,1];
+    const P=[16,7,20,21,29,12,28,17,1,15,23,26,5,18,31,10,2,8,24,14,32,27,3,9,19,13,30,6,22,11,4,25];
+    const S=[[14,4,13,1,2,15,11,8,3,10,6,12,5,9,0,7,0,15,7,4,14,2,13,1,10,6,12,11,9,5,3,8,4,1,14,8,13,6,2,11,15,12,9,7,3,10,5,0,15,12,8,2,4,9,1,7,5,11,3,14,10,0,6,13],
+      [15,1,8,14,6,11,3,4,9,7,2,13,12,0,5,10,3,13,4,7,15,2,8,14,12,0,1,10,6,9,11,5,0,14,7,11,10,4,13,1,5,8,12,6,9,3,2,15,13,8,10,1,3,15,4,2,11,6,7,12,0,5,14,9],
+      [10,0,9,14,6,3,15,5,1,13,12,7,11,4,2,8,13,7,0,9,3,4,6,10,2,8,5,14,12,11,15,1,13,6,4,9,8,15,3,0,11,1,2,12,5,10,14,7,1,10,13,0,6,9,8,7,4,15,14,3,11,5,2,12],
+      [7,13,14,3,0,6,9,10,1,2,8,5,11,12,4,15,13,8,11,5,6,15,0,3,4,7,2,12,1,10,14,9,10,6,9,0,12,11,7,13,15,1,3,14,5,2,8,4,3,15,0,6,10,1,13,8,9,4,5,11,12,7,2,14],
+      [2,12,4,1,7,10,11,6,8,5,3,15,13,0,14,9,14,11,2,12,4,7,13,1,5,0,15,10,3,9,8,6,4,2,1,11,10,13,7,8,15,9,12,5,6,3,0,14,11,8,12,7,1,14,2,13,6,15,0,9,10,4,5,3],
+      [12,1,10,15,9,2,6,8,0,13,3,4,14,7,5,11,10,15,4,2,7,12,9,5,6,1,13,14,0,11,3,8,9,14,15,5,2,8,12,3,7,0,4,10,1,13,11,6,4,3,2,12,9,5,15,10,11,14,1,7,6,0,8,13],
+      [4,11,2,14,15,0,8,13,3,12,9,7,5,10,6,1,13,0,11,7,4,9,1,10,14,3,5,12,2,15,8,6,1,4,11,13,12,3,7,14,10,15,6,8,0,5,9,2,6,11,13,8,1,4,10,7,9,5,0,15,14,2,3,12],
+      [13,2,8,4,6,15,11,1,10,9,3,14,5,0,12,7,1,15,13,8,10,3,7,4,12,5,6,11,0,14,9,2,7,11,4,1,9,12,14,2,0,6,10,13,15,3,5,8,2,1,14,7,4,10,8,13,15,12,9,0,3,5,6,11]];
+    const bits=(b,n)=>{const r=[];for(let i=0;i<n;i++)r.push((b[i>>3]>>(7-(i&7)))&1);return r;};
+    const perm=(src,t)=>t.map(i=>src[i-1]);
+    function subclaves(k){let cd=perm(bits(k,64),PC1),c=cd.slice(0,28),d=cd.slice(28);const ks=[];
+      for(let i=0;i<16;i++){for(let r=0;r<ROT[i];r++){c.push(c.shift());d.push(d.shift());}ks.push(perm(c.concat(d),PC2));}return ks;}
+    function bloque(blk,ks,desc){
+      let x=perm(bits(blk,64),IP),l=x.slice(0,32),r=x.slice(32);
+      for(let i=0;i<16;i++){const k=ks[desc?15-i:i],e=perm(r,E).map((v,j)=>v^k[j]),s=[];
+        for(let j=0;j<8;j++){const b6=e.slice(j*6,j*6+6),row=b6[0]*2+b6[5],col=b6[1]*8+b6[2]*4+b6[3]*2+b6[4],v=S[j][row*16+col];s.push((v>>3)&1,(v>>2)&1,(v>>1)&1,v&1);}
+        const f=perm(s,P),nr=l.map((v,j)=>v^f[j]);l=r;r=nr;}
+      const o=perm(r.concat(l),FP),out=new Uint8Array(8);o.forEach((v,i)=>{out[i>>3]|=v<<(7-(i&7));});return out;}
+    // 3DES-EDE en CBC, descifrado
+    function des3cbc(key,iv,data){
+      const k1=subclaves(key.subarray(0,8)),k2=subclaves(key.subarray(8,16)),k3=subclaves(key.length>=24?key.subarray(16,24):key.subarray(0,8));
+      const out=new Uint8Array(data.length);let prev=iv;
+      for(let i=0;i<data.length;i+=8){const c=data.subarray(i,i+8);let b=bloque(c,k3,true);b=bloque(b,k2,false);b=bloque(b,k1,true);
+        for(let j=0;j<8;j++)out[i+j]=b[j]^prev[j];prev=c;}
+      return out;}
+    return {des3cbc};
+  })();
+  /* ---------- RC2 (certificados en .p12 antiguos) ---------- */
+  function rc2cbc(key,bitsEf,iv,data){
+    const PI=[217,120,249,196,25,221,181,237,40,233,253,121,74,160,216,157,198,126,55,131,43,118,83,142,98,76,100,136,68,139,251,162,23,154,89,245,135,179,79,19,97,69,109,141,9,129,125,50,189,143,64,235,134,183,123,11,240,149,33,34,92,107,78,130,84,214,101,147,206,96,178,28,115,86,192,20,167,140,241,220,18,117,202,31,59,190,228,209,66,61,212,48,163,60,182,38,111,191,14,218,70,105,7,87,39,242,29,155,188,148,67,3,248,17,199,246,144,239,62,231,6,195,213,47,200,102,30,215,8,232,234,222,128,82,238,247,132,170,114,172,53,77,106,42,150,26,210,113,90,21,73,116,75,159,208,94,4,24,164,236,194,224,65,110,15,81,203,204,36,145,175,80,161,244,112,57,153,124,58,133,35,184,180,122,252,2,54,91,37,85,151,49,45,93,250,152,227,138,146,174,5,223,41,16,103,108,186,201,211,0,230,207,225,158,168,44,99,22,1,63,88,226,137,169,13,56,52,27,171,51,255,176,187,72,12,95,185,177,205,46,197,243,219,71,229,165,156,119,10,166,32,104,254,127,193,173];
+    const L=new Uint8Array(128);L.set(key);const T=key.length,T8=Math.ceil(bitsEf/8),TM=255%(1<<(8+bitsEf-8*T8));
+    for(let i=T;i<128;i++)L[i]=PI[(L[i-1]+L[i-T])&255];
+    L[128-T8]=PI[L[128-T8]&TM];for(let i=127-T8;i>=0;i--)L[i]=PI[L[i+1]^L[i+T8]];
+    const K=new Uint16Array(64);for(let i=0;i<64;i++)K[i]=L[2*i]|(L[2*i+1]<<8);
+    const ror=(x,s)=>((x>>s)|(x<<(16-s)))&0xffff;
+    function dec(blk){const R=[0,1,2,3].map(i=>blk[2*i]|(blk[2*i+1]<<8));let j=63;
+      const mix=()=>{for(let i=3;i>=0;i--){R[i]=ror(R[i],[1,2,3,5][i]);R[i]=(R[i]-K[j--]-(R[(i+3)&3]&R[(i+2)&3])-((~R[(i+3)&3])&R[(i+1)&3]))&0xffff;}};
+      const mash=()=>{for(let i=3;i>=0;i--)R[i]=(R[i]-K[R[(i+3)&3]&63])&0xffff;};
+      for(let r=0;r<5;r++)mix();mash();for(let r=0;r<6;r++)mix();mash();for(let r=0;r<5;r++)mix();
+      const o=new Uint8Array(8);R.forEach((v,i)=>{o[2*i]=v&255;o[2*i+1]=v>>8;});return o;}
+    const out=new Uint8Array(data.length);let prev=iv;
+    for(let i=0;i<data.length;i+=8){const c=data.subarray(i,i+8),b=dec(c);for(let k=0;k<8;k++)out[i+k]=b[k]^prev[k];prev=c;}
+    return out;
+  }
+  const quitarRelleno=d=>{const n=d[d.length-1];if(!n||n>16||n>d.length)throw new Error('clave');for(let i=d.length-n;i<d.length;i++)if(d[i]!==n)throw new Error('clave');return d.subarray(0,d.length-n);};
+  /* ---------- derivación de claves PKCS#12 (RFC 7292, apéndice B, SHA-1) ---------- */
+  async function kdf12(pwdBmp,salt,id,iter,n){
+    const v=64,u=20,D=new Uint8Array(v).fill(id);
+    const rep=x=>{const L=x.length?v*Math.ceil(x.length/v):0,o=new Uint8Array(L);for(let i=0;i<L;i++)o[i]=x[i%x.length];return o;};
+    let I=cat(rep(salt),rep(pwdBmp));const out=[];
+    for(let k=0;k<Math.ceil(n/u);k++){
+      let A=new Uint8Array(await sub().digest('SHA-1',cat(D,I)));for(let r=1;r<iter;r++)A=new Uint8Array(await sub().digest('SHA-1',A));
+      out.push(A);const B=rep(A).subarray(0,v);
+      for(let j=0;j<I.length;j+=v){let c=1;for(let q=v-1;q>=0;q--){c+=I[j+q]+B[q];I[j+q]=c&255;c>>=8;}}
+    }
+    return cat(...out).subarray(0,n);
+  }
+  const bmp=s=>{const o=new Uint8Array((s.length+1)*2);for(let i=0;i<s.length;i++){o[2*i]=s.charCodeAt(i)>>8;o[2*i+1]=s.charCodeAt(i)&255;}return o;};
+  async function descifrar(alg,datos,clave){
+    const id=oid(alg.hijos[0]),pr=alg.hijos[1];
+    if(id==='1.2.840.113549.1.12.1.3'||id==='1.2.840.113549.1.12.1.4'){  // 3DES (3 o 2 claves)
+      const salt=valor(pr.hijos[0]),it=entero(pr.hijos[1]),pw=bmp(clave);
+      const k=await kdf12(pw,salt,1,it,id.endsWith('.3')?24:16),iv=await kdf12(pw,salt,2,it,8);
+      return quitarRelleno(DES.des3cbc(k,iv,datos));}
+    if(id==='1.2.840.113549.1.12.1.6'||id==='1.2.840.113549.1.12.1.5'){  // RC2 40 / 128
+      const salt=valor(pr.hijos[0]),it=entero(pr.hijos[1]),pw=bmp(clave),kl=id.endsWith('.6')?5:16;
+      const k=await kdf12(pw,salt,1,it,kl),iv=await kdf12(pw,salt,2,it,8);
+      return quitarRelleno(rc2cbc(k,kl*8,iv,datos));}
+    if(id==='1.2.840.113549.1.5.13'){  // PBES2
+      const kdf=pr.hijos[0],esq=pr.hijos[1],kp=kdf.hijos[1];
+      if(oid(kdf.hijos[0])!=='1.2.840.113549.1.5.12')throw new Error('formato');
+      const salt=valor(kp.hijos[0]),it=entero(kp.hijos[1]);
+      let hash='SHA-1';kp.hijos.slice(2).forEach(h=>{if(h.tag===0x30){const o=oid(h.hijos[0]);hash={'1.2.840.113549.2.9':'SHA-256','1.2.840.113549.2.10':'SHA-384','1.2.840.113549.2.11':'SHA-512','1.2.840.113549.2.7':'SHA-1'}[o]||hash;}});
+      const eo=oid(esq.hijos[0]),iv=valor(esq.hijos[1]);
+      const aes={'2.16.840.1.101.3.4.1.2':16,'2.16.840.1.101.3.4.1.22':24,'2.16.840.1.101.3.4.1.42':32}[eo];
+      const base=await sub().importKey('raw',new TextEncoder().encode(clave),'PBKDF2',false,['deriveBits']);
+      const kl=aes||24;
+      const kb=new Uint8Array(await sub().deriveBits({name:'PBKDF2',salt,iterations:it,hash},base,kl*8));
+      if(aes){const k=await sub().importKey('raw',kb,'AES-CBC',false,['decrypt']);
+        try{return new Uint8Array(await sub().decrypt({name:'AES-CBC',iv},k,datos));}catch(e){throw new Error('clave');}}
+      if(eo==='1.2.840.113549.3.7')return quitarRelleno(DES.des3cbc(kb,iv,datos));
+      throw new Error('formato');}
+    throw new Error('formato');
+  }
+  /* ---------- certificado X.509 ---------- */
+  function leerCert(der){
+    const c=leer(der),tbs=c.hijos[0],h=tbs.hijos;let i=0;if(h[0].tag===0xa0)i=1;
+    const serial=h[i],issuer=h[i+2],validez=h[i+3],subject=h[i+4],spki=h[i+5];
+    const nombre=n=>{const r={};n.hijos.forEach(set=>set.hijos.forEach(at=>{const o=oid(at.hijos[0]);r[o]=new TextDecoder(at.hijos[1].tag===0x1e?'utf-16be':'utf-8').decode(valor(at.hijos[1]));}));return r;};
+    const fecha=n=>{const s=new TextDecoder().decode(valor(n));const y=n.tag===0x17?(+s.slice(0,2)<50?2000:1900)+ +s.slice(0,2):+s.slice(0,4),o=n.tag===0x17?2:4;
+      return new Date(Date.UTC(y,+s.slice(o,o+2)-1,+s.slice(o+2,o+4),+s.slice(o+4,o+6),+s.slice(o+6,o+8),+s.slice(o+8,o+10)||0));};
+    const sj=nombre(subject),is=nombre(issuer);
+    // módulo RSA de la clave pública
+    let modulo=null;try{const bs=valor(spki.hijos[1]),rsa=leer(bs.subarray(1));let m=valor(rsa.hijos[0]);while(m[0]===0)m=m.subarray(1);modulo=m;}catch(e){}
+    // usos de la clave y si es una autoridad (CA)
+    let usos=null,esCA=false;const ext=h.find(x=>x.tag===0xa3);
+    if(ext)ext.hijos[0].hijos.forEach(e=>{const o=oid(e.hijos[0]),v=leer(valor(e.hijos[e.hijos.length-1]));
+      if(o==='2.5.29.15'){const b=valor(v);usos=b[1]||0;}
+      if(o==='2.5.29.19'&&v.hijos&&v.hijos[0]&&v.hijos[0].tag===0x01)esCA=valor(v.hijos[0])[0]!==0;});
+    return {der,serialDer:crudo(serial),issuerDer:crudo(issuer),titular:sj['2.5.4.3']||sj['2.5.4.10']||'',cedula:sj['2.5.4.5']||'',emisor:is['2.5.4.3']||is['2.5.4.10']||'',
+      desde:fecha(validez.hijos[0]),hasta:fecha(validez.hijos[1]),modulo,usos,esCA};
+  }
+  /* ---------- abrir el .p12 ---------- */
+  async function abrirP12(bytes,clave){
+    bytes=u8(bytes);
+    let pfx;try{pfx=leer(bytes);}catch(e){throw new Error('formato');}
+    const auth=pfx.hijos[1];if(oid(auth.hijos[0])!=='1.2.840.113549.1.7.1')throw new Error('formato');
+    const seguros=leer(octetos(auth.hijos[1].hijos[0]));
+    const certs=[],claves=[];
+    async function bolsas(sc){
+      for(const bag of leer(sc).hijos){
+        const tipo=oid(bag.hijos[0]),v=bag.hijos[1].hijos[0];
+        let lid=null;if(bag.hijos[2])bag.hijos[2].hijos.forEach(a=>{if(oid(a.hijos[0])==='1.2.840.113549.1.9.21')lid=hex(valor(a.hijos[1].hijos[0]));});
+        if(tipo==='1.2.840.113549.1.12.10.1.3'&&oid(v.hijos[0])==='1.2.840.113549.1.9.22.1')certs.push({lid,der:octetos(v.hijos[1].hijos[0]).slice()});
+        else if(tipo==='1.2.840.113549.1.12.10.1.2')claves.push({lid,pkcs8:await descifrar(v.hijos[0],octetos(v.hijos[1]),clave)});
+        else if(tipo==='1.2.840.113549.1.12.10.1.1')claves.push({lid,pkcs8:crudo(v).slice()});
+      }
+    }
+    try{
+      for(const ci of seguros.hijos){
+        const t=oid(ci.hijos[0]);
+        if(t==='1.2.840.113549.1.7.1')await bolsas(octetos(ci.hijos[1].hijos[0]));
+        else if(t==='1.2.840.113549.1.7.6'){const eci=ci.hijos[1].hijos[0].hijos[1];await bolsas(await descifrar(eci.hijos[1],octetos(eci.hijos[2]),clave));}
+      }
+    }catch(e){const er=new Error(e.message==='formato'?'formato':'clave');throw er;}
+    if(!claves.length)throw new Error('sinclave');
+    const cs=certs.map(c=>({...leerCert(c.der),lid:c.lid}));
+    // se elige la pareja clave–certificado del firmante (no la de una autoridad), preferentemente con uso de firma
+    let elegido=null;
+    for(const k of claves){
+      let key;try{key=await sub().importKey('pkcs8',k.pkcs8,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},true,['sign']);}catch(e){continue;}
+      const jwk=await sub().exportKey('jwk',key),n=Uint8Array.from(atob(jwk.n.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-jwk.n.length%4)%4)),ch=>ch.charCodeAt(0));
+      const coinc=cs.filter(c=>(k.lid&&c.lid===k.lid)||(c.modulo&&igual(c.modulo,n))),noCA=coinc.filter(c=>!c.esCA),cands=noCA.length?noCA:coinc;
+      const c=cands.find(c=>c.usos==null||(c.usos&0xc0))||cands[0];
+      if(c&&(!elegido||(c.usos&0xc0&&!(elegido.cert.usos&0xc0))))elegido={key,cert:c};
+    }
+    if(!elegido)throw new Error('sinclave');
+    return {clave:elegido.key,cert:elegido.cert,cadena:cs.filter(c=>c!==elegido.cert),titular:elegido.cert.titular,cedula:elegido.cert.cedula,emisor:elegido.cert.emisor,desde:elegido.cert.desde,hasta:elegido.cert.hasta};
+  }
+  /* ---------- firma CMS separada (PKCS#7) ---------- */
+  async function firmaCMS(datos,f){
+    const s=sub(),dig=new Uint8Array(await s.digest('SHA-256',datos)),certHash=new Uint8Array(await s.digest('SHA-256',f.cert.der));
+    const sha256=SEQ(OID('2.16.840.1.101.3.4.2.1'),NULL());
+    const atr=[
+      SEQ(OID('1.2.840.113549.1.9.3'),SET(OID('1.2.840.113549.1.7.1'))),
+      SEQ(OID('1.2.840.113549.1.9.5'),SET(UTCTIME(new Date()))),
+      SEQ(OID('1.2.840.113549.1.9.4'),SET(OCT(dig))),
+      SEQ(OID('1.2.840.113549.1.9.16.2.47'),SET(SEQ(SEQ(SEQ(OCT(certHash))))))   // signingCertificateV2
+    ].sort((a,b)=>{for(let i=0;i<Math.min(a.length,b.length);i++)if(a[i]!==b[i])return a[i]-b[i];return a.length-b.length;});
+    const firmados=SET(...atr);
+    const sig=new Uint8Array(await s.sign('RSASSA-PKCS1-v1_5',f.clave,firmados));
+    const firmadosImpl=cat(Uint8Array.of(0xa0),firmados.subarray(1));
+    const signer=SEQ(INT(1),SEQ(f.cert.issuerDer,f.cert.serialDer),sha256,firmadosImpl,SEQ(OID('1.2.840.113549.1.1.1'),NULL()),OCT(sig));
+    const certs=cat(Uint8Array.of(0xa0),largo([f.cert,...f.cadena].reduce((t,c)=>t+c.der.length,0)),...[f.cert,...f.cadena].map(c=>c.der));
+    const sd=SEQ(INT(1),SET(sha256),SEQ(OID('1.2.840.113549.1.7.1')),certs,SET(signer));
+    return SEQ(OID('1.2.840.113549.1.7.2'),CTX(0,sd));
+  }
+  /* ---------- firmar un PDF (requiere pdf-lib) ---------- */
+  async function firmarPDF(pdfBytes,f,op){
+    op=op||{};const L=globalThis.PDFLib;if(!L)throw new Error('lib');
+    const {PDFDocument,PDFName,PDFNumber,PDFHexString,PDFString,StandardFonts,rgb}=L;
+    const doc=await PDFDocument.load(pdfBytes);
+    const pag=doc.getPages()[0],{width,height}=pag.getSize(),mm=2.83465;
+    const ahora=new Date(),fechaTxt=ahora.toLocaleString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    // sello visible
+    const fb=await doc.embedFont(StandardFonts.HelveticaBold),fn=await doc.embedFont(StandardFonts.Helvetica);
+    const limpiar=t=>String(t||'').replace(/[^\x20-\x7E -ÿ]/g,'');
+    let w=96*mm,h=17*mm,x=(width-w)/2;
+    let yTop=op.altoMM?height-(op.altoMM+3)*mm:0;if(!op.altoMM||yTop-h<6*mm)yTop=6*mm+h;
+    if(op.qr&&(op.qrs||[]).length){
+      // sello al estilo FirmaEC: el QR ya va dibujado en la receta; aquí se repinta en vectores para que se lea nítido
+      const mtz=op.qr,nq=mtz.length;
+      op.qrs.forEach(r=>{const lado=r.w*mm,px=r.x*mm,py=height-(r.y+r.w)*mm,u=lado/nq;
+        pag.drawRectangle({x:px,y:py,width:lado,height:lado,color:rgb(1,1,1)});
+        for(let yy=0;yy<nq;yy++){let xx=0;while(xx<nq){if(!mtz[yy][xx]){xx++;continue;}let fin=xx;while(fin<nq&&mtz[yy][fin])fin++;
+          pag.drawRectangle({x:px+xx*u,y:py+lado-(yy+1)*u,width:(fin-xx)*u+0.01,height:u+0.01,color:rgb(0,0,0)});xx=fin;}}});
+      const r0=op.qrs[0];x=r0.x*mm;w=r0.w*mm;h=r0.w*mm;yTop=height-r0.y*mm;
+    }else{
+    pag.drawRectangle({x,y:yTop-h,width:w,height:h,color:rgb(1,1,1),borderColor:rgb(0.12,0.31,0.42),borderWidth:0.8,opacity:1});
+    pag.drawText('Firmado electrónicamente por:',{x:x+3*mm,y:yTop-5*mm,size:7,font:fn,color:rgb(0.3,0.36,0.4)});
+    pag.drawText(limpiar(f.titular).slice(0,60),{x:x+3*mm,y:yTop-9.5*mm,size:9,font:fb,color:rgb(0.06,0.17,0.24)});
+    pag.drawText(limpiar(`Fecha: ${fechaTxt}${f.cedula?' · CI '+f.cedula:''} · Validar en FirmaEC`),{x:x+3*mm,y:yTop-14*mm,size:6.5,font:fn,color:rgb(0.3,0.36,0.4)});
+    }
+    // campo de firma
+    const TAM=24000;
+    const br=doc.context.obj([0,PDFName.of('**********'),PDFName.of('**********'),PDFName.of('**********')]);
+    const sigDict=doc.context.obj({Type:'Sig',Filter:'Adobe.PPKLite',SubFilter:'adbe.pkcs7.detached',ByteRange:br,
+      Contents:PDFHexString.of('0'.repeat(TAM*2)),Reason:PDFHexString.fromText(op.razon||'Documento firmado'),M:PDFString.fromDate(ahora),Name:PDFHexString.fromText(f.titular||'')});
+    const sigRef=doc.context.register(sigDict);
+    const widget=doc.context.obj({Type:'Annot',Subtype:'Widget',FT:'Sig',Rect:[x,yTop-h,x+w,yTop],V:sigRef,T:PDFHexString.fromText('Firma1'),F:132,P:pag.ref});
+    const wRef=doc.context.register(widget);
+    const annots=pag.node.lookup(PDFName.of('Annots'));
+    if(annots&&annots.push)annots.push(wRef);else pag.node.set(PDFName.of('Annots'),doc.context.obj([wRef]));
+    doc.catalog.set(PDFName.of('AcroForm'),doc.context.obj({SigFlags:3,Fields:[wRef]}));
+    const b=new Uint8Array(await doc.save({useObjectStreams:false}));
+    // ubicar el espacio reservado
+    const txt=new TextDecoder('latin1').decode(b);
+    const iBr=txt.indexOf('/ByteRange [');const fBr=txt.indexOf(']',iBr);
+    const iC=txt.indexOf('<'+'0'.repeat(TAM*2)+'>');
+    if(iBr<0||iC<0)throw new Error('pdf');
+    const fC=iC+TAM*2+2,rango=[0,iC,fC,b.length-fC];
+    const brTxt=('/ByteRange ['+rango.join(' ')+']').padEnd(fBr-iBr+1,' ');
+    if(brTxt.length!==fBr-iBr+1)throw new Error('pdf');
+    b.set(new TextEncoder().encode(brTxt),iBr);
+    const cms=await firmaCMS(cat(b.subarray(0,iC),b.subarray(fC)),f);
+    if(cms.length>TAM)throw new Error('grande');
+    b.set(new TextEncoder().encode(hex(cms).toUpperCase()),iC+1);
+    return b;
+  }
+  return {abrirP12,firmarPDF,firmaCMS,_leer:leer};
+})();
+
+/* ---------- firma electrónica en la app: el .p12 se guarda SOLO en este equipo (IndexedDB), nunca en la nube ---------- */
+const FE_URLS_PDFLIB=['https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js','https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js','https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js'];
+let fePdfLib=null,feClaveSesion=null,feUltimo=null;
+function cargarPdfLib(){
+  if(window.PDFLib)return Promise.resolve();if(fePdfLib)return fePdfLib;
+  fePdfLib=new Promise((res,rej)=>{let i=0;const sig=()=>{if(i>=FE_URLS_PDFLIB.length){fePdfLib=null;return rej(new Error('lib'));}
+    const sc=document.createElement('script');sc.src=FE_URLS_PDFLIB[i++];sc.onload=()=>window.PDFLib?res():sig();sc.onerror=()=>{sc.remove();sig();};document.head.appendChild(sc);};sig();});
+  return fePdfLib;
+}
+const feClaveBD=()=>'p12:'+(correoActual()||'local');
+function feDB(){return new Promise((res,rej)=>{const q=indexedDB.open('mediks-firma',1);q.onupgradeneeded=()=>q.result.createObjectStore('p12');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+async function feOp(modo,fn){const db=await feDB();return new Promise((res,rej)=>{const t=db.transaction('p12',modo),st=t.objectStore('p12'),q=fn(st);t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);});}
+const feLeer=()=>feOp('readonly',st=>st.get(feClaveBD()));
+const feGuardar=v=>feOp('readwrite',st=>st.put(v,feClaveBD()));
+const feBorrar=()=>feOp('readwrite',st=>st.delete(feClaveBD()));
+function textoErrorFirma(e){const m=e&&e.message;
+  return m==='clave'?'La clave no es correcta.':m==='formato'?'El archivo no parece una firma electrónica .p12 válida.':m==='sinclave'?'El archivo no contiene la clave para firmar.'
+    :m==='lib'?'No se pudo cargar el firmador: revisa tu conexión a internet.':m==='grande'?'La firma es demasiado grande para este documento.':'No se pudo firmar ('+(m||'error')+').';}
+async function pintarEstadoFirmaE(){
+  const el=document.getElementById('g_feEstado');if(!el)return;
+  let fe=null;try{fe=await feLeer();}catch(e){}
+  if(fe){const vencida=fe.hasta&&new Date(fe.hasta)<new Date();
+    el.innerHTML=`<div style="margin-bottom:6px">✓ Firma de <b>${esc(fe.titular||'')}</b>${fe.emisor?' · '+esc(fe.emisor):''}<br>
+      <span style="color:${vencida?'var(--alerta)':'inherit'}">${vencida?'Venció':'Válida hasta'} el ${fe.hasta?fechaCorta(String(fe.hasta).slice(0,10)):'—'}</span> · guardada solo en este equipo</div>
+      <button class="btn chico" type="button" id="g_feQuitar">Quitar de este equipo</button>`;
+    $('#g_feQuitar').onclick=async()=>{if(!confirm('¿Quitar la firma electrónica de este equipo? Tu archivo .p12 original no se borra.'))return;await feBorrar();feClaveSesion=null;pintarEstadoFirmaE();};
+  }else{
+    el.innerHTML=`<p class="mini" style="margin:0 0 6px">Si tienes firma electrónica (archivo .p12), súbela para firmar tus recetas en PDF. Se guarda solo en este equipo: no se sube a la nube. Si no tienes, imprime y firma a mano como siempre.</p>
+      <label class="subir" style="padding:10px 14px;display:inline-block">Subir firma electrónica (.p12)<input type="file" id="g_feFile" accept=".p12,.pfx,application/x-pkcs12"></label>
+      <div id="g_feClaveBox" style="display:none;margin-top:8px"><label class="campo"><span>Clave de tu firma electrónica</span><input type="password" id="g_feClave" autocomplete="off"></label>
+      <button class="btn chico primario" type="button" id="g_feOk">Guardar firma</button> <span class="mini" id="g_feMsg"></span></div>`;
+    let archivo=null;
+    $('#g_feFile').onchange=e=>{archivo=e.target.files[0];if(archivo){$('#g_feClaveBox').style.display='';$('#g_feClave').focus();}};
+    $('#g_feOk').onclick=async()=>{const m=$('#g_feMsg');if(!archivo)return;m.style.color='';m.textContent='Revisando…';
+      try{const bytes=await archivo.arrayBuffer(),info=await FE.abrirP12(bytes,$('#g_feClave').value);
+        if(info.hasta<new Date())throw new Error('vencida');
+        await feGuardar({bytes,nombre:archivo.name,titular:info.titular,cedula:info.cedula,emisor:info.emisor,hasta:info.hasta.toISOString(),guardado:new Date().toISOString()});
+        feClaveSesion=null;avisar('Firma electrónica guardada en este equipo');pintarEstadoFirmaE();}
+      catch(e){m.style.color='var(--alerta)';m.textContent=e&&e.message==='vencida'?'Esta firma ya está vencida.':textoErrorFirma(e);}};
+  }
+}
+function pedirClaveFirma(fe){return new Promise(res=>{
+  let listo=false;
+  abrirModal('Firmar electrónicamente',`<p class="mini" style="margin-top:0">Firma de <b>${esc(fe.titular||'')}</b></p>
+    <label class="campo"><span>Clave de tu firma electrónica</span><input type="password" id="fe_clave" autocomplete="off"></label>
+    <label class="chk"><input type="checkbox" id="fe_recordar" checked> Recordarla mientras la app esté abierta</label>
+    <p class="mini" id="fe_msg" style="color:var(--alerta);min-height:16px"></p>`,()=>{
+      const v=$('#fe_clave').value;if(!v){$('#fe_msg').textContent='Escribe la clave';return false;}
+      listo=true;res({clave:v,recordar:$('#fe_recordar').checked});});
+  const m=$('#modal'),alCerrar=()=>{m.removeEventListener('close',alCerrar);if(!listo)res(null);};m.addEventListener('close',alCerrar);
+  setTimeout(()=>{const i=document.getElementById('fe_clave');if(i){i.focus();i.onkeydown=e=>{if(e.key==='Enter')$('#mOk').click();};}},50);
+});}
+/* sello visible al estilo FirmaEC: QR + «Validar únicamente en FirmaEC. Firmado electrónicamente por: NOMBRE» */
+function selloFirmaE(info,razon){
+  const ahora=new Date(),z=-ahora.getTimezoneOffset(),dos=n=>String(Math.floor(Math.abs(n))).padStart(2,'0');
+  const iso=new Date(ahora.getTime()+z*60000).toISOString().slice(0,23)+(z>=0?'+':'-')+dos(z/60)+':'+dos(z%60);
+  const titular=String(info.titular||'').toUpperCase().trim(),pal=titular.split(/\s+/).filter(Boolean),corte=Math.ceil(pal.length/2);
+  const ciudad=(datos.config&&datos.config.ciudad)||'';
+  const texto=`FIRMADO POR: ${titular}\nRAZON: ${razon||''}\nLOCALIZACION: ${ciudad}\nFECHA: ${iso}\nVALIDAR CON: www.firmadigital.gob.ec`;
+  return {titular,lineas:pal.length>1?[pal.slice(0,corte).join(' '),pal.slice(corte).join(' ')]:[titular],texto,qr:QR.generar(texto)};
+}
+function qrSVG(m,lado){const n=m.length;let d='';m.forEach((f,y)=>f.forEach((c,x)=>{if(c)d+=`M${x} ${y}h1v1h-1z`;}));
+  return `<svg width="${lado}" height="${lado}" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" style="display:block"><rect width="${n}" height="${n}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;}
+function selloFirmaEHTML(s){
+  return `<div class="sello-fe" style="display:flex;align-items:center;gap:6px;margin:2px 0 4px;color:#000">
+    <div class="qr-fe" style="width:84px;height:84px;flex:none">${qrSVG(s.qr,84)}</div>
+    <div style="font-family:'Courier New',Courier,monospace;line-height:1.2">
+      <div style="font-size:8.5px">Validar únicamente en FirmaEC.</div>
+      <div style="font-size:8.5px">Firmado electrónicamente por:</div>
+      <div style="font-size:13px;font-weight:700;line-height:1.1">${s.lineas.map(esc).join('<br>')}</div></div></div>`;
+}
+async function firmarRecetaElectronica(id){
+  const p=pac(selId),r=p.recetas.find(x=>x.id===id);if(!r)return;
+  if(!confirmarAlertasReceta(p,r))return;
+  let fe=null;try{fe=await feLeer();}catch(e){}
+  if(!fe){
+    abrirModal('Firma electrónica',`<p style="margin-top:0">Para firmar electrónicamente, sube primero tu firma (.p12) en <b>Gestión → Consultorio</b>. Se guarda solo en este equipo.</p>
+      <p class="mini">Si no tienes firma electrónica, usa «Guardar e imprimir» y firma a mano.</p>
+      <button class="btn primario" type="button" id="fe_ir">Ir a Consultorio</button>`,null);
+    $('#fe_ir').onclick=()=>{$('#modal').close();verConfig();};return;}
+  if(fe.hasta&&new Date(fe.hasta)<new Date()){avisar('Tu firma electrónica está vencida. Renuévala y súbela de nuevo.');return;}
+  let clave=feClaveSesion,recordar=true;
+  if(!clave){const c=await pedirClaveFirma(fe);if(!c)return;clave=c.clave;recordar=c.recordar;}
+  avisar('Firmando la receta…');
+  try{
+    await cargarPdfLib();
+    const info=await FE.abrirP12(fe.bytes,clave);
+    if(recordar)feClaveSesion=clave;
+    const sello=selloFirmaE(info,'Receta médica');
+    const res=await generarPDFReceta(id,sello);
+    const firmado=await FE.firmarPDF(new Uint8Array(await res.blob.arrayBuffer()),info,{altoMM:res.altoMM,razon:'Receta médica',qr:sello.qr,qrs:res.qrs});
+    const nombre=res.nombreArchivo.replace(/\.pdf$/,'-firmada.pdf');
+    feUltimo={bytes:firmado,nombre};
+    r.firmaElectronica={fecha:new Date().toISOString(),firmante:info.titular};guardar();
+    mostrarRecetaFirmada(p,r,firmado,nombre,info);
+  }catch(e){
+    console.warn(e);if(e&&e.message==='clave')feClaveSesion=null;
+    if($('#modal').open)$('#modal').close();
+    abrirModal('No se pudo firmar',`<p style="margin-top:0">${esc(textoErrorFirma(e))}</p>`,null);
+  }
+}
+function mostrarRecetaFirmada(p,r,bytes,nombre,info){
+  const blob=new Blob([bytes],{type:'application/pdf'}),archivo=new File([blob],nombre,{type:'application/pdf'});
+  const puede=!!(navigator.canShare&&navigator.canShare({files:[archivo]}));
+  if($('#modal').open)$('#modal').close();
+  abrirModal('Receta firmada electrónicamente',`
+    <p style="margin-top:0">✓ Firmada por <b>${esc(info.titular)}</b> el ${new Date(r.firmaElectronica.fecha).toLocaleString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+    <p class="mini">Envía este PDF tal cual: la firma vale en el archivo y se puede verificar en FirmaEC. Si lo imprimes, la hoja impresa ya no cuenta como firmada electrónicamente.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${puede?'<button class="btn primario" type="button" id="fe_compartir">Enviar PDF por WhatsApp</button>':'<button class="btn primario" type="button" id="fe_wa">Abrir chat de WhatsApp</button>'}
+      <button class="btn" type="button" id="fe_desc">Descargar PDF firmado</button></div>
+    <p class="mini" style="margin:8px 0 0">${puede?'Elige WhatsApp y luego el chat del paciente.':'En computadora: descarga el PDF y arrástralo al chat de WhatsApp (o usa el clip 📎 → Documento).'}</p>`,null);
+  $('#fe_desc').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombre;a.click();};
+  const bc=document.getElementById('fe_compartir');
+  if(bc)bc.onclick=async()=>{try{await navigator.share({files:[archivo],title:'Receta médica firmada'});}catch(e){if(e.name!=='AbortError')avisar('No se pudo abrir el menú de compartir; usa «Descargar PDF firmado».');}};
+  const bw=document.getElementById('fe_wa');
+  if(bw)bw.onclick=()=>{const tel=numeroWhatsappPaciente(p);if(tel)window.open(`https://wa.me/${tel}?text=${encodeURIComponent('Hola '+(p.nombre||'')+', le envío su receta firmada electrónicamente.')}`,'_blank');};
+}
+
+/* ---------- código QR (modo byte, corrección M, versiones 1–20) — sin librerías externas ---------- */
+const QR=(()=>{
+  const ECC=[-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26];
+  const BLQ=[-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16];
+  const mul=(x,y)=>{let z=0;for(let i=7;i>=0;i--){z=(z<<1)^((z>>>7)*0x11D);z^=((y>>>i)&1)*x;}return z;};
+  const divisor=d=>{const r=new Array(d).fill(0);r[d-1]=1;let root=1;
+    for(let i=0;i<d;i++){for(let j=0;j<d;j++){r[j]=mul(r[j],root);if(j+1<d)r[j]^=r[j+1];}root=mul(root,2);}return r;};
+  const resto=(dat,div)=>{const r=div.map(()=>0);for(const b of dat){const f=b^r.shift();r.push(0);div.forEach((c,i)=>r[i]^=mul(c,f));}return r;};
+  const crudos=v=>{let r=(16*v+128)*v+64;if(v>=2){const n=Math.floor(v/7)+2;r-=(25*n-10)*n-55;if(v>=7)r-=36;}return r;};
+  const datosCap=v=>Math.floor(crudos(v)/8)-ECC[v]*BLQ[v];
+  const alin=v=>{if(v===1)return [];const n=Math.floor(v/7)+2,tam=v*4+17,paso=Math.ceil((v*4+4)/(n*2-2))*2,r=[6];
+    for(let p=tam-7;r.length<n;p-=paso)r.splice(1,0,p);return r;};
+  function generar(texto){
+    const bytes=Array.from(new TextEncoder().encode(texto));
+    let v=1;for(;v<=20;v++){const bits=4+(v<10?8:16)+bytes.length*8;if(bits<=datosCap(v)*8)break;}
+    if(v>20)throw new Error('qr');
+    const cap=datosCap(v)*8,bb=[];const put=(val,n)=>{for(let i=n-1;i>=0;i--)bb.push((val>>>i)&1);};
+    put(4,4);put(bytes.length,v<10?8:16);bytes.forEach(b=>put(b,8));
+    put(0,Math.min(4,cap-bb.length));put(0,(8-bb.length%8)%8);
+    for(let p=0xEC;bb.length<cap;p^=0xEC^0x11)put(p,8);
+    const dat=[];for(let i=0;i<bb.length;i+=8){let b=0;for(let j=0;j<8;j++)b=(b<<1)|bb[i+j];dat.push(b);}
+    // bloques de corrección intercalados
+    const nb=BLQ[v],le=ECC[v],raw=Math.floor(crudos(v)/8),cortos=nb-raw%nb,lc=Math.floor(raw/nb),dv=divisor(le),bl=[];
+    for(let i=0,k=0;i<nb;i++){const d=dat.slice(k,k+lc-le+(i<cortos?0:1));k+=d.length;const e=resto(d,dv);if(i<cortos)d.push(0);bl.push(d.concat(e));}
+    const fin=[];for(let i=0;i<bl[0].length;i++)bl.forEach((b,j)=>{if(i!==lc-le||j>=cortos)fin.push(b[i]);});
+    // matriz
+    const n=v*4+17,m=[],fx=[];for(let y=0;y<n;y++){m.push(new Array(n).fill(false));fx.push(new Array(n).fill(false));}
+    const set=(x,y,d)=>{m[y][x]=d;fx[y][x]=true;};
+    for(let i=0;i<n;i++){set(6,i,i%2===0);set(i,6,i%2===0);}
+    [[3,3],[n-4,3],[3,n-4]].forEach(([x,y])=>{for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){const d=Math.max(Math.abs(dx),Math.abs(dy)),xx=x+dx,yy=y+dy;
+      if(xx>=0&&xx<n&&yy>=0&&yy<n)set(xx,yy,d!==2&&d!==4);}});
+    const al=alin(v),na=al.length;
+    for(let i=0;i<na;i++)for(let j=0;j<na;j++){if((i===0&&j===0)||(i===0&&j===na-1)||(i===na-1&&j===0))continue;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)set(al[i]+dx,al[j]+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1);}
+    const formato=mask=>{const d=(0<<3)|mask;let r=d;for(let i=0;i<10;i++)r=(r<<1)^((r>>>9)*0x537);const b=((d<<10)|r)^0x5412,g=i=>((b>>>i)&1)===1;
+      for(let i=0;i<=5;i++)set(8,i,g(i));set(8,7,g(6));set(8,8,g(7));set(7,8,g(8));for(let i=9;i<15;i++)set(14-i,8,g(i));
+      for(let i=0;i<8;i++)set(n-1-i,8,g(i));for(let i=8;i<15;i++)set(8,n-15+i,g(i));set(8,n-8,true);};
+    formato(0);
+    if(v>=7){let r=v;for(let i=0;i<12;i++)r=(r<<1)^((r>>>11)*0x1F25);const b=(v<<12)|r;
+      for(let i=0;i<18;i++){const d=((b>>>i)&1)===1,a=n-11+i%3,c=Math.floor(i/3);set(a,c,d);set(c,a,d);}}
+    let i=0;
+    for(let der=n-1;der>=1;der-=2){if(der===6)der=5;
+      for(let vert=0;vert<n;vert++)for(let j=0;j<2;j++){const x=der-j,arriba=((der+1)&2)===0,y=arriba?n-1-vert:vert;
+        if(!fx[y][x]&&i<fin.length*8){m[y][x]=((fin[i>>>3]>>>(7-(i&7)))&1)===1;i++;}}}
+    const MS=[(x,y)=>(x+y)%2===0,(x,y)=>y%2===0,(x,y)=>x%3===0,(x,y)=>(x+y)%3===0,(x,y)=>(Math.floor(x/3)+Math.floor(y/2))%2===0,
+      (x,y)=>x*y%2+x*y%3===0,(x,y)=>(x*y%2+x*y%3)%2===0,(x,y)=>((x+y)%2+x*y%3)%2===0];
+    const aplicar=k=>{for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(!fx[y][x]&&MS[k](x,y))m[y][x]=!m[y][x];};
+    const castigo=()=>{let p=0,osc=0;
+      for(let a=0;a<n;a++){let cx=1,cy=1;for(let b=1;b<n;b++){
+        if(m[a][b]===m[a][b-1]){cx++;if(cx===5)p+=3;else if(cx>5)p++;}else cx=1;
+        if(m[b][a]===m[b-1][a]){cy++;if(cy===5)p+=3;else if(cy>5)p++;}else cy=1;}}
+      for(let y=0;y<n-1;y++)for(let x=0;x<n-1;x++){const c=m[y][x];if(c===m[y][x+1]&&c===m[y+1][x]&&c===m[y+1][x+1])p+=3;}
+      m.forEach(f=>f.forEach(c=>{if(c)osc++;}));p+=Math.floor(Math.abs(osc*20-n*n*10)/(n*n))*10;return p;};
+    let mejor=0,menor=Infinity;
+    for(let k=0;k<8;k++){aplicar(k);formato(k);const c=castigo();if(c<menor){menor=c;mejor=k;}aplicar(k);}
+    aplicar(mejor);formato(mejor);
+    return m;
+  }
+  return {generar};
+})();
+const correoActual=()=>((nubeAuth&&nubeAuth.currentUser&&nubeAuth.currentUser.email)||'').toLowerCase();
+
 /* ---------- radiografías ---------- */
 const RX_TIPOS=['Periapical','Bite-wing','Panorámica','Oclusal','Cefalométrica','Foto clínica','Otro'];
 function claveRx(pacienteId,imgId){return `rximg:${pacienteId}:${imgId}`;}
@@ -4252,13 +5417,11 @@ function tabPagos(p,c){
   const abs=[...p.abonos].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
   const cobr=p.tratamientos.filter(t=>Number(t.costo)>0).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
   let bloqueOrto='';
-  if(p.orto&&(Number(p.orto.plan?.cuotaMensual)||0)>0){
-    const cts=p.orto.cuotas||[];
-    const totalPlan=cts.reduce((s,q)=>s+(Number(q.monto)||0),0);
-    const pagadoPlan=cts.filter(q=>q.pagada).reduce((s,q)=>s+(Number(q.monto)||0),0);
-    const saldoOrto=totalPlan-pagadoPlan;
+  const ctaO=p.orto?cuentasOrto(p.orto):null;
+  if(false&&ctaO&&(ctaO.total>0||ctaO.pagado>0)){
+    const totalPlan=ctaO.total,pagadoPlan=ctaO.pagado,saldoOrto=ctaO.pendiente;
     bloqueOrto=`<div class="bloque"><div class="barra-tit"><h3>Plan de ortodoncia</h3>
-      <button class="btn chico der" onclick="pestana='orto';pintarVista();">Ver plan</button></div>
+      <button class="btn chico der" onclick="pestana='orto';ortoSub='cuotas';pintarVista();">Ver pagos</button></div>
       <div class="saldos"><div class="saldo"><b>${usd(totalPlan)}</b><span>Total del plan</span></div>
       <div class="saldo"><b>${usd(pagadoPlan)}</b><span>Pagado</span></div>
       <div class="saldo ${saldoOrto>0.004?'debe':''}"><b>${usd(saldoOrto)}</b><span>${saldoOrto>0.004?'Saldo pendiente':'Al día'}</span></div></div></div>`;
@@ -4270,7 +5433,6 @@ function tabPagos(p,c){
       <div class="saldo"><b>${usd(totalTrat(p))}</b><span>Tratamientos</span></div>
       <div class="saldo"><b>${usd(totalAbon(p))}</b><span>Abonado</span></div>
       <div class="saldo ${d>0.004?'debe':''}"><b>${usd(d)}</b><span>${d>0.004?'Saldo pendiente':'Sin deuda'}</span></div></div>
-    ${bloqueOrto}
     <div class="bloque"><div class="barra-tit"><h3>Costos por tratamiento</h3>
       <span class="der mini">se registran en la pestaña Tratamientos</span></div>
       ${cobr.length?`<table><thead><tr><th>Fecha</th><th>Procedimiento</th><th class="der">Costo</th><th class="der">Abonado</th><th class="der">Saldo</th></tr></thead><tbody>
@@ -4884,7 +6046,7 @@ function bloqueAtencion(){
 function verResumen(){
   selId=null;const meses={};let pend=0,cob=0;
   datos.pacientes.forEach(p=>{pend+=Math.max(0,saldo(p));
-    (p.abonos||[]).forEach(a=>{const m=(a.fecha||'').slice(0,7);if(!m)return;
+    [...(p.abonos||[]),...pagosOrtoPaciente(p)].forEach(a=>{const m=(a.fecha||'').slice(0,7);if(!m)return;
       meses[m]=(meses[m]||0)+(Number(a.monto)||0);cob+=Number(a.monto)||0;});});
   const ord=Object.keys(meses).sort().slice(-12),max=Math.max(...ord.map(m=>meses[m]),1),mAct=hoy().slice(0,7);
   const mesAnt=(()=>{const d=new Date();d.setMonth(d.getMonth()-1);return d.toISOString().slice(0,7);})();
@@ -4928,7 +6090,7 @@ function verResumen(){
   let nuevosPresRango=0,cobradoRango=0;
   datos.pacientes.forEach(p=>{
     (p.presupuestos||[]).forEach(x=>{if(x.fecha>=desde&&x.fecha<=hasta)nuevosPresRango++;});
-    (p.abonos||[]).forEach(a=>{if(a.fecha>=desde&&a.fecha<=hasta)cobradoRango+=Number(a.monto)||0;});
+    [...(p.abonos||[]),...pagosOrtoPaciente(p)].forEach(a=>{if(a.fecha>=desde&&a.fecha<=hasta)cobradoRango+=Number(a.monto)||0;});
   });
 
   $('#vista').innerHTML=`<div class="cabecera"><div><h2>Resumen de actividades</h2>
@@ -5592,6 +6754,7 @@ function verConfig(){
         ${g.firma?'<button class="btn chico" type="button" id="g_firmaQuitar" style="margin-left:8px">Quitar</button>':''}
       </div>
     </div>
+    <div class="bloque" style="margin:10px 0 12px;padding:12px 14px"><p style="margin:0 0 6px;font-weight:600">Firma electrónica (archivo .p12)</p><div id="g_feEstado" class="mini">Revisando…</div></div>
     <div class="grid">
       <label class="campo"><span>Agenda — hora de inicio</span><input type="time" id="g_hini" value="${esc(g.horaInicio||'08:00')}"></label>
       <label class="campo"><span>Agenda — hora de fin</span><input type="time" id="g_hfin" value="${esc(g.horaFin||'19:00')}"></label>
@@ -5616,6 +6779,7 @@ function verConfig(){
   if(btnQuitarFirma)btnQuitarFirma.onclick=()=>{
     delete datos.config.firma;guardar();$('#modal').close();verConfig();
   };
+  pintarEstadoFirmaE();
 }
 
 /* ---------- impresión ---------- */
@@ -6352,10 +7516,10 @@ function datosReporte(m){
       const v=Number(a.monto)||0;R.cobrado+=v;sumar(R.porMetodo,a.metodo||'Otro',v);sumar(R.pacCobro,nombre,v);
       R.pagos.push({fecha:a.fecha,paciente:nombre,metodo:a.metodo||'',nota:a.nota||'',monto:v});
     });
-    ((p.orto&&p.orto.cuotas)||[]).forEach(q=>{
-      if(!q.pagada||!enMes(q.fechaPago))return;
-      const v=Number(q.monto)||0;R.cobrado+=v;R.cobradoOrto+=v;sumar(R.porMetodo,q.metodo||'Otro',v);sumar(R.pacCobro,nombre,v);
-      R.pagos.push({fecha:q.fechaPago,paciente:nombre,metodo:q.metodo||'',nota:'Cuota de ortodoncia',monto:v});
+    pagosOrtoPaciente(p).forEach(x=>{
+      if(!enMes(x.fecha))return;
+      const v=Number(x.monto)||0;R.cobrado+=v;R.cobradoOrto+=v;sumar(R.porMetodo,x.metodo||'Otro',v);sumar(R.pacCobro,nombre,v);
+      R.pagos.push({fecha:x.fecha,paciente:nombre,metodo:x.metodo||'',nota:'Ortodoncia · '+x.fila,monto:v});
     });
     (p.tratamientos||[]).forEach(t=>{
       if(!enMes(t.fecha))return;
