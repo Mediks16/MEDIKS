@@ -651,6 +651,25 @@ tr.anulado td{color:#999}tr.anulado td.der{text-decoration:line-through}
   .cuota-fila .cctrl .btn{padding:5px 10px;font-size:12px}
   .cuota-fila .cctrl:has(> .link-reg:only-child){display:none}
 }
+/* odontograma dibujado en la impresión */
+.oi{-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:2px 0 4px}
+.oi-rot{text-align:center;font-size:8px;letter-spacing:.12em;color:#555;margin:2px 0}
+.oi-fila{display:flex;justify-content:center;gap:8px;margin:3px 0}
+.oi-q{display:flex;gap:2px}.oi-q+.oi-q{border-left:1.5px solid #444;padding-left:8px}
+.oi-sep{height:6px}
+.oi-p{width:38px;display:flex;flex-direction:column;align-items:center;border:1px solid #d5dbe0;border-radius:5px;padding:3px 1px 2px}
+.oi-p.con{border-width:1.5px}
+.oi-g{position:relative;display:grid;grid-template-columns:repeat(3,10px);grid-template-rows:repeat(3,10px);border:1.2px solid #8a979c;border-radius:5px;overflow:hidden}
+.oi-g i{display:block;border:.5px solid #b6c1bd}.oi-g i.e{border-color:transparent;background:transparent!important}
+.oi-g.aus{opacity:.65}
+.oi-x{position:absolute;inset:0}.oi-x:before,.oi-x:after{content:"";position:absolute;top:50%;left:50%;width:140%;height:1.5px;background:#5a6670;transform:translate(-50%,-50%) rotate(45deg)}
+.oi-x:after{transform:translate(-50%,-50%) rotate(-45deg)}
+.oi-n{font-size:9px;font-weight:700;margin-top:1px}
+.oi-s{display:flex;gap:1px;flex-wrap:wrap;justify-content:center;min-height:9px}
+.oi-s em,.oi-ley em{font-style:normal;font-size:7px;font-weight:700;line-height:1;padding:1px 2px;border-radius:3px}
+.oi-s em.t{color:#333;border:1px solid #999}
+.oi-ley{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;font-size:8.5px;margin-top:6px}
+.oi-ley span{display:inline-flex;align-items:center;gap:4px}.oi-ley i{width:9px;height:9px;border:.5px solid #888;display:inline-block}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -669,7 +688,6 @@ tr.anulado td{color:#999}tr.anulado td.der{text-decoration:line-through}
     <button class="btn" id="btnResumen">Resumen</button>
     <button class="btn" id="btnPacientes">Pacientes</button>
     <button class="btn" id="btnAgenda">Agenda</button>
-    <button class="btn" id="btnTema" title="Modo claro / oscuro" aria-label="Modo claro u oscuro">☾</button>
     <button class="btn" id="btnNube">Nube: conectando…</button>
     <div class="menu-drop">
       <button class="btn" id="btnGestion">Gestión ▾</button>
@@ -733,13 +751,205 @@ const almacenLocal={
 
 /* Guardado en la nube (Firestore): así se sincroniza entre el computador y el teléfono. */
 let nubeApp=null,nubeAuth=null,nubeDb=null,nubeUid=null,nubeActiva=false;
+/* Mediks: el formato nuevo vive en «mediks-datos-v2». El bloque anterior (odonto-033-v1) NO se modifica nunca:
+   si un equipo con la versión anterior de la app sigue guardando ahí, sus cambios se juntan con los nuevos al abrir. */
+const CLAVE2='mediks-datos-v2';
+const hashTxt=s=>{let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return s.length+':'+(h>>>0).toString(36);};
+let nubeLegacyNuevo=null;   // bloque anterior que cambió después de pasar al formato nuevo (se junta y se marca al guardar)
+/* Organización de los datos en la nube: cada paciente es su propio documento (pac_<id>) y las citas
+   se agrupan por mes (cit_AAAA-MM). Así no hay un tope de ~1 MB para todo el consultorio y solo se
+   vuelve a subir lo que cambió. El documento principal (CLAVE) guarda el resto y la lista de documentos.
+   Si en la nube hay datos del formato anterior (un solo bloque), se leen igual y, antes de convertirlos,
+   se deja una copia intacta en el documento «respaldo_fmt1». */
+let nubeFmt=null,nubeLegacy=null,nubeHash={},nubeEstadoUid=null,nubeCola=Promise.resolve();
+/* Sello de versión por documento: cada paciente o mes de citas lleva un sello (s) que cambia cada vez que se
+   sube, y el documento principal guarda la lista de sellos (vers). Este dispositivo guarda una copia de cada
+   documento con su sello (IndexedDB); al abrir la app solo baja de la nube lo que tenga un sello distinto.
+   Si el documento principal no trae la lista (versiones anteriores de la app), se baja todo como antes. */
+let nubeSellos={},nubeVersOk=false;
+const nubeSello=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const nubeCache={
+  abrir(){
+    if(this.p)return this.p;
+    this.p=new Promise(res=>{
+      try{const r=indexedDB.open('mediks-nube',1);
+        r.onupgradeneeded=()=>{try{r.result.createObjectStore('docs');}catch(e){}};
+        r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);r.onblocked=()=>res(null);
+      }catch(e){res(null);}
+      setTimeout(()=>res(null),4000);
+    });
+    return this.p;
+  },
+  async leer(u){
+    const db=await this.abrir();if(!db)return {};
+    return new Promise(res=>{
+      try{const out={},pre=u+'|';
+        const rq=db.transaction('docs','readonly').objectStore('docs').openCursor(IDBKeyRange.bound(pre,pre+'￿'));
+        rq.onsuccess=()=>{const c=rq.result;if(c){out[String(c.key).slice(pre.length)]=c.value;c.continue();}else res(out);};
+        rq.onerror=()=>res({});
+      }catch(e){res({});}
+      setTimeout(()=>res({}),5000);
+    });
+  },
+  async poner(u,entradas,quitar){
+    const db=await this.abrir();if(!db)return;
+    try{const st=db.transaction('docs','readwrite').objectStore('docs');
+      Object.keys(entradas||{}).forEach(id=>st.put(entradas[id],u+'|'+id));
+      (quitar||[]).forEach(id=>st.delete(u+'|'+id));
+    }catch(e){}
+  }
+};
+const nubeKv=()=>nubeDb.collection('consultorios').doc(nubeUid).collection('kv');
+const nubeIdSeguro=s=>String(s).replace(/[\/\s]/g,'_').slice(0,200);
+function nubeSerie(fn){
+  const r=nubeCola.then(fn,fn);
+  nubeCola=r.catch(()=>{});
+  return r;
+}
+function nubeReiniciarSiOtraCuenta(){
+  if(nubeEstadoUid!==nubeUid){nubeFmt=null;nubeLegacy=null;nubeHash={};nubeSellos={};nubeVersOk=false;nubeEstadoUid=nubeUid;}
+}
+let nubeLecturas=0,nubeCargas=0;   // documentos bajados desde que se abrió la app (sirve para las pruebas)
+async function nubeLeerDatos(){
+  nubeReiniciarSiOtraCuenta();
+  const u=nubeUid;
+  const m=await nubeKv().doc(CLAVE2).get();
+  if(!m.exists){
+    const vieja=await nubeKv().doc(CLAVE).get();   // todavía en el formato anterior: un solo bloque
+    if(!vieja.exists){nubeFmt=null;nubeLegacy=null;nubeHash={};nubeSellos={};nubeVersOk=false;const e=new Error('no existe');e.code='NOT_FOUND';throw e;}
+    nubeFmt=1;nubeLegacy=vieja.data().v;nubeHash={};nubeSellos={};nubeVersOk=false;return nubeLegacy;
+  }
+  const d=m.data();
+  const ids=Array.isArray(d.docs)?d.docs:[];
+  const vers=(d.vers&&typeof d.vers==='object')?d.vers:null;
+  const cache=vers?await nubeCache.leer(u):{};
+  const partes=new Array(ids.length),hash={},sellos={},aBajar=[],guardarCache={};
+  ids.forEach((id,i)=>{
+    const c=cache[id];
+    if(vers&&vers[id]&&c&&c.s===vers[id]&&typeof c.v==='string'){
+      try{partes[i]=[id,JSON.parse(c.v)];hash[id]=c.v;sellos[id]=c.s;return;}catch(e){}
+    }
+    aBajar.push(i);
+  });
+  nubeLecturas+=aBajar.length;nubeCargas++;
+  for(let k=0;k<aBajar.length;k+=20){
+    await Promise.all(aBajar.slice(k,k+20).map(async i=>{
+      const id=ids[i];
+      const s=await nubeKv().doc(id).get();
+      if(!s.exists)throw new Error('falta '+id);   // no se arma una versión incompleta: se sigue con la copia local
+      const dd=s.data(),txt=dd.v;
+      hash[id]=txt;partes[i]=[id,JSON.parse(txt)];
+      if(dd.s){sellos[id]=dd.s;guardarCache[id]={s:dd.s,v:txt};}
+    }));
+  }
+  const out=JSON.parse(d.v||'{}');
+  out.pacientes=[];out.citas=[];
+  partes.forEach(([id,val])=>{
+    if(id.indexOf('pac_')===0)out.pacientes.push(val);
+    else if(id.indexOf('cit_')===0&&Array.isArray(val))out.citas.push(...val);
+  });
+  nubeFmt=2;nubeLegacy=null;nubeHash=hash;nubeSellos=sellos;nubeVersOk=!!vers;
+  const sobranCache=Object.keys(cache).filter(id=>!ids.includes(id));
+  nubeCache.poner(u,guardarCache,sobranCache);
+  // durante el primer mes se revisa si un equipo con la versión anterior guardó algo en el bloque viejo: se junta sin perder nada
+  nubeLegacyNuevo=null;
+  if(d.legacyHash&&Date.now()-(d.migrado||0)<45*86400000){
+    try{
+      const vieja=await nubeKv().doc(CLAVE).get();
+      const vtxt=vieja.exists?vieja.data().v:null;
+      if(vtxt&&hashTxt(vtxt)!==d.legacyHash){
+        const b=await nubeKv().doc('legacy_base').get();
+        const base=b.exists?JSON.parse(b.data().v):{};
+        const unido=unir3(base,out,JSON.parse(vtxt));
+        nubeLegacyNuevo=vtxt;
+        setTimeout(()=>avisar('Se juntaron cambios hechos en un equipo con la versión anterior de Mediks'),1500);
+        return JSON.stringify(unido);
+      }
+    }catch(e){console.error(e);}
+  }
+  return JSON.stringify(out);
+}
+async function nubeEscribirDatos(json){
+  nubeReiniciarSiOtraCuenta();
+  const u=nubeUid;
+  if(nubeFmt===null){   // todavía no se sabe qué hay en la nube: se mira antes de escribir
+    try{await nubeLeerDatos();}catch(e){if(!(e&&e.code==='NOT_FOUND'))throw e;}
+  }
+  let marcaLegacy=null;
+  if(nubeFmt===1&&nubeLegacy){   // primera conversión: queda una copia intacta del formato anterior (y el bloque viejo no se toca)
+    await nubeKv().doc('respaldo_fmt1').set({v:nubeLegacy,t:Date.now()});
+    await nubeKv().doc('legacy_base').set({v:nubeLegacy,t:Date.now()});
+    marcaLegacy={legacyHash:hashTxt(nubeLegacy),migrado:Date.now()};
+    nubeLegacy=null;
+  }else if(nubeLegacyNuevo){   // ya se juntó lo del equipo con la versión anterior: queda como nueva base
+    await nubeKv().doc('legacy_base').set({v:nubeLegacyNuevo,t:Date.now()});
+    marcaLegacy={legacyHash:hashTxt(nubeLegacyNuevo)};
+    nubeLegacyNuevo=null;
+  }
+  const obj=JSON.parse(json);
+  const nuevos={};
+  (obj.pacientes||[]).forEach((p,i)=>{
+    let id='pac_'+nubeIdSeguro(p&&p.id!==undefined&&p.id!==null?p.id:'i'+i);
+    if(id in nuevos)id+='_'+i;   // dos pacientes con el mismo id: ninguno se pierde
+    nuevos[id]=JSON.stringify(p);
+  });
+  const meses={};
+  (obj.citas||[]).forEach(c=>{
+    const id='cit_'+nubeIdSeguro(((c&&c.fecha)||'').slice(0,7)||'sin-fecha');
+    (meses[id]=meses[id]||[]).push(c);
+  });
+  Object.keys(meses).sort().forEach(id=>{nuevos[id]=JSON.stringify(meses[id]);});
+  const ids=Object.keys(nuevos);
+  // se sube lo que cambió y, una sola vez, lo que todavía no tiene sello (datos de versiones anteriores)
+  const cambiar=ids.filter(id=>nubeHash[id]!==nuevos[id]||!nubeSellos[id]);
+  const selloNuevo={},paraCache={};
+  for(let i=0;i<cambiar.length;i+=10){
+    const b=nubeDb.batch();
+    cambiar.slice(i,i+10).forEach(id=>{const s=nubeSello();selloNuevo[id]=s;b.set(nubeKv().doc(id),{v:nuevos[id],s});});
+    await b.commit();
+    cambiar.slice(i,i+10).forEach(id=>{nubeHash[id]=nuevos[id];nubeSellos[id]=selloNuevo[id];paraCache[id]={s:selloNuevo[id],v:nuevos[id]};});
+  }
+  const resto={...obj};delete resto.pacientes;delete resto.citas;
+  const sobran=Object.keys(nubeHash).filter(id=>!(id in nuevos));
+  const principal={fmt:2,v:JSON.stringify(resto),docs:ids,t:Date.now(),...(marcaLegacy||{})};
+  if(nubeVersOk){
+    // solo se tocan los sellos propios: si otro equipo subió algo a la vez, sus sellos no se pisan
+    const vers={};
+    cambiar.forEach(id=>{vers[id]=nubeSellos[id];});
+    sobran.forEach(id=>{vers[id]=firebase.firestore.FieldValue.delete();});
+    principal.vers=vers;
+    await nubeKv().doc(CLAVE2).set(principal,{merge:true});
+  }else{
+    const vers={};ids.forEach(id=>{if(nubeSellos[id])vers[id]=nubeSellos[id];});
+    principal.vers=vers;
+    await nubeKv().doc(CLAVE2).set(principal);
+    nubeVersOk=true;
+  }
+  nubeFmt=2;
+  nubeCache.poner(u,paraCache,null);
+  // documentos que ya no forman parte de los datos (paciente o mes de citas eliminado): se retiran al final
+  const habiaPac=sobran.some(id=>id.indexOf('pac_')===0),hayPac=ids.some(id=>id.indexOf('pac_')===0);
+  if(sobran.length&&!(habiaPac&&!hayPac)){   // si de golpe no queda ningún paciente, no se borra nada (por seguridad)
+    try{
+      for(let i=0;i<sobran.length;i+=40){
+        const b=nubeDb.batch();
+        sobran.slice(i,i+40).forEach(id=>b.delete(nubeKv().doc(id)));
+        await b.commit();
+      }
+      sobran.forEach(id=>{delete nubeHash[id];delete nubeSellos[id];});
+      nubeCache.poner(u,null,sobran);
+    }catch(e){console.error(e);}
+  }
+}
 const almacenNube={
   async get(key){
+    if(key===CLAVE)return nubeSerie(async()=>({key,value:await nubeLeerDatos()}));
     const snap=await nubeDb.collection('consultorios').doc(nubeUid).collection('kv').doc(key).get();
     if(!snap.exists){const err=new Error('no existe');err.code='NOT_FOUND';throw err;}
     return {key,value:snap.data().v};
   },
   async set(key,value){
+    if(key===CLAVE)return nubeSerie(async()=>{await nubeEscribirDatos(value);return {key,value};});
     await nubeDb.collection('consultorios').doc(nubeUid).collection('kv').doc(key).set({v:value});
     return {key,value};
   },
@@ -802,7 +1012,7 @@ function guardar(){try{reubicarCarasDerechas();sincronizarInicialAuto();vincular
   }
   copiaAutomatica();
 },350);}
-async function cargar(){try{const r=await almacen.get(CLAVE);if(r&&r.value)datos=JSON.parse(r.value);}catch(e){}
+async function cargar(pre){try{const r=(typeof pre==='string')?{value:pre}:await almacen.get(CLAVE);if(r&&r.value)datos=JSON.parse(r.value);}catch(e){}
   datos.pacientes=datos.pacientes||[];datos.config=datos.config||{};datos.citas=datos.citas||[];
   datos.tareas=datos.tareas||[];datos.inventario=datos.inventario||[];datos.profesionales=datos.profesionales||[];
   datos.gastosProfesionales=datos.gastosProfesionales||[];
@@ -869,14 +1079,15 @@ async function migrarOCargarNube(){
     try{await subirImagenesPendientes();}catch(e){}
     if(versionDatos!==v0)return;   // anotaste algo mientras se juntaba: se junta de nuevo en la próxima vuelta
     datos=unido;
-    await cargar();
+    await cargar(json);
     try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}
     limpiarPendiente(json);
     pintar();avisar('Se juntaron los cambios hechos sin conexión con los de la nube');
     return;
   }
-  await cargar();
+  await cargar(rawNube);   // ya se bajó arriba: no se vuelve a leer la nube
   ultimoSync=rawNube;
+  if(typeof nubeLegacyNuevo!=='undefined'&&nubeLegacyNuevo)guardar();   // se sube lo que se juntó del equipo con la versión anterior
   // copia en este dispositivo: así, sin internet, siguen viéndose los pacientes de la última vez que abriste con conexión
   try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}
   try{await subirImagenesPendientes();}catch(e){}
@@ -1111,7 +1322,7 @@ function esPendienteSegunCodigo(codigo){
 const FDI={adulto:[[18,17,16,15,14,13,12,11],[21,22,23,24,25,26,27,28],[48,47,46,45,44,43,42,41],[31,32,33,34,35,36,37,38]],
   leche:[[55,54,53,52,51],[61,62,63,64,65],[85,84,83,82,81],[71,72,73,74,75]]};
 const IHOS=[['16','17','55'],['11','21','51'],['26','27','65'],['36','37','75'],['31','41','71'],['46','47','85']];
-const TABS_PACIENTE={ficha:'Ficha',hc:'Historia 033',odonto:'Odontograma',trat:'Tratamientos',
+const TABS_PACIENTE={ficha:'Ficha',hc:'Historia clínica',odonto:'Odontograma',trat:'Tratamientos',
   orto:'Ortodoncia',receta:'Receta',fotos:'Fotos',rx:'Radiografías',cons:'Consentimientos',citas:'Citas',pagos:'Pagos'};
 function ordenPestanasActual(){
   const guardado=(datos.config&&datos.config.ordenPestanas)||[];
@@ -1188,10 +1399,10 @@ function pintarVistaInterna(){
     const citasHoyN=(datos.citas||[]).filter(c=>c.fecha===hoy()).length;
     const porCobrar=datos.pacientes.reduce((s,pt)=>s+Math.max(0,saldo(pt)),0);
     v.innerHTML=`<div class="hero-inicio">
-      <h1>${esc((datos.config&&datos.config.establecimiento)||'Historia clínica única de odontología')}</h1>
-      <p>Lleva el formulario 033 del MSP, los consentimientos informados y el control de cobros de cada paciente, todo en un solo lugar.</p>
+      <h1>${esc((datos.config&&datos.config.establecimiento)||'Historia clínica odontológica')}</h1>
+      <p>Lleva la historia clínica, los consentimientos informados y el control de cobros de cada paciente, todo en un solo lugar.</p>
       <div class="hero-tags">
-        <span>Formulario 033 del MSP</span>
+        <span>Historia clínica</span>
         <span>Consentimientos informados</span>
         <span>Control de cobros</span>
       </div>
@@ -1229,7 +1440,7 @@ function pintarVistaInterna(){
           ${p.alergias?`<div class="alergia">Alergias: ${esc(p.alergias)}</div>`:''}</div>
         <div class="spacer"></div>
         ${pestana==='ficha'?'<button class="btn" onclick="abrirWhatsappPaciente()" title="Abrir chat de WhatsApp con este paciente (no necesita estar en tus contactos)">WhatsApp</button>':''}
-        <button class="btn" onclick="imprimir033()">Imprimir 033</button>
+        <button class="btn" onclick="imprimir033()" title="Imprimir la historia clínica">Imprimir</button>
         <button class="btn peligro" onclick="borrarPaciente()">Eliminar</button></div>
         <div id="panelTab"></div>
       </div>
@@ -1761,7 +1972,7 @@ function tabOdonto(p,c){
       ${ESTADO_GRUPOS.map(g=>g.colorInd?`<span><b style="color:${g.colorInd}">●</b>${esc(g.nombreInd)}</span><span><b style="color:${g.colorReal}">●</b>${esc(g.nombreReal)}</span>`:`<span><b style="color:${g.color}">●</b>${esc(g.nombre)}</span>`).join('')}
       <span><b style="color:var(--tinta-suave);border:1.5px solid currentColor;border-radius:50%;width:9px;height:9px;display:inline-block;background:none">&nbsp;</b>Tratamiento pendiente</span>
     </div>
-    <p class="mini" style="margin-top:8px">El color relleno = condición marcada; el aro hueco = tratamiento pendiente. Movilidad (M) 1–3 y recesión (R) 1–4 solo en piezas permanentes. Equivalencia con la simbología oficial MSP disponible al imprimir el formulario 033.</p>`;
+    <p class="mini" style="margin-top:8px">El color relleno = condición marcada; el aro hueco = tratamiento pendiente. Movilidad (M) 1–3 y recesión (R) 1–4 solo en piezas permanentes.</p>`;
   c.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
       <div class="ag-nav">
@@ -2219,7 +2430,7 @@ function imprimirPresupuesto(id){
       </div>${x.notas?`<div class="texto" style="margin-top:8px">${esc(x.notas)}</div>`:''}</section>
     <div class="firma" style="margin-top:46px">
       <div>${esc(p.nombre||'')}<br>Paciente</div>
-      <div>${esc(g.profesional||'')}<br>Odontólogo/a — Cód. MSP ${esc(g.codigo||'')}</div></div>
+      <div>${esc(g.profesional||'')}<br>Odontólogo/a${g.codigo?' — Reg. '+esc(g.codigo):''}</div></div>
     </div>`;
   lanzarImpresion();
 }
@@ -4100,7 +4311,7 @@ function tabReceta(p,c){
           <div class="acciones-evo"><button onclick="editarRecetaId('${r.id}')">Editar / imprimir</button>
           <button onclick="borrarRecetaLista('${r.id}')">Eliminar</button></div></div></div>`;
     }).join(''):'<p class="mini">Este paciente aún no tiene recetas.</p>'}</div>
-    <p class="mini">Según el reglamento del MSP, el nombre genérico (DCI) del medicamento va siempre primero y es obligatorio; el nombre comercial es opcional.</p>`;
+    <p class="mini">El nombre genérico (DCI) del medicamento va siempre primero; el nombre comercial es opcional.</p>`;
 }
 function siguienteNumeroReceta(){
   datos.config=datos.config||{};
@@ -4220,7 +4431,19 @@ const CATALOGO_MEDICAMENTOS={
     {dci:'Cefalexina',conc:'500 mg',forma:'Cápsulas',dosis:'1 cápsula cada 6 horas',via:'Oral',duracion:'7 días',vecesPorDia:4,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
     {dci:'Cefadroxilo',conc:'500 mg',forma:'Cápsulas',dosis:'1 cápsula cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
     {dci:'Cefadroxilo',conc:'250 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
-    {dci:'Eritromicina',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 6 horas',via:'Oral',duracion:'7 días',vecesPorDia:4,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'}
+    {dci:'Eritromicina',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 6 horas',via:'Oral',duracion:'7 días',vecesPorDia:4,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Amoxicilina',conc:'875 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Amoxicilina + Ácido clavulánico',conc:'500/125 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'7 días',vecesPorDia:3,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Azitromicina',conc:'200 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'3 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Claritromicina',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Claritromicina',conc:'250 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Cefuroxima',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Cefalexina',conc:'250 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Clindamicina',conc:'75 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Doxiciclina',conc:'100 mg',forma:'Cápsulas',dosis:'1 cápsula cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Metronidazol',conc:'250 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'7 días',vecesPorDia:3,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Metronidazol',conc:'250 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Espiramicina + Metronidazol',conc:'1 500 000 UI/250 mg',forma:'Tabletas',dosis:'2 tabletas cada 8 horas',via:'Oral',duracion:'7 días',cantidadSugerida:'42 (cuarenta y dos) tabletas'}
   ],
   'Antiinflamatorios y analgésicos':[
     {dci:'Ibuprofeno',conc:'400 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
@@ -4238,7 +4461,37 @@ const CATALOGO_MEDICAMENTOS={
     {dci:'Prednisona',conc:'20 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Meloxicam',conc:'15 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Metamizol sódico',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
-    {dci:'Ácido tranexámico',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'}
+    {dci:'Ácido tranexámico',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ibuprofeno',conc:'800 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ibuprofeno',conc:'200 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'3 a 5 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Diclofenaco sódico',conc:'100 mg',forma:'Tabletas de liberación prolongada',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ketoprofeno',conc:'100 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:2,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Etoricoxib',conc:'90 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'3 días',vecesPorDia:1,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Celecoxib',conc:'200 mg',forma:'Cápsulas',dosis:'1 cápsula cada 12 horas',via:'Oral',duracion:'5 días',vecesPorDia:2,duracionDias:5,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Nimesulida',conc:'100 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'5 días',vecesPorDia:2,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Paracetamol',conc:'1 g',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Tramadol',conc:'50 mg',forma:'Cápsulas',dosis:'1 cápsula cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'cápsula',unidadPlural:'cápsulas'}
+  ],
+  'Antivirales':[
+    {dci:'Aciclovir',conc:'400 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Aciclovir',conc:'5%',forma:'Crema tópica',dosis:'Aplicar en la lesión 5 veces al día',via:'Tópica',duracion:'5 días',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Valaciclovir',conc:'1 g',forma:'Tabletas',dosis:'2 tabletas cada 12 horas (solo 1 día)',via:'Oral',duracion:'1 día',cantidadSugerida:'4 (cuatro) tabletas'}
+  ],
+  'Antifúngicos':[
+    {dci:'Fluconazol',conc:'150 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Miconazol',conc:'2%',forma:'Gel oral',dosis:'Aplicar en la zona afectada 4 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Clotrimazol',conc:'1%',forma:'Crema tópica',dosis:'Aplicar en las comisuras 2 a 3 veces al día',via:'Tópica',duracion:'7 a 14 días',cantidadSugerida:'1 (uno) tubo'}
+  ],
+  'Antihistamínicos':[
+    {dci:'Loratadina',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Cetirizina',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Clorfenamina',conc:'4 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'}
+  ],
+  'Relajantes musculares':[
+    {dci:'Ciclobenzaprina',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas, en la noche',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'}
+  ],
+  'Protección gástrica':[
+    {dci:'Omeprazol',conc:'20 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas, en ayunas',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'}
   ],
   'Otros (tópicos y enjuagues)':[
     {dci:'Clorhexidina',conc:'0.12%',forma:'Enjuague bucal',dosis:'Enjuagar 15 ml por 30 segundos, 2 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) frasco de 120 ml'},
@@ -4249,7 +4502,12 @@ const CATALOGO_MEDICAMENTOS={
     {dci:'Benzocaína',conc:'20%',forma:'Gel tópico',dosis:'Aplicar en la zona afectada antes del procedimiento',via:'Tópica',duracion:'Según necesidad',cantidadSugerida:'1 (uno) tubo'},
     {dci:'Fluoruro de sodio',conc:'0.05%',forma:'Enjuague tópico',dosis:'Enjuagar 10 ml por 1 minuto, 1 vez al día',via:'Tópica (bucal)',duracion:'14 días',cantidadSugerida:'1 (uno) frasco'},
     {dci:'Fluoruro de sodio',conc:'1.23%',forma:'Gel tópico (aplicación en consultorio)',dosis:'Aplicación profesional según indicación',via:'Tópica',duracion:'Según control',cantidadSugerida:'1 (uno) tubo'},
-    {dci:'Povidona yodada',conc:'1%',forma:'Colutorio bucal',dosis:'Enjuagar 10 ml por 30 segundos antes del procedimiento',via:'Tópica (bucal)',duracion:'Según necesidad',cantidadSugerida:'1 (uno) frasco'}
+    {dci:'Povidona yodada',conc:'1%',forma:'Colutorio bucal',dosis:'Enjuagar 10 ml por 30 segundos antes del procedimiento',via:'Tópica (bucal)',duracion:'Según necesidad',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Bencidamina',conc:'0.15%',forma:'Enjuague bucal',dosis:'Enjuagar 15 ml por 30 segundos cada 8 horas',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Clorhexidina',conc:'0.2%',forma:'Gel bucal',dosis:'Aplicar en la zona 2 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Ácido hialurónico',conc:'0.2%',forma:'Gel bucal',dosis:'Aplicar en la zona 3 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Fluoruro de sodio',conc:'1.1% (5000 ppm)',forma:'Pasta dental',dosis:'Cepillar 1 vez al día, en la noche',via:'Tópica (bucal)',duracion:'30 días',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Nitrato de potasio',conc:'5%',forma:'Pasta dental desensibilizante',dosis:'Cepillar 2 veces al día',via:'Tópica (bucal)',duracion:'30 días',cantidadSugerida:'1 (uno) tubo'}
   ]
 };
 const MEDICAMENTOS_FLAT=Object.values(CATALOGO_MEDICAMENTOS).flat();
@@ -4447,7 +4705,7 @@ function imprimirPlanOrto(p){
       </table>${ctaI.sinAsignar>0.004?`<p style="font-size:9px">Incluye ${usd(ctaI.sinAsignar)} pagados sin asignar a una cuota.</p>`:''}</section>`:''}
     <div class="firma" style="margin-top:46px">
       <div>${esc(p.nombre||'')}<br>Paciente</div>
-      <div>${esc(g.profesional||'')}<br>Odontólogo/a — Cód. MSP ${esc(g.codigo||'')}</div></div>
+      <div>${esc(g.profesional||'')}<br>Odontólogo/a${g.codigo?' — Reg. '+esc(g.codigo):''}</div></div>
     </div>`;
   lanzarImpresion();
 }
@@ -6640,7 +6898,7 @@ function aplicarTema(){
     logoImg.src=cfg.logo||LOGO_DEFECTO;logoImg.style.display='inline-block';
   }
   const marca=document.getElementById('marcaTexto');
-  if(marca)marca.innerHTML=cfg.establecimiento?esc(cfg.establecimiento)+'<small>Historia clínica 033</small>':'MEDIKS<small>Centro médico odontológico</small>';
+  if(marca)marca.innerHTML=cfg.establecimiento?esc(cfg.establecimiento)+'<small>Historia clínica</small>':'MEDIKS<small>Centro médico odontológico</small>';
 }
 function comprimirLogo(file,maxLado){
   maxLado=maxLado||200;
@@ -6734,7 +6992,7 @@ function verConfig(){
     <div class="grid">
       <label class="campo"><span>Profesional responsable</span><input type="text" id="g_prof" value="${esc(g.profesional||'')}"></label>
       <label class="campo"><span>Especialidad (para recetas)</span><input type="text" id="g_esp" value="${esc(g.especialidad||'')}" placeholder="Odontología General"></label>
-      <label class="campo"><span>Código MSP / registro</span><input type="text" id="g_cod" value="${esc(g.codigo||'')}"></label>
+      <label class="campo"><span>Registro profesional</span><input type="text" id="g_cod" value="${esc(g.codigo||'')}"></label>
       <label class="campo"><span>RUC</span><input type="text" id="g_ruc" value="${esc(g.ruc||'')}"></label>
       <label class="campo"><span>Teléfono / WhatsApp</span><input type="text" id="g_tel" value="${esc(g.telefono||'')}"></label>
       <label class="campo"><span>Correo</span><input type="email" id="g_email" value="${esc(g.email||'')}"></label>
@@ -6798,6 +7056,32 @@ function encabezadoHoja(p){
       <div><span class="rot">Edad</span>${e??''}</div>
     </div></section>`;
 }
+function odontoImpresionHTML(od){
+  od=od||{};const usados=new Map();
+  const pieza=n=>{
+    const d=od[n]||{},caras=d.caras||{};
+    const ests=codigosEstado(d).map(c=>({...estadoVisualPieza({general:c}),cod:c})).filter(e=>e.color);
+    const aus=ests.some(e=>e.ausente);
+    Object.values(caras).forEach(v=>{if(SIMB_CARA[v])usados.set('c:'+v,{c:SIMB_CARA[v].c,n:SIMB_CARA[v].n,cara:true});});
+    ests.forEach(e=>usados.set('g:'+e.cod,{c:e.color,n:e.nombre,s:e.simbolo,pend:e.pendiente}));
+    const col=k=>caras[k]&&SIMB_CARA[caras[k]]?SIMB_CARA[caras[k]].c:'#fff';
+    const derPac=['1','4','5','8'].includes(String(n).charAt(0)),izq=derPac?'D':'M',der=derPac?'M':'D',sup=esSuperiorPieza(n);
+    const c=k=>`<i style="background:${col(k)}"></i>`,e='<i class="e"></i>';
+    return `<div class="oi-p${ests.length?' con':''}"${ests[0]?` style="border-color:${ests[0].color}"`:''}>
+      <div class="oi-g${aus?' aus':''}">${e}${c(sup?'V':'L')}${e}${c(izq)}${c('O')}${c(der)}${e}${c(sup?'L':'V')}${e}${aus?'<b class="oi-x"></b>':''}</div>
+      <span class="oi-n">${n}</span>
+      <span class="oi-s">${ests.map(x=>`<em style="color:${x.color};${x.pendiente?'border:1px dashed '+x.color:'background:'+x.color+';color:#fff'}">${esc(x.simbolo||'•')}</em>`).join('')}${d.mov?`<em class="t">M${esc(d.mov)}</em>`:''}${d.rec?`<em class="t">R${esc(d.rec)}</em>`:''}</span></div>`;};
+  const fila=(a,b)=>`<div class="oi-fila"><div class="oi-q">${a.map(pieza).join('')}</div><div class="oi-q">${b.map(pieza).join('')}</div></div>`;
+  const A=FDI.adulto,L=FDI.leche;
+  const conDatos=n=>{const d=od[n];return !!(d&&(codigosEstado(d).length||Object.keys(d.caras||{}).length||d.mov||d.rec));};
+  const leche=[].concat(...L).some(conDatos);
+  const cuerpo=`<div class="oi"><div class="oi-rot">SUPERIOR</div>${fila(A[0],A[1])}${leche?fila(L[0],L[1]):''}
+    <div class="oi-sep"></div>${leche?fila(L[2],L[3]):''}${fila(A[2],A[3])}<div class="oi-rot">INFERIOR</div>`;
+  const ley=[...usados.values()];
+  return cuerpo+(ley.length?`<div class="oi-ley">${ley.map(x=>x.cara?`<span><i style="background:${x.c}"></i>${esc(x.n)}</span>`
+      :`<span><em style="${x.pend?'border:1px dashed '+x.c+';color:'+x.c:'background:'+x.c+';color:#fff'}">${esc(x.s||'•')}</em>${esc(x.n)}</span>`).join('')}</div>`
+    :'<div class="oi-ley"><span>Sin hallazgos registrados</span></div>')+'</div>';
+}
 function imprimir033(){
   const p=pac(selId),h=p.hc033||{},I=p.indic||{filas:{}},i=cpo(p),g=datos.config;
   const est=(ESTOMATO.map((n,k)=>h.estomato?.[k]?.x?`${n}: ${h.estomato[k].det||'patología registrada'}`:'').filter(Boolean).join(' · '))||'Sin patología aparente';
@@ -6822,7 +7106,7 @@ function imprimir033(){
       <div><span class="rot">Temperatura</span>${esc(h.temp||'')}</div>
       <div><span class="rot">Frecuencia respiratoria</span>${esc(h.fr||'')}</div></div>`)}
     ${sec(5,'EXAMEN DEL SISTEMA ESTOMATOGNÁTICO',`<div class="texto">${esc(est)}</div>`)}
-    ${sec(6,'ODONTOGRAMA',odo())}
+    ${sec(6,'ODONTOGRAMA',odontoImpresionHTML(p.odontograma))}
     ${sec(7,'INDICADORES DE SALUD BUCAL',`<div class="texto">Enfermedad periodontal: ${esc(I.perio||'—')} · Mal oclusión: ${esc(I.oclusion||'—')} · Fluorosis: ${esc(I.fluorosis||'—')}</div>
       <table><tr><th>Piezas</th><th>Placa</th><th>Cálculo</th><th>Gingivitis</th></tr>
       ${IHOS.map((f,k)=>`<tr><td>${f.join(' · ')}</td><td>${esc(I.filas?.[k]?.placa??'')}</td>
@@ -7194,7 +7478,7 @@ function alertasMedicamento(dci,c){
     macro:/azitromicina|eritromicina|claritromicina/.test(d),
     clinda:/clindamicina/.test(d),
     metro:/metronidazol/.test(d),
-    aine:/ibuprofeno|diclofenaco|naproxeno|ketorolaco|meloxicam|mefenamico|aspirina|acetilsalicilico|ketoprofeno|piroxicam/.test(d),
+    aine:/ibuprofeno|diclofenaco|naproxeno|ketorolaco|meloxicam|mefenamico|aspirina|acetilsalicilico|ketoprofeno|piroxicam|etoricoxib|celecoxib|nimesulida/.test(d),
     metamizol:/metamizol|dipirona/.test(d),
     cortico:/dexametasona|prednisona|prednisolona|betametasona|hidrocortisona|triamcinolona/.test(d),
     anest:/lidocaina|benzocaina|articaina|mepivacaina|bupivacaina|prilocaina/.test(d),
@@ -7750,10 +8034,9 @@ function aplicarModoOscuro(on){
 }
 (function(){
   let on=false;
-  try{const g=localStorage.getItem('mediks-tema');on=g?g==='oscuro':(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);}catch(e){}
+  try{localStorage.removeItem('mediks-tema');}catch(e){}   // sin modo noche: siempre claro
   aplicarModoOscuro(on);
   const b=document.getElementById('btnTema');
-  if(b)b.onclick=()=>{on=!on;aplicarModoOscuro(on);try{localStorage.setItem('mediks-tema',on?'oscuro':'claro');}catch(e){}};
   document.querySelectorAll('#bottomNav [data-bn]').forEach(x=>x.onclick=()=>{const t=document.getElementById(x.dataset.bn);if(t)t.click();});
 })();
 arrancar();
