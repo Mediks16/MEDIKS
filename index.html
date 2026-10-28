@@ -1429,7 +1429,7 @@ function pintarVistaInterna(){
         <div class="pv-datos">
           ${e!==null?`<span>🎂 ${e} años</span>`:''}${p.telefono?`<span>📞 ${esc(p.telefono)}</span>`:''}
           ${p.alergias?`<span class="al">⚠ Alergias: ${esc(p.alergias)}</span>`:''}
-          ${saldo(p)>0.004?`<span class="deu">💲 Saldo ${usd(saldo(p))}</span>`:`<span class="ok">✓ Sin saldo pendiente</span>`}
+          ${saldo(p)>0.004?`<span class="deu">💲 Saldo ${usd(saldo(p))}</span>`:saldo(p)<-0.004?`<span class="ok">💲 A favor ${usd(-saldo(p))}</span>`:`<span class="ok">✓ Sin saldo pendiente</span>`}
         </div>
         <div class="botones">${ordenPestanasActual().map(k=>`<button role="tab" aria-selected="${pestana===k}" data-t="${k}">${TABS_PACIENTE[k]}</button>`).join('')}</div>
       </aside>
@@ -2882,6 +2882,8 @@ function borrarItem(lista,id){const p=pac(selId);
     const t=p.tratamientos.find(x=>x.id===id);if(!t)return;
     const tieneReg=t.odontoAplicado&&t.odontoAplicado.length;
     const pz=[...new Set(tieneReg?t.odontoAplicado.map(e=>e.pieza):(t.lineas||[]).flatMap(l=>claveTratOdonto(l.trat)?piezasDeTexto(l.pieza):[]))];
+    const abSes=(p.abonos||[]).filter(a=>a.tratamientoId===id).reduce((x,a)=>x+(Number(a.monto)||0),0);
+    if(abSes>0.004&&!confirm(`Esta sesión tiene ${usd(abSes)} abonados. Si la eliminas, ese dinero queda a favor del paciente (no se pierde) y podrás asignarlo a otra sesión desde Pagos.\n\n¿Continuar?`))return;
     if(!confirm('¿Eliminar esta sesión?'+(pz.length?`\n\nEl tratamiento volverá a quedar «por hacer» en la${pz.length===1?' pieza':'s piezas'} ${pz.join(', ')} y aparecerá como pendiente en el odontograma.`:'')))return;
     let rev=tieneReg?revertirRegistroOdonto(p,t.odontoAplicado):revertirSesionAntigua(p,t);
     p.tratamientos=p.tratamientos.filter(x=>x.id!==id);
@@ -5665,59 +5667,143 @@ function repartoAbonos(p){
   const ts=[...(p.tratamientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')||(Number(a.sesion)||0)-(Number(b.sesion)||0));
   const ids=new Set(ts.map(t=>t.id)),por={};
   ts.forEach(t=>{por[t.id]=0;});
-  let pool=0;
-  (p.abonos||[]).forEach(a=>{const m=Number(a.monto)||0;if(a.tratamientoId&&ids.has(a.tratamientoId))por[a.tratamientoId]+=m;else pool+=m;});
+  let pool=0,huerfano=0;
+  // pago ligado a una sesión que se eliminó: queda a favor del paciente, no se reparte solo en otras sesiones
+  (p.abonos||[]).forEach(a=>{const m=Number(a.monto)||0;if(a.tratamientoId&&ids.has(a.tratamientoId))por[a.tratamientoId]+=m;else if(a.tratamientoId||a.aFavor)huerfano+=m;else pool+=m;});
   ts.forEach(t=>{const falta=Math.max(0,(Number(t.costo)||0)-por[t.id]);const x=Math.min(falta,pool);por[t.id]+=x;pool-=x;});
-  return {porSesion:por,sobrante:Math.max(0,pool)};
+  return {porSesion:por,sobrante:Math.max(0,pool),huerfano};
+}
+/* ---------- pagos: cada dólar queda en una sesión, a la vista (sin repartos ocultos) ---------- */
+function sesionesConSaldo(p){
+  const rp=repartoAbonos(p);
+  return [...(p.tratamientos||[])].filter(t=>Number(t.costo)>0)
+    .map(t=>({t,saldo:Math.round(Math.max(0,(Number(t.costo)||0)-(rp.porSesion[t.id]||0))*100)/100}))
+    .filter(x=>x.saldo>0.004).sort((a,b)=>(a.t.fecha||'').localeCompare(b.t.fecha||''));
+}
+/* cómo se divide un pago: primero la sesión elegida, luego las más antiguas con saldo; lo que sobra queda a favor */
+function planPago(p,monto,primeraId){
+  let resto=Math.round((Number(monto)||0)*100)/100;const partes=[];
+  const lista=sesionesConSaldo(p);
+  const orden=primeraId?[...lista.filter(x=>x.t.id===primeraId),...lista.filter(x=>x.t.id!==primeraId)]:lista;
+  orden.forEach(x=>{if(resto<=0.004)return;const m=Math.round(Math.min(x.saldo,resto)*100)/100;partes.push({t:x.t,monto:m});resto=Math.round((resto-m)*100)/100;});
+  return {partes,sobra:resto>0.004?resto:0};
+}
+function textoPlanPago(plan){
+  const l=plan.partes.map(x=>`<div>→ ${esc((nombreSesion(x.t)||('Sesión '+(x.t.sesion||''))).split('\n')[0].slice(0,60))} <b>${usd(x.monto)}</b></div>`);
+  if(plan.sobra)l.push(`<div>→ Queda a favor del paciente <b>${usd(plan.sobra)}</b></div>`);
+  return l.join('');
+}
+function guardarPago(p,monto,dp,primeraId){
+  const plan=planPago(p,monto,primeraId),total=Math.round((Number(monto)||0)*100)/100;
+  const grupo=(plan.partes.length+(plan.sobra?1:0))>1?uid():null;
+  const base={fecha:dp.fecha||hoy(),metodo:dp.metodo||'',nota:dp.nota||'',...(grupo?{grupo,total}:{})};
+  p.abonos=p.abonos||[];
+  plan.partes.forEach(x=>p.abonos.push({id:uid(),...base,monto:x.monto,tratamientoId:x.t.id}));
+  if(plan.sobra)p.abonos.push({id:uid(),...base,monto:plan.sobra,tratamientoId:null,aFavor:true});
+  return plan;
+}
+/* ventana única para registrar un pago (desde «Abonar» de una sesión o desde Pagos) */
+function registrarPago(primeraId){
+  const p=pac(selId);if(!p)return;
+  const lista=sesionesConSaldo(p),pendiente=lista.reduce((x,y)=>x+y.saldo,0);
+  const prim=primeraId||(lista[0]&&lista[0].t.id)||'';
+  abrirModal('Registrar pago',`
+    <div class="grid">
+      <label class="campo"><span>¿Cuánto pagó? (USD)</span><input type="number" step="0.01" min="0" id="pg_monto" placeholder="Escribe el monto" inputmode="decimal"></label>
+      <label class="campo"><span>Forma de pago</span><select id="pg_metodo">${['Efectivo','Transferencia','Tarjeta','Otro'].map(m=>`<option>${m}</option>`).join('')}</select></label>
+      <label class="campo"><span>Fecha</span><input type="date" id="pg_fecha" value="${hoy()}"></label>
+    </div>
+    ${pendiente>0.004?`<button type="button" class="btn chico" id="pg_todo" style="margin:-4px 0 10px">Pagó todo lo pendiente (${usd(pendiente)})</button>`:''}
+    ${lista.length?`<label class="campo"><span>Aplicar primero a</span><select id="pg_prim">${lista.map(x=>`<option value="${x.t.id}" ${x.t.id===prim?'selected':''}>${fechaCorta(x.t.fecha)} · ${esc((nombreSesion(x.t)||('Sesión '+(x.t.sesion||''))).split('\n')[0].slice(0,50))} · debe ${usd(x.saldo)}</option>`).join('')}</select></label>`
+      :'<p class="mini">Este paciente no tiene sesiones con saldo: el pago quedará a favor.</p>'}
+    <label class="campo"><span>Nota (opcional)</span><input type="text" id="pg_nota" placeholder="Factura 001, abono corona…"></label>
+    <div class="bloque" style="padding:10px 14px;margin:6px 0 0"><span class="mini">Así se registrará:</span><div id="pg_plan" class="mini" style="color:var(--tinta);line-height:1.6">Escribe el monto.</div></div>`,
+  ()=>{const m=Number($('#pg_monto').value)||0;if(m<=0){avisar('Ingresa un monto mayor a cero');return false;}
+    guardarPago(p,m,{fecha:$('#pg_fecha').value,metodo:$('#pg_metodo').value,nota:$('#pg_nota').value.trim()},(document.getElementById('pg_prim')||{}).value||null);
+    guardar();pintar();avisar('Pago registrado');});
+  const ver=()=>{const m=Number($('#pg_monto').value)||0;$('#pg_plan').innerHTML=m>0?textoPlanPago(planPago(p,m,(document.getElementById('pg_prim')||{}).value||null)):'Escribe el monto.';};
+  $('#pg_monto').oninput=ver;const sp=document.getElementById('pg_prim');if(sp)sp.onchange=ver;
+  const bt=document.getElementById('pg_todo');if(bt)bt.onclick=()=>{$('#pg_monto').value=pendiente.toFixed(2);ver();};
+  setTimeout(()=>{const i=document.getElementById('pg_monto');if(i)i.focus();},50);
+  const ok=$('#mOk');if(ok)ok.textContent='Registrar pago';
+}
+function abonosAFavor(p){return (p.abonos||[]).filter(a=>a.aFavor||(a.tratamientoId&&!(p.tratamientos||[]).some(t=>t.id===a.tratamientoId)));}
+/* lo que el paciente tiene a favor se pasa a las sesiones con saldo, a la vista y solo cuando la persona lo pide */
+function usarAFavor(){
+  const p=pac(selId);if(!p)return;
+  const fav=abonosAFavor(p),tot=fav.reduce((x,y)=>x+(Number(y.monto)||0),0);
+  if(!(tot>0.004)||!sesionesConSaldo(p).length)return;
+  const ids=new Set(fav.map(a=>a.id)),copia={...p,abonos:p.abonos.filter(a=>!ids.has(a.id))};
+  const plan=planPago(copia,tot,null);
+  abrirModal('Usar saldo a favor',`<p>El paciente tiene <b>${usd(tot)}</b> a favor. Se aplicará así:</p><div class="mini" style="color:var(--tinta);line-height:1.6">${textoPlanPago(plan)}</div>`,
+    ()=>{p.abonos=p.abonos.filter(a=>!ids.has(a.id));
+      fav.forEach(a=>{const {id,tratamientoId,aFavor,grupo,total,...resto}=a;guardarPago(p,Number(a.monto)||0,resto,null);});
+      guardar();pintar();avisar('Saldo a favor aplicado');});
+  const ok=$('#mOk');if(ok)ok.textContent='Aplicar';
+}
+function borrarPago(aid){
+  const p=pac(selId),a=(p.abonos||[]).find(x=>x.id===aid);if(!a)return;
+  const grupo=a.grupo?p.abonos.filter(x=>x.grupo===a.grupo):[a];
+  const total=grupo.reduce((x,y)=>x+(Number(y.monto)||0),0);
+  if(!confirm(`¿Eliminar este pago de ${usd(total)}${grupo.length>1?' (repartido en '+grupo.length+' partes)':''}?`))return;
+  const ids=new Set(grupo.map(x=>x.id));p.abonos=p.abonos.filter(x=>!ids.has(x.id));guardar();pintar();avisar('Pago eliminado');
+}
+/* movimientos del paciente (cargos de cada sesión y pagos, cada pago una sola línea aunque se haya repartido) */
+function movimientosCuenta(p){
+  const movs=[];
+  (p.tratamientos||[]).filter(t=>Number(t.costo)>0).forEach(t=>movs.push({f:t.fecha||'',tipo:'cargo',det:(nombreSesion(t)||('Sesión '+(t.sesion||''))).split('\n')[0].slice(0,90),cargo:Number(t.costo)||0,abono:0}));
+  const vistos=new Set();
+  (p.abonos||[]).forEach(a=>{
+    if(a.grupo&&vistos.has(a.grupo))return;
+    const partes=a.grupo?p.abonos.filter(x=>x.grupo===a.grupo):[a];if(a.grupo)vistos.add(a.grupo);
+    const total=partes.reduce((x,y)=>x+(Number(y.monto)||0),0);
+    const destino=partes.map(x=>{const t=x.tratamientoId?(p.tratamientos||[]).find(k=>k.id===x.tratamientoId):null;
+      return {t,monto:Number(x.monto)||0,huerfano:!!(x.tratamientoId&&!t),aFavor:!!x.aFavor,general:!x.tratamientoId&&!x.aFavor};});
+    movs.push({f:a.fecha||'',tipo:'pago',id:a.id,metodo:a.metodo||'',nota:a.nota||'',cargo:0,abono:total,destino,partes:partes.length});
+  });
+  movs.sort((x,y)=>x.f.localeCompare(y.f)||(x.tipo==='cargo'?-1:1)-(y.tipo==='cargo'?-1:1));
+  let acc=0;movs.forEach(m=>{acc=Math.round((acc+m.cargo-m.abono)*100)/100;m.saldo=acc;});
+  return movs;
+}
+function textoDestinoPago(m){
+  return m.destino.map(d=>d.t?`${esc((nombreSesion(d.t)||('Sesión '+(d.t.sesion||''))).split('\n')[0].slice(0,50))}${m.destino.length>1?' '+usd(d.monto):''}`
+    :d.aFavor?`a favor${m.destino.length>1?' '+usd(d.monto):''}`
+    :d.huerfano?'<span style="color:var(--alerta)">la sesión de este pago se eliminó · queda a favor; toca «Editar» para asignarlo</span>'
+    :'pago general (se aplica a las sesiones más antiguas)').join(' · ');
 }
 function tabPagos(p,c){
   p.abonos=p.abonos||[];p.tratamientos=p.tratamientos||[];
-  const d=saldo(p);
-  const rep=repartoAbonos(p);
-  const abs=[...p.abonos].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  const cobr=p.tratamientos.filter(t=>Number(t.costo)>0).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  let bloqueOrto='';
-  const ctaO=p.orto?cuentasOrto(p.orto):null;
-  if(false&&ctaO&&(ctaO.total>0||ctaO.pagado>0)){
-    const totalPlan=ctaO.total,pagadoPlan=ctaO.pagado,saldoOrto=ctaO.pendiente;
-    bloqueOrto=`<div class="bloque"><div class="barra-tit"><h3>Plan de ortodoncia</h3>
-      <button class="btn chico der" onclick="pestana='orto';ortoSub='cuotas';pintarVista();">Ver pagos</button></div>
-      <div class="saldos"><div class="saldo"><b>${usd(totalPlan)}</b><span>Total del plan</span></div>
-      <div class="saldo"><b>${usd(pagadoPlan)}</b><span>Pagado</span></div>
-      <div class="saldo ${saldoOrto>0.004?'debe':''}"><b>${usd(saldoOrto)}</b><span>${saldoOrto>0.004?'Saldo pendiente':'Al día'}</span></div></div></div>`;
-  }
+  const d=saldo(p),rep=repartoAbonos(p),movs=movimientosCuenta(p).reverse();
   c.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <button class="btn chico" onclick="imprimirEstadoCuenta()">Estado de cuenta</button>
-      ${d>0.004?`<button class="btn chico" onclick="abrirWhatsappPaciente(null,'saldo')">Recordar saldo por WhatsApp</button>`:''}</div>
+      <button class="btn primario chico" onclick="registrarPago()">Registrar pago</button>
+      <button class="btn chico" onclick="imprimirEstadoCuenta()">Imprimir estado de cuenta</button>
+      ${d>0.004?`<button class="btn chico" onclick="abrirWhatsappPaciente(null,'saldo')">Recordar saldo por WhatsApp</button>`:''}
+      ${abonosAFavor(p).length&&sesionesConSaldo(p).length?`<button class="btn chico" onclick="usarAFavor()">Usar saldo a favor</button>`:''}</div>
     <div class="saldos">
       <div class="saldo"><b>${usd(totalTrat(p))}</b><span>Tratamientos</span></div>
-      <div class="saldo"><b>${usd(totalAbon(p))}</b><span>Abonado</span></div>
-      <div class="saldo ${d>0.004?'debe':''}"><b>${usd(d)}</b><span>${d>0.004?'Saldo pendiente':'Sin deuda'}</span></div></div>
-    <div class="bloque"><div class="barra-tit"><h3>Costos por tratamiento</h3>
-      <span class="der mini">se registran en la pestaña Tratamientos</span></div>
-      ${cobr.length?`<table><thead><tr><th>Fecha</th><th>Procedimiento</th><th class="der">Costo</th><th class="der">Abonado</th><th class="der">Saldo</th></tr></thead><tbody>
-        ${cobr.map(t=>{const ab=rep.porSesion[t.id]||0,sl=Math.max(0,(Number(t.costo)||0)-ab);return `<tr><td class="num">${fechaCorta(t.fecha)}</td><td>${esc((nombreSesion(t)||(t.sesion?'Sesión '+t.sesion+' (sin descripción)':'Sin descripción')).slice(0,90))}</td>
-          <td class="der">${usd(t.costo)}</td><td class="der">${ab?usd(ab):'—'}</td><td class="der" style="color:${sl>0.004?'var(--alerta)':'inherit'}">${sl>0.004?usd(sl):'$0.00'}</td></tr>`;}).join('')}</tbody></table>
-        ${rep.sobrante>0.004?`<p class="mini" style="margin:6px 0 0">Pagos a favor sin sesión pendiente: ${usd(rep.sobrante)}</p>`:''}`:'<p class="mini">Aún no hay tratamientos con costo.</p>'}</div>
-    <div class="bloque"><div class="barra-tit"><h3>Abonos recibidos</h3>
-      <button class="btn chico der" onclick="editarAbono()">Registrar pago</button></div>
-      ${abs.length?`<table><thead><tr><th>Fecha</th><th>Forma de pago</th><th>Nota / tratamiento</th><th class="der">Monto</th><th></th></tr></thead><tbody>
-        ${abs.map(a=>{
-          const trat=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
-          return `<tr><td class="num">${fechaCorta(a.fecha)}</td><td>${esc(a.metodo||'')}</td>
-          <td>${esc(a.nota||'')}${trat?`<br><span class="mini" style="color:var(--clinico)">↳ ${esc(nombreSesion(trat)||trat.sesion||'tratamiento')}</span>`:'<br><span class="mini">Pago general · se aplica a las sesiones más antiguas con saldo</span>'}</td>
-          <td class="der">${usd(a.monto)}</td><td class="der">
-          <button class="btn chico" onclick="imprimirRecibo('${a.id}')">Recibo</button>
-          <button class="btn chico" onclick="editarAbono('${a.id}')">Editar</button>
-          <button class="btn chico peligro" onclick="borrarItem('abonos','${a.id}')">×</button></td></tr>`;}).join('')}
-        </tbody></table>`:'<p class="mini">Sin pagos registrados.</p>'}</div>`;
+      <div class="saldo"><b>${usd(totalAbon(p))}</b><span>Pagado</span></div>
+      <div class="saldo ${d>0.004?'debe':''}"><b>${usd(Math.abs(d))}</b><span>${d>0.004?'Saldo pendiente':d<-0.004?'A favor del paciente':'Sin deuda'}</span></div></div>
+    ${rep.huerfano>0.004&&p.abonos.some(a=>a.tratamientoId&&!p.tratamientos.some(t=>t.id===a.tratamientoId))?`<p class="mini" style="color:var(--alerta)">Hay pagos de sesiones que se eliminaron: quedan a favor del paciente. Toca «Editar» en ese pago para asignarlo a la sesión correcta.</p>`:''}
+    <div class="bloque"><div class="barra-tit"><h3>Movimientos</h3><span class="der mini">los cobros se registran aquí o con «Abonar» en Tratamientos</span></div>
+      ${movs.length?`<table class="tabla-mov"><thead><tr><th>Fecha</th><th>Detalle</th><th class="der">Cargo</th><th class="der">Pago</th><th class="der">Saldo</th><th></th></tr></thead><tbody>
+        ${movs.map(m=>m.tipo==='cargo'
+          ?`<tr><td class="num">${fechaCorta(m.f)}</td><td>${esc(m.det)}</td><td class="der">${usd(m.cargo)}</td><td></td><td class="der">${usd(m.saldo)}</td><td></td></tr>`
+          :`<tr><td class="num">${fechaCorta(m.f)}</td><td><b>Pago</b>${m.metodo?' ('+esc(m.metodo)+')':''}${m.nota?' · '+esc(m.nota):''}<br><span class="mini" style="color:var(--clinico)">↳ ${textoDestinoPago(m)}</span></td>
+            <td></td><td class="der" style="color:var(--clinico)">${usd(m.abono)}</td><td class="der">${usd(m.saldo)}</td>
+            <td class="der" style="white-space:nowrap"><button class="btn chico" onclick="imprimirRecibo('${m.id}')">Recibo</button>
+            ${m.partes===1?`<button class="btn chico" onclick="editarAbono('${m.id}')">Editar</button>`:''}
+            <button class="btn chico peligro" onclick="borrarPago('${m.id}')">×</button></td></tr>`).join('')}
+        </tbody></table>`:'<p class="mini">Sin movimientos todavía.</p>'}</div>`;
 }
 function editarAbono(id,tratamientoId){
+  if(!id){registrarPago(tratamientoId||null);return;}
   const p=pac(selId),a=p.abonos.find(x=>x.id===id)||{fecha:hoy(),metodo:'Efectivo',tratamientoId:tratamientoId||null};
   const tratLigado=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
   abrirModal(`${id?'Editar':'Registrar'} pago`,`
     ${tratLigado?`<p class="mini" style="margin-top:0">Vinculado al tratamiento: <b>${esc(nombreSesion(tratLigado)||tratLigado.sesion||'')}</b></p>`:''}
+    ${a.tratamientoId&&!tratLigado?'<p class="mini" style="margin-top:0;color:var(--alerta)">La sesión de este pago se eliminó. Elige a qué sesión corresponde.</p>':''}
     <label class="campo"><span>Aplicar a</span><select id="a_trat">
+      ${a.tratamientoId&&!tratLigado?'<option value="__huerfano" selected>Dejar a favor del paciente (sin asignar)</option>':''}
       <option value="">Pago general (se aplica a las sesiones más antiguas con saldo)</option>
       ${(()=>{const rp=repartoAbonos(p);return [...(p.tratamientos||[])].filter(t=>Number(t.costo)>0).sort((x,y)=>(y.fecha||'').localeCompare(x.fecha||'')).map(t=>{
         const sl=Math.max(0,(Number(t.costo)||0)-(rp.porSesion[t.id]||0));
@@ -5730,7 +5816,8 @@ function editarAbono(id,tratamientoId){
         ${['Efectivo','Transferencia','Tarjeta','Otro'].map(m=>`<option ${a.metodo===m?'selected':''}>${m}</option>`).join('')}</select></label>
     </div><label class="campo"><span>Nota</span><input type="text" id="a_nota" value="${esc(a.nota||'')}" placeholder="Abono endodoncia, factura 001…"></label>`,
   ()=>{const d={id:a.id||uid(),fecha:$('#a_fecha').value,monto:Number($('#a_monto').value)||0,
-      metodo:$('#a_metodo').value,nota:$('#a_nota').value.trim(),tratamientoId:($('#a_trat').value||null)};
+      metodo:$('#a_metodo').value,nota:$('#a_nota').value.trim(),tratamientoId:($('#a_trat').value==='__huerfano'?a.tratamientoId:($('#a_trat').value||null))};
+    if(!d.tratamientoId&&$('#a_trat').value===''&&a.aFavor)d.aFavor=true;
     if(d.monto<=0){avisar('Ingresa un monto mayor a cero');return false;}
     const i=p.abonos.findIndex(x=>x.id===d.id);i>=0?p.abonos[i]=d:p.abonos.push(d);
     guardar();pintar();avisar('Pago registrado');});
@@ -7227,7 +7314,7 @@ function ofrecerCobroSesion(pid,tid){
     const m=Number($('#cb_monto').value)||0;
     if(m<=0){avisar('Ingresa un monto mayor a cero');return false;}
     p.abonos=p.abonos||[];
-    p.abonos.push({id:uid(),fecha:hoy(),monto:m,metodo:$('#cb_metodo').value,nota:'Sesión '+(t.sesion||''),tratamientoId:tid});
+    guardarPago(p,m,{fecha:hoy(),metodo:$('#cb_metodo').value,nota:'Sesión '+(t.sesion||'')},tid);
     guardar();pintar();avisar('Pago registrado');
   });
   const ok=$('#mOk'),cn=$('#mCancel');
@@ -7247,13 +7334,16 @@ function imprimirRecibo(aid){
   const g=datos.config||{};
   const orden=lista.map((x,k)=>({x,k})).sort((u,v)=>(u.x.fecha||'').localeCompare(v.x.fecha||'')||u.k-v.k);
   const pos=orden.findIndex(o=>o.x.id===aid),a=orden[pos].x;
-  const acumulado=orden.slice(0,pos+1).reduce((s,o)=>s+(Number(o.x.monto)||0),0);
+  const ultimo=a.grupo?Math.max(...orden.map((o,k)=>o.x.grupo===a.grupo?k:-1)):pos;
+  const acumulado=orden.slice(0,ultimo+1).reduce((s,o)=>s+(Number(o.x.monto)||0),0);
   const saldoDespues=Math.max(0,totalTrat(p)-acumulado);
   const trat=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
-  const concepto=a.nota||(trat?(nombreSesion(trat)||('Sesión '+(trat.sesion||''))).split('\n')[0]:'Abono a tratamiento odontológico');
+  const grupoR=a.grupo?lista.filter(x=>x.grupo===a.grupo):null;
+  const montoR=grupoR?grupoR.reduce((x,y)=>x+(Number(y.monto)||0),0):Number(a.monto)||0;
+  const concepto=a.nota||(grupoR?grupoR.map(x=>{const tt=x.tratamientoId?(p.tratamientos||[]).find(k=>k.id===x.tratamientoId):null;return (tt?(nombreSesion(tt)||('Sesión '+(tt.sesion||''))).split('\n')[0]:'abono a favor')+' '+usd(x.monto);}).join('; '):(trat?(nombreSesion(trat)||('Sesión '+(trat.sesion||''))).split('\n')[0]:'Abono a tratamiento odontológico'));
   $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
-    <section><h4>COMPROBANTE DE PAGO N.º ${String(pos+1).padStart(4,'0')}</h4>
-      <div class="texto">Recibí de ${esc(p.nombre||'')} la suma de <b>${usd(a.monto)}</b> (${esc(montoEnLetras(a.monto))}) por concepto de: ${esc(concepto)}.
+    <section><h4>COMPROBANTE DE PAGO N.º ${String((()=>{const v=new Set();orden.slice(0,pos+1).forEach(o=>v.add(o.x.grupo||o.x.id));return v.size;})()).padStart(4,'0')}</h4>
+      <div class="texto">Recibí de ${esc(p.nombre||'')} la suma de <b>${usd(montoR)}</b> (${esc(montoEnLetras(montoR))}) por concepto de: ${esc(concepto)}.
 
 Fecha: ${fechaCorta(a.fecha)}
 Forma de pago: ${esc(a.metodo||'—')}
@@ -7267,7 +7357,9 @@ function imprimirEstadoCuenta(){
   const g=datos.config||{};
   const movs=[];
   (p.tratamientos||[]).filter(t=>Number(t.costo)>0).forEach(t=>movs.push({f:t.fecha,det:(nombreSesion(t)||('Sesión '+(t.sesion||''))).split('\n')[0].slice(0,90),cargo:Number(t.costo)||0,abono:0}));
-  (p.abonos||[]).forEach(a=>movs.push({f:a.fecha,det:'Pago'+(a.metodo?' ('+a.metodo+')':'')+(a.nota?' — '+a.nota:''),cargo:0,abono:Number(a.monto)||0}));
+  {const vistos=new Set();(p.abonos||[]).forEach(a=>{if(a.grupo){if(vistos.has(a.grupo))return;vistos.add(a.grupo);}
+    const tot=a.grupo?p.abonos.filter(x=>x.grupo===a.grupo).reduce((x,y)=>x+(Number(y.monto)||0),0):Number(a.monto)||0;
+    movs.push({f:a.fecha,det:'Pago'+(a.metodo?' ('+a.metodo+')':'')+(a.nota?' — '+a.nota:''),cargo:0,abono:tot});});}
   movs.sort((x,y)=>(x.f||'').localeCompare(y.f||'')||(y.cargo>0)-(x.cargo>0));
   let acc=0;
   const filas=movs.map(m=>{acc+=m.cargo-m.abono;
@@ -7278,7 +7370,7 @@ function imprimirEstadoCuenta(){
       <tbody>${filas||'<tr><td colspan="5">Sin movimientos</td></tr>'}</tbody></table>
       <div class="fila" style="margin-top:8px"><div><span class="rot">Total de tratamientos</span>${usd(totalTrat(p))}</div>
         <div><span class="rot">Total pagado</span>${usd(totalAbon(p))}</div>
-        <div><span class="rot">Saldo pendiente</span><b>${usd(Math.max(0,saldo(p)))}</b></div></div></section>
+        <div><span class="rot">${saldo(p)<-0.004?'A favor del paciente':'Saldo pendiente'}</span><b>${usd(Math.abs(saldo(p)))}</b></div></div></section>
     <div class="firma" style="margin-top:46px"><div>${esc(g.profesional||'')}<br>Odontólogo/a — Código ${esc(g.codigo||'')}</div><div>Firma del paciente</div></div></div>`;
   lanzarImpresion();
 }
