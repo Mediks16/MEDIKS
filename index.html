@@ -5811,12 +5811,16 @@ function tabPagos(p,c){
       <div class="saldo"><b>${usd(totalAbon(p))}</b><span>Pagado</span></div>
       <div class="saldo ${d>0.004?'debe':''}"><b>${usd(Math.abs(d))}</b><span>${d>0.004?'Saldo pendiente':d<-0.004?'A favor del paciente':'Sin deuda'}</span></div></div>
     <div class="bloque"><div class="barra-tit"><h3>Cuenta por tratamiento</h3><span class="der mini">igual que en Tratamientos, con los pagos de cada uno</span></div>
-      ${cu.sesiones.length?`<table class="tabla-cuenta"><thead><tr><th style="width:92px">Fecha</th><th>Tratamiento</th><th class="der" style="width:90px">Costo</th><th class="der" style="width:90px">Pagado</th><th class="der" style="width:90px">Saldo</th><th style="width:190px"></th></tr></thead><tbody>
-        ${cu.sesiones.map(x=>`<tr class="fila-ses"><td class="num"><b>${fechaCorta(x.t.fecha)}</b>${x.t.sesion?'<br><span class="mini">'+esc(x.t.sesion)+'</span>':''}</td><td><b>${esc(nombreCorto(x.t))}</b></td>
+      ${cu.sesiones.length?`<table class="tabla-cuenta"><thead><tr><th style="width:92px">Fecha</th><th>Tratamiento</th><th class="der" style="width:90px">Costo</th><th class="der" style="width:90px">Pagado</th><th class="der" style="width:90px">Saldo</th><th style="width:250px"></th></tr></thead><tbody>
+        ${cu.sesiones.map(x=>{const uno=x.pagos.length===1?x.pagos[0]:null;
+          const gU=uno&&uno.grupo?(p.abonos||[]).filter(k=>k.grupo===uno.grupo):null;
+          return `<tr class="fila-ses"><td class="num"><b>${fechaCorta(x.t.fecha)}</b>${x.t.sesion?'<br><span class="mini">'+esc(x.t.sesion)+'</span>':''}</td>
+          <td><b>${esc(nombreCorto(x.t))}</b>${uno?`<br><span class="mini" style="color:var(--clinico)">Pago del ${fechaCorta(uno.fecha)}${uno.metodo?' · '+esc(uno.metodo):''}${uno.nota&&!/^Sesión /.test(uno.nota)?' · '+esc(uno.nota):''}${gU&&gU.length>1?' (parte de un pago de '+usd(gU.reduce((k,y)=>k+(Number(y.monto)||0),0))+')':''}</span>`:''}</td>
           <td class="der">${usd(x.costo)}</td><td class="der">${x.pagado?usd(x.pagado):'—'}</td>
           <td class="der" style="color:${x.saldo>0.004?'var(--alerta)':'var(--clinico)'}"><b>${x.saldo>0.004?usd(x.saldo):'Pagado'}</b></td>
-          <td class="der">${x.saldo>0.004?`<button class="btn chico" onclick="registrarPago('${x.t.id}')">Abonar</button>`:''}</td></tr>
-          ${x.pagos.map(a=>filaPagoHTML(p,a)).join('')}`).join('')}
+          <td class="der" style="white-space:nowrap">${x.saldo>0.004?`<button class="btn chico" onclick="registrarPago('${x.t.id}')">Abonar</button>`:''}
+            ${uno?`<button class="btn chico" onclick="imprimirRecibo('${uno.id}')">Recibo</button><button class="btn chico" onclick="editarAbono('${uno.id}')">Editar</button><button class="btn chico peligro" onclick="borrarPago('${uno.id}')">×</button>`:''}</td></tr>
+          ${uno?'':x.pagos.map(a=>filaPagoHTML(p,a)).join('')}`;}).join('')}
         </tbody></table>`:'<p class="mini">Aún no hay tratamientos con costo.</p>'}</div>
     ${cu.generales.length?`<div class="bloque"><div class="barra-tit"><h3>Pagos generales</h3><span class="der mini">pagos antiguos sin sesión: se descuentan de las sesiones más antiguas</span></div>
       <table><tbody>${cu.generales.map(a=>filaPagoHTML(p,a)).join('')}</tbody></table></div>`:''}
@@ -7384,7 +7388,7 @@ function imprimirEstadoCuenta(){
   const p=pac(selId);if(!p)return;
   const g=datos.config||{},cu=cuentaPorTratamiento(p);
   const fp=a=>`<tr><td style="padding-left:18px;color:#444">${fechaCorta(a.fecha)}</td><td style="color:#444">Pago${a.metodo?' ('+esc(a.metodo)+')':''}${a.nota?' — '+esc(a.nota):''}</td><td></td><td style="text-align:right;color:#444">${usd(a.monto)}</td><td></td></tr>`;
-  const filas=cu.sesiones.map(x=>`<tr><td><b>${fechaCorta(x.t.fecha)}</b></td><td><b>${esc(nombreCorto(x.t))}</b></td><td style="text-align:right">${usd(x.costo)}</td><td style="text-align:right">${usd(x.pagado)}</td><td style="text-align:right"><b>${x.saldo>0.004?usd(x.saldo):'Pagado'}</b></td></tr>${x.pagos.map(fp).join('')}`).join('')
+  const filas=cu.sesiones.map(x=>`<tr><td><b>${fechaCorta(x.t.fecha)}</b></td><td><b>${esc(nombreCorto(x.t))}</b>${x.pagos.length===1?`<br><span style="color:#444;font-size:.9em">Pago del ${fechaCorta(x.pagos[0].fecha)}${x.pagos[0].metodo?' ('+esc(x.pagos[0].metodo)+')':''}</span>`:''}</td><td style="text-align:right">${usd(x.costo)}</td><td style="text-align:right">${usd(x.pagado)}</td><td style="text-align:right"><b>${x.saldo>0.004?usd(x.saldo):'Pagado'}</b></td></tr>${x.pagos.length===1?'':x.pagos.map(fp).join('')}`).join('')
     +(cu.generales.length?`<tr><td colspan="5"><b>Pagos generales</b></td></tr>${cu.generales.map(fp).join('')}`:'')
     +(cu.aFavor.length?`<tr><td colspan="5"><b>A favor del paciente</b></td></tr>${cu.aFavor.map(fp).join('')}`:'');
   $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
