@@ -295,10 +295,10 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .cara-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0}
 .cara-grid button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--linea);border-radius:10px;padding:7px 2px;cursor:pointer;background:var(--papel)}
 .cara-grid button b{font-size:13px;font-weight:700}
-.cara-grid button.csel{outline:3px solid var(--tinta,#0F2A3D);outline-offset:2px;box-shadow:0 0 0 5px rgba(56,189,248,.35)}
-.occ-grid i.csel{outline:2.5px solid #0F2A3D;outline-offset:-2.5px;box-shadow:inset 0 0 0 4px rgba(56,189,248,.55);position:relative;z-index:1}
+.cara-grid button.csel{outline:2px solid #8ACDF0;outline-offset:2px;box-shadow:0 0 0 5px rgba(56,189,248,.12);background:#EEF8FE}
+.occ-grid i.csel{outline:2px solid #7CC4EA;outline-offset:-2px;box-shadow:inset 0 0 0 3px rgba(125,196,234,.30);position:relative;z-index:1}
 .cara-grid button small{font-size:8.5px;color:var(--tinta-suave);font-weight:500}
-.cara-grid button[aria-pressed="true"]{border-color:var(--acento)}
+.cara-grid button[aria-pressed="true"]{border-color:#8ACDF0}
 .cara-grid button[style*="background"] small{color:rgba(255,255,255,.85)}
 .acciones-rapidas{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px;padding-top:16px;border-top:1px solid var(--linea)}
 .accion-rapida{display:flex;flex-direction:column;align-items:center;gap:5px;border:1px solid var(--linea);background:var(--papel);
@@ -498,8 +498,9 @@ header.top #logoConsultorio{border-radius:50%;background:#000}
 .pieza-card{background:var(--papel);border:1.5px solid var(--linea)}
 .pieza-card .estado-dot{box-shadow:0 0 0 1px var(--linea)}
 .pieza-card.con-estado{border-color:var(--ce,var(--acento));box-shadow:0 0 0 1px var(--ce,var(--acento)) inset,var(--sombra-sm)}
-.occ-grid{border:1.5px solid #9AA8A3}
-.occ-grid i{border:.5px solid #B6C1BD}
+.pieza-card.sel{border-color:var(--acento);box-shadow:0 0 0 2px var(--acento),var(--sombra-sm)}
+.occ-grid{border:1.5px solid #3F4850}
+.occ-grid i{border:.5px solid #5E6872}
 .odonto .arcada .cuadrante{padding:6px;border-radius:14px}
 .odonto .arcada .cuadrante:nth-child(1){background:rgba(62,123,224,.07)}
 .odonto .arcada .cuadrante:nth-child(2){background:rgba(14,124,107,.07)}
@@ -1939,7 +1940,7 @@ function tabOdonto(p,c){
   const verInicial=vistaOdontoInicial&&p.odontogramaInicial;
   if(typeof reubicarCarasDerechas()==='number')guardar();
   const datosOdonto=verInicial?p.odontogramaInicial.dientes:p.odontograma;
-  const filaGeneral=(qs,superior)=>qs.map(q=>`<div class="cuadrante">${q.map(n=>tarjetaPieza(n,datosOdonto[n]||{},piezaSeleccionada===n,superior)).join('')}</div>`).join('');
+  const filaGeneral=(qs,superior)=>qs.map(q=>`<div class="cuadrante">${q.map(n=>tarjetaPieza(n,datosOdonto[n]||{},String(piezaSeleccionada)===String(n),superior)).join('')}</div>`).join('');
   const modoAccRapidas=modoPendienteActual(datosOdonto[piezaSeleccionada]||{});
   const nombreAccGrupo=clave=>etiquetaGrupo(ESTADO_GRUPOS.find(g=>g.clave===clave),modoAccRapidas);
   const ACCIONES_RAPIDAS=[
