@@ -259,17 +259,13 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .pieza-card.sel{border-color:var(--acento);background:var(--clinico-claro);box-shadow:var(--sombra-sm)}
 .pieza-card svg{display:block;margin:4px auto}
 .pieza-card .numd{display:block;font-weight:700;color:var(--tinta);font-size:12px}
-.occ-grid{width:44px;height:44px;position:relative;margin:2px auto 0;border-radius:8px;overflow:hidden;
-  border:1.5px solid var(--linea);background:#fff;cursor:pointer;display:grid;
-  grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
-.occ-grid i{display:block;border:.5px solid var(--linea);transition:background .12s}
-.occ-grid i:hover{filter:brightness(.93)}
-.occ-grid i.og-esquina{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+.occ-grid{width:44px;height:44px;position:relative;margin:2px auto 0;cursor:pointer;display:block}
+.occ-grid svg{display:block;overflow:visible}
+.occ-grid polygon{stroke:#5E6872;stroke-width:1;stroke-linejoin:round;transition:fill .12s;cursor:pointer}
+.occ-grid polygon:hover{filter:brightness(.93)}
+.occ-grid .og-borde{fill:none;stroke:#3F4850;stroke-width:1.6;pointer-events:none}
 .occ-grid.ausente{opacity:.6}
-.occ-grid .og-x{position:absolute;inset:0;pointer-events:none}
-.occ-grid .og-x s{position:absolute;top:50%;left:50%;width:150%;height:2px;background:#8C97A3;text-decoration:none}
-.occ-grid .og-x s:first-child{transform:translate(-50%,-50%) rotate(45deg)}
-.occ-grid .og-x s:last-child{transform:translate(-50%,-50%) rotate(-45deg)}
+.occ-grid .og-x{stroke:#8C97A3;stroke-width:2.2;pointer-events:none}
 .estado-dots{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;margin:4px auto 0;max-width:46px}
 .estado-dots .estado-dot{margin:0}
 .estado-dot{display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;
@@ -296,7 +292,7 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .cara-grid button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--linea);border-radius:10px;padding:7px 2px;cursor:pointer;background:var(--papel)}
 .cara-grid button b{font-size:13px;font-weight:700}
 .cara-grid button.csel{outline:2px solid #8ACDF0;outline-offset:2px;box-shadow:0 0 0 5px rgba(56,189,248,.12);background:#EEF8FE}
-.occ-grid i.csel{outline:2px solid #7CC4EA;outline-offset:-2px;box-shadow:inset 0 0 0 3px rgba(125,196,234,.30);position:relative;z-index:1}
+.occ-grid polygon.csel{stroke:#7CC4EA;stroke-width:3}
 .cara-grid button small{font-size:8.5px;color:var(--tinta-suave);font-weight:500}
 .cara-grid button[aria-pressed="true"]{border-color:#8ACDF0}
 .cara-grid button[style*="background"] small{color:rgba(255,255,255,.85)}
@@ -499,8 +495,6 @@ header.top #logoConsultorio{border-radius:50%;background:#000}
 .pieza-card .estado-dot{box-shadow:0 0 0 1px var(--linea)}
 .pieza-card.con-estado{border-color:var(--ce,var(--acento));box-shadow:0 0 0 1px var(--ce,var(--acento)) inset,var(--sombra-sm)}
 .pieza-card.sel{border-color:var(--acento);box-shadow:0 0 0 2px var(--acento),var(--sombra-sm)}
-.occ-grid{border:1.5px solid #3F4850}
-.occ-grid i{border:.5px solid #5E6872}
 .odonto .arcada .cuadrante{padding:6px;border-radius:14px}
 .odonto .arcada .cuadrante:nth-child(1){background:rgba(62,123,224,.07)}
 .odonto .arcada .cuadrante:nth-child(2){background:rgba(14,124,107,.07)}
@@ -538,7 +532,7 @@ header.top #logoConsultorio{border-radius:50%;background:#000}
   --sombra-sm:0 1px 2px rgba(0,0,0,.4);--sombra-md:0 6px 20px rgba(0,0,0,.45);
 }
 :root[data-tema="oscuro"] .pieza-card:hover{background:#1D2C27}
-:root[data-tema="oscuro"] .occ-grid{border-color:#5B6D67}
+
 :root[data-tema="oscuro"] input,:root[data-tema="oscuro"] select,:root[data-tema="oscuro"] textarea{background:#0F1A16;color:var(--tinta);border-color:var(--linea)}
 :root[data-tema="oscuro"] .btn{background:#1B2A25;color:var(--tinta);border-color:var(--linea)}
 :root[data-tema="oscuro"] .btn.primario{background:var(--clinico);color:#fff}
@@ -1797,23 +1791,25 @@ function reubicarCarasDerechas(){
   return piezas;
 }
 function occlusalHTML(n,d,ausente){
+  /* Dibujo clásico: cuadrado con 4 trapecios (caras externas) y un cuadrado al centro (oclusal/incisal). */
   const caras=d.caras||{};
   const col=k=>caras[k]&&SIMB_CARA[caras[k]]?SIMB_CARA[caras[k]].c:'#fff';
-  const esquina=()=>`<i class="og-esquina"></i>`;
   const elegida=k=>String(piezaSeleccionada)===String(n)&&carasSel().includes(k);
-  const cara=k=>`<i data-ofcara="${k}" class="${elegida(k)?'csel':''}" style="background:${col(k)}" title="${esc(nombreCara(k,n))}"></i>`;
   /* Mesial = hacia la línea media. En el dibujo la línea media está al centro: las piezas del lado derecho del paciente
      (cuadrantes 1, 4, 5 y 8, a la izquierda de la pantalla) tienen la mesial a la derecha; las del otro lado, a la izquierda. */
   const ladoDerechoPac=['1','4','5','8'].includes(String(n).charAt(0));
   const izq=ladoDerechoPac?'D':'M',der=ladoDerechoPac?'M':'D';
+  const sup=esSuperiorPieza(n)?'V':'L',inf=esSuperiorPieza(n)?'L':'V';
+  const formas=[[sup,'1,1 39,1 27,13 13,13'],[inf,'1,39 39,39 27,27 13,27'],[izq,'1,1 13,13 13,27 1,39'],[der,'39,1 27,13 27,27 39,39'],['O','13,13 27,13 27,27 13,27']];
+  const pol=([k,pts])=>`<polygon data-ofcara="${k}" class="${elegida(k)?'csel':''}" points="${pts}" fill="${col(k)}"><title>${esc(nombreCara(k,n))}</title></polygon>`;
+  const orden=[...formas.filter(x=>!elegida(x[0])),...formas.filter(x=>elegida(x[0]))];
   return `<div class="occ-grid${ausente?' ausente':''}" data-pieza="${n}" title="Toca una cara para marcarla">
-    ${esquina()}${cara(esSuperiorPieza(n)?'V':'L')}${esquina()}
-    ${cara(izq)}${cara('O')}${cara(der)}
-    ${esquina()}${cara(esSuperiorPieza(n)?'L':'V')}${esquina()}
-    ${ausente?'<div class="og-x"><s></s><s></s></div>':''}
+    <svg viewBox="0 0 40 40" width="100%" height="100%">${orden.map(pol).join('')}
+    <rect x="1" y="1" width="38" height="38" class="og-borde"/>
+    ${ausente?'<line x1="2" y1="2" x2="38" y2="38" class="og-x"/><line x1="38" y1="2" x2="2" y2="38" class="og-x"/>':''}</svg>
   </div>`;
 }
-function tarjetaPieza(n,d,seleccionada){
+function tarjetaPieza(n,d,seleccionada,superior){
   const ests=codigosEstado(d).map(c=>estadoVisualPieza({general:c})).filter(e=>e.color);
   const ausente=ests.some(e=>e.ausente);
   const occ=occlusalHTML(n,d,ausente);
@@ -1824,7 +1820,7 @@ function tarjetaPieza(n,d,seleccionada){
   const titulo=ests.length?ests.map(e=>e.nombre).join(' + '):'Sana';
   const hayCaras=Object.keys(d.caras||{}).length>0;
   const colEst=(ests[0]&&ests[0].color)||'';
-  return `<div class="pieza-card ${seleccionada?'sel':''} ${ests.length?'con-estado':''}" ${colEst?`style="--ce:${colEst}"`:''} data-pieza="${n}" title="${esc(titulo)}">${occ}${numero}<span class="estado-dots">${puntos}</span></div>`;
+  return `<div class="pieza-card ${seleccionada?'sel':''} ${ests.length?'con-estado':''}" ${colEst?`style="--ce:${colEst}"`:''} data-pieza="${n}" title="${esc(titulo)}">${superior?numero+occ:occ+numero}<span class="estado-dots">${puntos}</span></div>`;
 }
 function panelPiezaHTML(p,n,verInicial){
   const objetivo=verInicial?p.odontogramaInicial.dientes:p.odontograma;
