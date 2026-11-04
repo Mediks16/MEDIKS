@@ -697,7 +697,7 @@ tr.anulado td{color:#999}tr.anulado td.der{text-decoration:line-through}
         <button id="btnGastos">Gastos</button>
         <button id="btnInventario">Inventario</button>
         <button id="btnRecetas">Recetas emitidas</button>
-        <button id="btnReporte">Reporte mensual</button>
+        <button id="btnReporte">Reportes de ingresos</button>
         <hr>
         <button id="btnPersonalizar">Personalizar</button>
         <button id="btnConfig">Consultorio</button>
@@ -6479,7 +6479,7 @@ function verResumen(){
   $('#vista').innerHTML=`<div class="cabecera"><div><h2>Resumen de actividades</h2>
       <div class="sub">Al ${fechaCorta(hoy())}</div></div>
       <div class="spacer"></div>
-      <button class="btn chico" onclick="verReporte()">Reporte mensual</button>
+      <button class="btn chico" onclick="verReporte()">Reportes de ingresos</button>
       <div class="rango-fechas">
         <input type="date" id="res_desde" value="${desde}">
         <span class="mini">a</span>
@@ -7890,13 +7890,86 @@ function agendarControl(pid,tipo){
     motivo:tipo==='orto'?'Control de ortodoncia':'Limpieza y control'});
 }
 
-/* ---------- 7. reporte mensual ---------- */
+/* ---------- 7. reportes de ingresos: día, semana, mes y semestre ---------- */
 let reporteMes=hoy().slice(0,7);
 function sumaMes(m,delta){
   const [y,mm]=m.split('-').map(Number),d=new Date(y,mm-1+delta,1);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
 function nombreMesAnio(m){const [y,mm]=m.split('-').map(Number);return MESES[mm-1]+' '+y;}
+
+/* período del reporte: tipo (dia | semana | mes | semestre) y una fecha que cae dentro de él.
+   Las fechas se manejan como texto AAAA-MM-DD y se calculan en UTC para que no se corran por la zona horaria. */
+let repTipo='mes',repRef=hoy();
+const RP_TXT={
+  dia:     {b:'Día',     t:'Reporte diario',   en:'en el día',      ant:'Día anterior',     sig:'Día siguiente',     act:'Hoy',          per:'del día',      prev:'al día anterior'},
+  semana:  {b:'Semana',  t:'Reporte semanal',  en:'en la semana',   ant:'Semana anterior',  sig:'Semana siguiente',  act:'Esta semana',  per:'de la semana', prev:'a la semana anterior'},
+  mes:     {b:'Mes',     t:'Reporte mensual',  en:'en el mes',      ant:'Mes anterior',     sig:'Mes siguiente',     act:'Este mes',     per:'del mes',      prev:'al mes anterior'},
+  semestre:{b:'Semestre',t:'Reporte semestral',en:'en el semestre', ant:'Semestre anterior',sig:'Semestre siguiente',act:'Este semestre',per:'del semestre', prev:'al semestre anterior'}
+};
+const rpD=f=>{const [y,m,d]=f.split('-').map(Number);return new Date(Date.UTC(y,m-1,d||1));};
+const rpS=d=>d.toISOString().slice(0,10);
+const rpAdd=(f,n)=>{const d=rpD(f);d.setUTCDate(d.getUTCDate()+n);return rpS(d);};
+const rpMes=(f,n)=>{const d=rpD(f);return rpS(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+n,1)));};   // día 1 del mes movido
+const rpFinMes=f=>{const d=rpD(f);return rpS(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)));};
+const rpLunes=f=>rpAdd(f,-((rpD(f).getUTCDay()+6)%7));
+const rpCap=t=>t.charAt(0).toUpperCase()+t.slice(1);
+function rangoRep(tipo,ref){
+  const d=rpD(ref),y=d.getUTCFullYear(),m=d.getUTCMonth();
+  if(tipo==='dia')return {desde:ref,hasta:ref,titulo:rpCap(`${DIAS_SEM[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[m]} de ${y}`)};
+  if(tipo==='semana'){
+    const ini=rpLunes(ref),fin=rpAdd(ini,6),a=rpD(ini),b=rpD(fin);
+    const anio=a.getUTCFullYear()!==b.getUTCFullYear()?' de '+a.getUTCFullYear():'';
+    const mes=(a.getUTCMonth()!==b.getUTCMonth()||anio)?' de '+MESES[a.getUTCMonth()]:'';
+    return {desde:ini,hasta:fin,titulo:`Semana del ${a.getUTCDate()}${mes}${anio} al ${b.getUTCDate()} de ${MESES[b.getUTCMonth()]} de ${b.getUTCFullYear()}`};
+  }
+  if(tipo==='semestre'){
+    const m0=m<6?0:6,ini=`${y}-${String(m0+1).padStart(2,'0')}-01`;
+    return {desde:ini,hasta:rpFinMes(rpMes(ini,5)),titulo:`${m0?'2.º':'1.er'} semestre ${y} (${m0?'julio a diciembre':'enero a junio'})`};
+  }
+  const ini=ref.slice(0,7)+'-01';
+  return {desde:ini,hasta:rpFinMes(ini),titulo:rpCap(`${MESES[m]} ${y}`)};
+}
+function moverRep(tipo,ref,n){
+  if(tipo==='dia')return rpAdd(ref,n);
+  if(tipo==='semana')return rpAdd(ref,7*n);
+  return rpMes(ref,(tipo==='semestre'?6:1)*n);
+}
+function repIr(tipo){   // al cambiar de tipo: si hoy cae en el período que se veía, se usa hoy; si no, su primer día
+  const R=rangoRep(repTipo,repRef),h=hoy();
+  repRef=(h>=R.desde&&h<=R.hasta)?h:R.desde;repTipo=tipo;verReporte();
+}
+function repMover(n){repRef=moverRep(repTipo,repRef,n);verReporte();}
+function repHoy(){repRef=hoy();verReporte();}
+function repFecha(f){if(/^\d{4}-\d{2}-\d{2}$/.test(f||'')){repRef=f;verReporte();}}
+/* lo cobrado repartido: pagos del día, día por día (semana), semana por semana (mes) o mes por mes (semestre) */
+function desgloseRep(tipo,R,pagos){
+  const suma=(a,b)=>pagos.filter(x=>{const f=String(x.fecha||'').slice(0,10);return f>=a&&f<=b;}).reduce((s,x)=>s+x.monto,0);
+  if(tipo==='dia'){
+    const lista=[...pagos].sort((a,b)=>b.monto-a.monto);
+    return {titulo:'Pagos del día',filas:lista.map(x=>[x.paciente+(x.metodo?' · '+x.metodo:''),x.monto]),
+      html:lista.length?`<table style="width:100%"><thead><tr><th>Paciente</th><th>Forma de pago</th><th>Nota</th><th class="der">Monto</th></tr></thead><tbody>${lista.map(x=>`<tr><td>${esc(x.paciente)}</td><td>${esc(x.metodo)}</td><td class="mini">${esc(x.nota)}</td><td class="der num">${usd(x.monto)}</td></tr>`).join('')}</tbody></table>`
+        :'<p class="mini">No hay pagos registrados este día.</p>'};
+  }
+  let titulo,filas=[];
+  if(tipo==='semana'){
+    titulo='Cobrado día por día';
+    for(let i=0;i<7;i++){const f=rpAdd(R.desde,i);filas.push([rpCap(DIAS_SEM[rpD(f).getUTCDay()].slice(0,3))+' '+fechaCorta(f).slice(0,5),suma(f,f)]);}
+  }else if(tipo==='mes'){
+    titulo='Cobrado semana por semana';
+    for(let a=R.desde;a<=R.hasta;){
+      let b=rpAdd(rpLunes(a),6);if(b>R.hasta)b=R.hasta;
+      const da=rpD(a),db=rpD(b);
+      filas.push([(da.getUTCDate()===db.getUTCDate()?da.getUTCDate():da.getUTCDate()+' al '+db.getUTCDate())+' de '+MESES[db.getUTCMonth()],suma(a,b)]);
+      a=rpAdd(b,1);
+    }
+  }else{
+    titulo='Cobrado mes por mes';
+    for(let i=0;i<6;i++){const f=rpMes(R.desde,i);filas.push([rpCap(MESES[rpD(f).getUTCMonth()]),suma(f,rpFinMes(f))]);}
+  }
+  const max=Math.max(...filas.map(x=>x[1]),1);
+  return {titulo,filas,html:`<table style="width:100%;display:table">${filas.map(([k,v])=>`<tr><td style="width:38%">${esc(k)}</td><td><div class="barra" style="width:${(v/max*100).toFixed(1)}%;min-width:${v>0?3:0}px"></div></td><td class="der num" style="width:90px">${v>0?usd(v):'<span class="mini">—</span>'}</td></tr>`).join('')}</table>`};
+}
 function categoriaDeTratamiento(nombre){
   const n=normTxt(nombre);
   for(const [cat,lista] of Object.entries(CATALOGO_TRATAMIENTOS)){
@@ -7915,8 +7988,9 @@ function nombresDeSesion(t){
   const base=(nombreSesion(t)||'').split('\n')[0].trim();
   return [base?base.slice(0,45):'Sesión sin detalle'];
 }
-function datosReporte(m){
-  const enMes=f=>!!f&&String(f).slice(0,7)===m;
+function datosReporte(m){   // m: 'AAAA-MM' o un período {desde,hasta}
+  const enMes=typeof m==='string'?f=>!!f&&String(f).slice(0,7)===m
+    :f=>{if(!f)return false;const d=String(f).slice(0,10);return d>=m.desde&&d<=m.hasta;};
   const R={mes:m,cobrado:0,cobradoOrto:0,porMetodo:{},pagos:[],pacCobro:{},sesiones:0,produccion:0,porProf:{},porTrat:{},porCat:{},
     lab:0,hon:0,citas:{Agendada:0,Confirmada:0,Atendida:0,'No asistió':0,Cancelada:0},nuevos:0,presupuestos:0,atendidos:new Set()};
   const sumar=(o,k,v)=>{o[k]=(o[k]||0)+v;};
@@ -7957,44 +8031,49 @@ function datosReporte(m){
 }
 function filasBarras(obj,formato){
   const ent=Object.entries(obj).sort((a,b)=>b[1]-a[1]);
-  if(!ent.length)return '<p class="mini">Sin datos este mes.</p>';
+  if(!ent.length)return '<p class="mini">Sin datos en este período.</p>';
   const max=Math.max(...ent.map(e=>e[1]),1);
   return `<table>${ent.map(([k,v])=>`<tr><td style="width:38%">${esc(k)}</td><td><div class="barra" style="width:${(v/max*100).toFixed(1)}%"></div></td><td class="der" style="width:80px">${formato(v)}</td></tr>`).join('')}</table>`;
 }
 function verReporte(mes){
-  if(mes)reporteMes=mes;
+  if(typeof mes==='string'&&/^\d{4}-\d{2}$/.test(mes)){repTipo='mes';repRef=mes+'-01';}   // compatibilidad: verReporte('AAAA-MM')
+  reporteMes=repRef.slice(0,7);
   selId=null;ocultarPanel();pintarLista();
-  const R=datosReporte(reporteMes),A=datosReporte(sumaMes(reporteMes,-1));
+  const P=rangoRep(repTipo,repRef),PA=rangoRep(repTipo,moverRep(repTipo,repRef,-1)),T=RP_TXT[repTipo];
+  const R=datosReporte(P),A=datosReporte(PA);
   const variacion=A.cobrado>0?Math.round((R.cobrado-A.cobrado)/A.cobrado*100):null;
   const utilidad=R.cobrado-R.gastos;
   const porCobrar=datos.pacientes.reduce((s,pt)=>s+Math.max(0,saldo(pt)),0);
   const topPac=Object.fromEntries(Object.entries(R.pacCobro).sort((a,b)=>b[1]-a[1]).slice(0,5));
   const topTrat=Object.fromEntries(Object.entries(R.porTrat).sort((a,b)=>b[1]-a[1]).slice(0,8));
-  const n=x=>x;
-  $('#vista').innerHTML=`<div class="cabecera"><div><h2>Reporte mensual</h2>
-      <div class="sub" style="text-transform:capitalize">${nombreMesAnio(reporteMes)}</div></div>
+  const D=desgloseRep(repTipo,P,R.pagos);
+  $('#vista').innerHTML=`<div class="cabecera"><div><h2>${T.t}</h2>
+      <div class="sub">${esc(P.titulo)}</div></div>
       <div class="spacer"></div>
-      <button class="btn chico" onclick="verReporte(sumaMes(reporteMes,-1))">← Mes anterior</button>
-      <button class="btn chico" onclick="verReporte(hoy().slice(0,7))">Este mes</button>
-      <button class="btn chico" onclick="verReporte(sumaMes(reporteMes,1))">Mes siguiente →</button>
+      <button class="btn chico" onclick="repMover(-1)">← ${T.ant}</button>
+      <button class="btn chico" onclick="repHoy()">${T.act}</button>
+      <button class="btn chico" onclick="repMover(1)">${T.sig} →</button>
+      <input type="date" value="${repRef}" onchange="repFecha(this.value)" aria-label="Ir a una fecha" style="width:auto;flex:none;max-width:170px;padding:4px 8px;border:1px solid var(--linea);border-radius:8px;background:var(--papel)">
       <button class="btn chico" onclick="imprimirReporte()">Imprimir / PDF</button>
-      <button class="btn chico" onclick="descargarPagosMes()">Pagos del mes (.csv)</button></div>
+      <button class="btn chico" onclick="descargarPagosMes()">Pagos ${T.per} (.csv)</button></div>
+    <div class="seg-orto" role="tablist" aria-label="Período del reporte" style="max-width:520px;margin:14px 0 0">${['dia','semana','mes','semestre'].map(k=>`<button type="button" role="tab" aria-selected="${k===repTipo}" onclick="repIr('${k}')">${RP_TXT[k].b}</button>`).join('')}</div>
     <div class="kpi-grid" style="margin-top:16px">
-      <div class="kpi-card kpi-verde"><span>Cobrado en el mes</span><b>${usd(R.cobrado)}</b></div>
+      <div class="kpi-card kpi-verde"><span>Cobrado ${T.en}</span><b>${usd(R.cobrado)}</b></div>
       <div class="kpi-card kpi-azul"><span>Producción (costo de sesiones)</span><b>${usd(R.produccion)}</b></div>
       <div class="kpi-card kpi-morado"><span>Gastos registrados</span><b>${usd(R.gastos)}</b></div>
       <div class="kpi-card ${utilidad>=0?'kpi-teal':'kpi-rojo'}"><span>Cobrado − gastos</span><b>${usd(utilidad)}</b></div>
     </div>
+    <div class="bloque" style="margin-bottom:14px"><div class="barra-tit"><h3>${D.titulo}</h3><span class="mini der">Total: ${usd(R.cobrado)}</span></div>${D.html}</div>
     <div class="kpi-grid">
       <div class="kpi-card kpi-naranja"><span>Sesiones realizadas</span><b>${R.sesiones}</b></div>
       <div class="kpi-card kpi-indigo"><span>Pacientes atendidos</span><b>${R.atendidos.size}</b></div>
       <div class="kpi-card kpi-rosa"><span>Pacientes nuevos</span><b>${R.nuevos}</b></div>
       <div class="kpi-card kpi-rojo"><span>Inasistencia</span><b>${R.inasistencia!==null?R.inasistencia+'%':'—'}</b></div>
     </div>
-    <p class="mini" style="margin:-4px 0 12px">${variacion!==null?`Cobrado ${variacion>=0?'+':''}${variacion}% frente a ${nombreMesAnio(sumaMes(reporteMes,-1))} (${usd(A.cobrado)}). `:''}Por cobrar hoy en total: ${usd(porCobrar)}.${R.cobradoOrto?` Incluye ${usd(R.cobradoOrto)} de cuotas de ortodoncia.`:''}</p>
+    <p class="mini" style="margin:-4px 0 12px">${variacion!==null?`Cobrado ${variacion>=0?'+':''}${variacion}% frente ${T.prev} (${usd(A.cobrado)}). `:''}Por cobrar hoy en total: ${usd(porCobrar)}.${R.cobradoOrto?` Incluye ${usd(R.cobradoOrto)} de cuotas de ortodoncia.`:''}</p>
     <div class="panel-2col" style="margin-bottom:14px">
       <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Cobrado por forma de pago</h3></div>${filasBarras(R.porMetodo,usd)}</div>
-      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Tratamientos más frecuentes</h3></div>${filasBarras(topTrat,v=>v+' vez'+(v===1?'':'es'))}</div>
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Tratamientos más frecuentes</h3></div>${filasBarras(topTrat,v=>v+(v===1?' vez':' veces'))}</div>
     </div>
     <div class="panel-2col" style="margin-bottom:14px">
       <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Sesiones por especialidad</h3></div>${filasBarras(R.porCat,v=>v)}</div>
@@ -8002,7 +8081,7 @@ function verReporte(mes){
     </div>
     <div class="panel-2col" style="margin-bottom:14px">
       <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Pacientes que más aportaron</h3></div>${filasBarras(topPac,usd)}</div>
-      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Citas del mes</h3></div>
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Citas ${T.per}</h3></div>
         <table>${Object.entries(R.citas).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="der">${v}</td></tr>`).join('')}
         <tr><td><b>Total</b></td><td class="der"><b>${R.citasTotal}</b></td></tr></table></div>
     </div>
@@ -8012,24 +8091,25 @@ function verReporte(mes){
       <tr><td><b>Total</b></td><td class="der"><b>${usd(R.gastos)}</b></td></tr></table>
       <p class="mini" style="margin-bottom:0">Solo cuenta lo que registras en las sesiones y en «Gastos». No incluye alquiler, sueldos, servicios ni insumos, así que «Cobrado − gastos» es una referencia, no la utilidad contable.</p></div>`;
 }
-function descargarPagosMes(){
-  const R=datosReporte(reporteMes);
+function descargarPagosMes(){   // pagos del período que se está viendo
+  const P=rangoRep(repTipo,repRef),R=datosReporte(P);
   const csv=f=>'﻿'+f.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const filas=[['Fecha','Paciente','Forma de pago','Nota','Monto'],...R.pagos.sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))).map(x=>[x.fecha,x.paciente,x.metodo,x.nota,x.monto.toFixed(2)])];
-  descargarArchivo(csv(filas),`pagos-${reporteMes}.csv`,'text/csv');
+  descargarArchivo(csv(filas),`pagos-${P.desde}${P.hasta!==P.desde?'_a_'+P.hasta:''}.csv`,'text/csv');
 }
 function imprimirReporte(){
-  const R=datosReporte(reporteMes),g=datos.config||{};
+  const P=rangoRep(repTipo,repRef),T=RP_TXT[repTipo],R=datosReporte(P),D=desgloseRep(repTipo,P,R.pagos),g=datos.config||{};
   const tabla=(obj,fmt)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td style="text-align:right">${fmt(v)}</td></tr>`).join('')||'<tr><td colspan="2">Sin datos</td></tr>';
   $('#impresion').innerHTML=`<div class="hoja">
     <img src="${logoActual()}" style="height:40px;display:block;margin:0 auto 4px">
     <h1>${esc(g.establecimiento||'CONSULTORIO ODONTOLÓGICO')}</h1>
-    <div class="est">REPORTE MENSUAL — ${esc(nombreMesAnio(reporteMes).toUpperCase())}</div>
+    <div class="est">${esc(T.t.toUpperCase())} — ${esc(P.titulo.toUpperCase())}</div>
     <section><h4>RESUMEN</h4><div class="fila">
       <div><span class="rot">Cobrado</span>${usd(R.cobrado)}</div><div><span class="rot">Producción</span>${usd(R.produccion)}</div>
       <div><span class="rot">Gastos registrados</span>${usd(R.gastos)}</div><div><span class="rot">Cobrado − gastos</span>${usd(R.cobrado-R.gastos)}</div></div>
       <div class="fila" style="margin-top:6px"><div><span class="rot">Sesiones</span>${R.sesiones}</div><div><span class="rot">Pacientes atendidos</span>${R.atendidos.size}</div>
       <div><span class="rot">Pacientes nuevos</span>${R.nuevos}</div><div><span class="rot">Inasistencia</span>${R.inasistencia!==null?R.inasistencia+'%':'—'}</div></div></section>
+    <section><h4>${esc(D.titulo.toUpperCase())}</h4><table>${D.filas.map(([k,v])=>`<tr><td>${esc(k)}</td><td style="text-align:right">${usd(v)}</td></tr>`).join('')||'<tr><td colspan="2">Sin pagos</td></tr>'}</table></section>
     <section><h4>COBRADO POR FORMA DE PAGO</h4><table>${tabla(R.porMetodo,usd)}</table></section>
     <section><h4>TRATAMIENTOS MÁS FRECUENTES</h4><table>${tabla(Object.fromEntries(Object.entries(R.porTrat).sort((a,b)=>b[1]-a[1]).slice(0,10)),v=>v)}</table></section>
     <section><h4>SESIONES POR ESPECIALIDAD</h4><table>${tabla(R.porCat,v=>v)}</table></section>
