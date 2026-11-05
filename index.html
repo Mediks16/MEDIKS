@@ -1055,8 +1055,16 @@ function traducirErrorAuth(code){
     'auth/wrong-password':'Contraseña incorrecta.',
     'auth/user-not-found':'No existe una cuenta con ese correo. Usa «Crear cuenta».',
     'auth/invalid-credential':'Correo o contraseña incorrectos.',
+    'auth/invalid-login-credentials':'Correo o contraseña incorrectos.',
+    'auth/missing-password':'Escribe la contraseña.',
+    'auth/too-many-requests':'Hubo varios intentos seguidos y por seguridad se bloqueó un momento. Espera unos 15 minutos o usa «¿Olvidaste tu contraseña?».',
+    'auth/user-disabled':'Esta cuenta está desactivada. Escríbenos para revisarla.',
+    'auth/operation-not-allowed':'El inicio de sesión con correo no está activado en la nube. Escríbenos para revisarlo.',
+    'auth/internal-error':'La nube no respondió bien. Intenta de nuevo en un momento.',
+    'auth/web-storage-unsupported':'Este navegador no deja guardar la sesión (¿modo privado?). Ábrelo en una pestaña normal.',
     'auth/network-request-failed':'No hay conexión a internet en este momento.'};
-  return mapa[code]||'No se pudo completar. Intenta de nuevo.';
+  // si es un caso no previsto se muestra el código, para poder saber qué pasó
+  return mapa[code]||('No se pudo completar. Intenta de nuevo.'+(code?' (código: '+code+')':''));
 }
 async function migrarOCargarNube(){
   let rawNube;
@@ -1102,22 +1110,24 @@ async function migrarOCargarNube(){
 function abrirLoginNube(){
   abrirModal('Conectar con tu cuenta',`
     <p class="mini">Usa el mismo correo y contraseña en todos tus dispositivos para que compartan la misma información.</p>
-    <label class="campo"><span>Correo</span><input type="email" id="nb_email" autofocus></label>
-    <label class="campo"><span>Contraseña</span><input type="password" id="nb_pass"></label>
+    <label class="campo"><span>Correo</span><input type="email" id="nb_email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus></label>
+    <label class="campo"><span>Contraseña</span><input type="password" id="nb_pass" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+    <label class="chk" style="margin:-4px 0 6px"><input type="checkbox" id="nb_ver"> Mostrar contraseña</label>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
       <button class="btn chico" type="button" id="nb_crear">Crear cuenta (primera vez)</button>
       <button class="btn primario chico" type="button" id="nb_entrar">Iniciar sesión</button>
+      <button class="btn chico" type="button" id="nb_olvido">¿Olvidaste tu contraseña?</button>
     </div>
     <p class="mini" id="nb_msg" style="color:var(--alerta);min-height:16px"></p>`,null);
   const leer=()=>({email:$('#nb_email').value.trim(),pass:$('#nb_pass').value});
   async function procesar(promesa){
-    const m=$('#nb_msg');m.textContent='';
+    const m=$('#nb_msg');m.textContent='';m.style.color='var(--alerta)';
     try{
       const cred=await promesa;
       nubeUid=cred.user.uid;nubeActiva=true;almacen=almacenNube;
       $('#modal').close();actualizarBotonNube();
       await migrarOCargarNube();
-    }catch(e){m.textContent=traducirErrorAuth(e.code);}
+    }catch(e){m.textContent=e&&e.code?traducirErrorAuth(e.code):'No se pudo completar. Intenta de nuevo.'+(e&&e.message?' ('+String(e.message).slice(0,90)+')':'');}
   }
   $('#nb_crear').onclick=()=>{const {email,pass}=leer();
     if(!email||pass.length<6){$('#nb_msg').textContent='Escribe un correo y una contraseña de al menos 6 caracteres.';return;}
@@ -1125,6 +1135,13 @@ function abrirLoginNube(){
   $('#nb_entrar').onclick=()=>{const {email,pass}=leer();
     if(!email||!pass){$('#nb_msg').textContent='Completa correo y contraseña.';return;}
     procesar(nubeAuth.signInWithEmailAndPassword(email,pass));};
+  $('#nb_ver').onchange=e=>{$('#nb_pass').type=e.target.checked?'text':'password';};
+  // enviar el correo para crear una contraseña nueva (lo manda Firebase al correo de la cuenta)
+  $('#nb_olvido').onclick=async()=>{const email=$('#nb_email').value.trim(),m=$('#nb_msg');
+    if(!email){m.textContent='Escribe tu correo arriba y vuelve a tocar «¿Olvidaste tu contraseña?».';return;}
+    try{await nubeAuth.sendPasswordResetEmail(email);m.style.color='var(--clinico)';
+      m.textContent='Listo: te enviamos un correo a '+email+' para crear una contraseña nueva. Revisa también la carpeta de spam.';}
+    catch(e){m.style.color='var(--alerta)';m.textContent=traducirErrorAuth(e.code);}};
 }
 function abrirNube(){
   if(nubeActiva&&nubeAuth&&nubeAuth.currentUser){
