@@ -5812,6 +5812,8 @@ function cuentaPorTratamiento(p){
   return {sesiones,generales,aFavor,rep};
 }
 function nombreCorto(t){return (nombreSesion(t)||('Sesión '+(t.sesion||''))).split('\n')[0].slice(0,90);}
+// todos los procedimientos de la sesión (uno por línea), no solo el primero: así en Pagos se ve todo lo que se hizo
+function nombreSesionHTML(t){const l=(nombreSesion(t)||('Sesión '+(t.sesion||''))).split('\n').map(x=>x.trim()).filter(Boolean);return l.map(x=>esc(x.slice(0,120))).join('<br>');}
 function filaGeneralHTML(p,g){   // parte de un pago general que cubre esta sesión
   const a=g.a,tot=Number(a.monto)||0;
   return `<tr class="fila-pago"><td class="num mini">${fechaCorta(a.fecha)}</td>
@@ -5852,7 +5854,7 @@ function tabPagos(p,c){
           const gU=uno&&uno.grupo?(p.abonos||[]).filter(k=>k.grupo===uno.grupo):null;
           const totG=unoG?Number(unoG.a.monto)||0:0;
           return `<tr class="fila-ses"><td class="num"><b>${fechaCorta(x.t.fecha)}</b>${x.t.sesion?'<br><span class="mini">'+esc(x.t.sesion)+'</span>':''}</td>
-          <td><b>${esc(nombreCorto(x.t))}</b>${uno?`<br><span class="mini" style="color:var(--clinico)">Pago del ${fechaCorta(uno.fecha)}${uno.metodo?' · '+esc(uno.metodo):''}${uno.nota&&!/^Sesión /.test(uno.nota)?' · '+esc(uno.nota):''}${gU&&gU.length>1?' (parte de un pago de '+usd(gU.reduce((k,y)=>k+(Number(y.monto)||0),0))+')':''}</span>`
+          <td><b>${nombreSesionHTML(x.t)}</b>${uno?`<br><span class="mini" style="color:var(--clinico)">Pago del ${fechaCorta(uno.fecha)}${uno.metodo?' · '+esc(uno.metodo):''}${uno.nota&&!/^Sesión /.test(uno.nota)?' · '+esc(uno.nota):''}${gU&&gU.length>1?' (parte de un pago de '+usd(gU.reduce((k,y)=>k+(Number(y.monto)||0),0))+')':''}</span>`
             :unoG?`<br><span class="mini" style="color:var(--clinico)">Pago general del ${fechaCorta(unoG.a.fecha)}${unoG.a.metodo?' · '+esc(unoG.a.metodo):''}${Math.abs(totG-unoG.monto)>0.004?' ('+usd(unoG.monto)+' de un pago de '+usd(totG)+')':''}</span>`
             :n>1?`<br><span class="mini">${n} abonos:</span>`:''}</td>
           <td class="der">${usd(x.costo)}</td><td class="der">${x.pagado?usd(x.pagado):'—'}</td>
@@ -7429,7 +7431,7 @@ function imprimirEstadoCuenta(){
   const p=pac(selId);if(!p)return;
   const g=datos.config||{},cu=cuentaPorTratamiento(p);
   const fp=a=>`<tr><td style="padding-left:18px;color:#444">${fechaCorta(a.fecha)}</td><td style="color:#444">Pago${a.metodo?' ('+esc(a.metodo)+')':''}${a.nota?' — '+esc(a.nota):''}</td><td></td><td style="text-align:right;color:#444">${usd(a.monto)}</td><td></td></tr>`;
-  const filas=cu.sesiones.map(x=>`<tr><td><b>${fechaCorta(x.t.fecha)}</b></td><td><b>${esc(nombreCorto(x.t))}</b>${x.pagos.length===1?`<br><span style="color:#444;font-size:.9em">Pago del ${fechaCorta(x.pagos[0].fecha)}${x.pagos[0].metodo?' ('+esc(x.pagos[0].metodo)+')':''}</span>`:''}</td><td style="text-align:right">${usd(x.costo)}</td><td style="text-align:right">${usd(x.pagado)}</td><td style="text-align:right"><b>${x.saldo>0.004?usd(x.saldo):'Pagado'}</b></td></tr>${x.pagos.length===1?'':x.pagos.map(fp).join('')}`).join('')
+  const filas=cu.sesiones.map(x=>`<tr><td><b>${fechaCorta(x.t.fecha)}</b></td><td><b>${nombreSesionHTML(x.t)}</b>${x.pagos.length===1?`<br><span style="color:#444;font-size:.9em">Pago del ${fechaCorta(x.pagos[0].fecha)}${x.pagos[0].metodo?' ('+esc(x.pagos[0].metodo)+')':''}</span>`:''}</td><td style="text-align:right">${usd(x.costo)}</td><td style="text-align:right">${usd(x.pagado)}</td><td style="text-align:right"><b>${x.saldo>0.004?usd(x.saldo):'Pagado'}</b></td></tr>${x.pagos.length===1?'':x.pagos.map(fp).join('')}`).join('')
     +(cu.generales.length?`<tr><td colspan="5"><b>Pagos generales</b></td></tr>${cu.generales.map(fp).join('')}`:'')
     +(cu.aFavor.length?`<tr><td colspan="5"><b>A favor del paciente</b></td></tr>${cu.aFavor.map(fp).join('')}`:'');
   $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
