@@ -969,8 +969,13 @@ const $=s=>document.querySelector(s);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const usd=n=>'$'+(Number(n)||0).toFixed(2);
-// fecha de hoy según el reloj del equipo (hora de Ecuador), no la de Londres: con toISOString después de las 19:00 ya salía el día siguiente
-const hoy=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+// todas las fechas «de hoy» se toman SIEMPRE en hora de Ecuador (America/Guayaquil), aunque el equipo tenga otra zona horaria.
+// Antes se usaba toISOString (hora de Londres) y después de las 19:00 ya salía el día siguiente.
+const ZONA_EC='America/Guayaquil';
+const _fmtEC=(()=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:ZONA_EC,year:'numeric',month:'2-digit',day:'2-digit'});}catch(e){return null;}})();
+const hoy=()=>{const d=new Date();
+  if(_fmtEC){const p={};_fmtEC.formatToParts(d).forEach(x=>{p[x.type]=x.value;});if(p.year&&p.month&&p.day)return p.year+'-'+p.month+'-'+p.day;}
+  return new Date(d.getTime()-5*3600000).toISOString().slice(0,10);};   // respaldo: Ecuador es UTC-5 todo el año
 const inicioMes=()=>hoy().slice(0,7)+'-01';
 let resumenDesde=inicioMes(),resumenHasta=hoy();
 const fechaCorta=f=>f?f.split('-').reverse().join('/'):'';
@@ -6433,7 +6438,7 @@ function verResumen(){
     [...(p.abonos||[]),...pagosOrtoPaciente(p)].forEach(a=>{const m=(a.fecha||'').slice(0,7);if(!m)return;
       meses[m]=(meses[m]||0)+(Number(a.monto)||0);cob+=Number(a.monto)||0;});});
   const ord=Object.keys(meses).sort().slice(-12),max=Math.max(...ord.map(m=>meses[m]),1),mAct=hoy().slice(0,7);
-  const mesAnt=(()=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})();
+  const mesAnt=(()=>{const [y,m]=hoy().split('-').map(Number);const d=new Date(Date.UTC(y,m-2,1));return d.toISOString().slice(0,7);})();
   const NM=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const deb=datos.pacientes.filter(p=>saldo(p)>0.004).sort((a,b)=>saldo(b)-saldo(a));
   const citasHoy=(datos.citas||[]).filter(c=>c.fecha===hoy()).sort((a,b)=>a.hora.localeCompare(b.hora));
