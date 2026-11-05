@@ -3514,7 +3514,36 @@ function etapasOrto(o){
     if(o.objetivo&&!e0.objetivo)e0.objetivo=o.objetivo;
     if(o.controlesPlan&&!e0.controlesPlan)e0.controlesPlan=o.controlesPlan;}
   o.etapas.forEach(e=>{if(e.entrada!==undefined&&!Array.isArray(e.entradas)){e.entradas=[e.entrada];e.numEntradas=Number(e.entrada)>0?1:0;delete e.entrada;}});
+  repararEtapasOrto(o);
   return o.etapas;
+}
+/* Reparación: si la etapa se perdió y se volvió a crear (con otro id), su cronograma quedó «huérfano»: las cuotas siguen
+   ahí con el id viejo, pero el Plan sale vacío y, al tocarlo, las cuotas pendientes se borrarían. Aquí la etapa recupera su id
+   y los valores pactados se vuelven a leer de esas mismas cuotas (entradas, valor por control y número de controles).
+   Solo se hace cuando la etapa no tiene precios propios y el grupo huérfano todavía tiene cuotas sin pagar
+   (si alguien quitó una etapa a propósito, solo quedan sus cuotas pagadas y no se toca nada). */
+function repararEtapasOrto(o){
+  const cs=o.cuotas||[];if(!cs.length)return;
+  const ids=new Set(o.etapas.map(e=>e.id));
+  const grupos={};cs.forEach(q=>{if(q.etapaId&&!ids.has(q.etapaId)&&q.clave&&!q.anulada)(grupos[q.etapaId]=grupos[q.etapaId]||[]).push(q);});
+  Object.entries(grupos).forEach(([hid,filas])=>{
+    if(!filas.some(q=>!tienePagosOrto(q)))return;   // solo pagadas: etapa quitada a propósito
+    const sinPrecio=e=>!(Number(e.cuota)>0)&&!(e.entradas||[]).some(m=>Number(m)>0);
+    const libre=o.etapas.find(e=>sinPrecio(e)&&!cs.some(q=>q.etapaId===e.id));
+    if(!libre)return;
+    libre.id=hid;
+    const ent=filas.filter(q=>q.esEntrada&&/^E\d+$/.test(q.clave)).sort((a,b)=>(a.entradaNum||0)-(b.entradaNum||0));
+    const ctl=filas.filter(q=>!q.esEntrada&&/^C\d+$/.test(q.clave));
+    if(ent.length){libre.entradas=ent.map(q=>Number(q.monto)||0).slice(0,3);libre.numEntradas=Math.min(3,ent.length);}
+    if(ctl.length){
+      const frec={};ctl.filter(q=>!q.editada).forEach(q=>{const m=Number(q.monto)||0;frec[m]=(frec[m]||0)+1;});
+      const moda=Object.entries(frec).sort((a,b)=>b[1]-a[1])[0];
+      if(moda&&Number(moda[0])>0)libre.cuota=Number(moda[0]);
+      const n=Math.max(...ctl.map(q=>Number(String(q.clave).slice(1))||0));
+      if(n>0&&!(Number(libre.controlesPlan)>0))libre.controlesPlan=n;
+    }
+    libre.reparada=hoy();
+  });
 }
 /* Fechas de cada etapa: si una etapa no tiene inicio escrito, empieza cuando termina la anterior.
    También deja al día los datos generales (aparatología actual, inicio y alta estimada) que usan los avisos. */
