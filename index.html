@@ -6419,12 +6419,106 @@ function renderInventario(){
         ${it.lote?`<span class="mini" style="margin-left:8px">Lote ${esc(it.lote)}</span>`:''}
         ${vencido?'<span class="mini" style="color:var(--alerta);margin-left:8px">Vencido</span>':porVencer?`<span class="mini" style="color:#B98A2E;margin-left:8px">Vence en ${dias} días</span>`:''}
         ${bajoStock?'<span class="mini" style="color:var(--alerta);margin-left:8px">Stock bajo</span>':''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+          <button class="btn chico" onclick="event.stopPropagation();descargarMaterial('${it.id}')">Descargar (uso)</button>
+          <button class="btn chico" onclick="event.stopPropagation();ingresarMaterial('${it.id}')">Ingresar</button>
+          <button class="btn chico" onclick="event.stopPropagation();historialMaterial('${it.id}')">Historial${(it.movimientos||[]).length?' ('+it.movimientos.length+')':''}</button></div>
       </div></div>`;
   };
   $('#vista').innerHTML=`<div class="cabecera"><div><h2>Inventario</h2>
       <div class="sub">${items.length} producto${items.length===1?'':'s'}</div></div>
       <div class="spacer"></div><button class="btn primario" onclick="abrirItemInventario()">Agregar producto</button></div>
-    <div class="bloque">${items.length?items.map(fila).join(''):'<p class="mini">Aún no has agregado productos al inventario.</p>'}</div>`;
+    <div class="bloque">${items.length?items.map(fila).join(''):'<p class="mini">Aún no has agregado productos al inventario.</p>'}</div>
+    ${usoRecienteHTML()}`;
+}
+/* ---------- uso de material: descargas (salidas) e ingresos de cada producto, con historial ----------
+   Cada producto guarda sus movimientos: {id,tipo:'salida'|'entrada',fecha,cantidad,motivo,pacienteId,pacienteNombre,proveedor}.
+   La cantidad del producto sube o baja sola; al borrar un movimiento se devuelve la cantidad. */
+const numInv=v=>Math.round((Number(v)||0)*100)/100;
+function itemInv(id){return (datos.inventario||[]).find(x=>x.id===id);}
+function listaPacientesDL(){return `<datalist id="dl_pacientes_inv">${[...datos.pacientes].map(p=>p.nombre||'').filter(Boolean).sort((a,b)=>a.localeCompare(b)).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;}
+function descargarMaterial(id,pacienteId){
+  const it=itemInv(id);if(!it)return;
+  const stock=numInv(it.cantidad),pDef=pacienteId?pac(pacienteId):null;
+  abrirModal('Descargar material usado',`
+    <p style="margin-top:0"><b>${esc(it.nombre)}</b> · hay <b>${esc(stock)} ${esc(it.unidad||'')}</b></p>
+    <div class="grid">
+      <label class="campo"><span>Cantidad usada</span><input type="number" step="0.01" min="0" id="mv_cant" inputmode="decimal" placeholder="1"></label>
+      <label class="campo"><span>Fecha</span><input type="date" id="mv_fecha" value="${hoy()}"></label>
+    </div>
+    <label class="campo"><span>Paciente (opcional)</span><input type="text" id="mv_pac" list="dl_pacientes_inv" value="${esc(pDef?pDef.nombre:'')}" placeholder="Escribe el nombre del paciente">${listaPacientesDL()}</label>
+    <label class="campo"><span>Motivo (opcional)</span><input type="text" id="mv_motivo" placeholder="Exodoncia, endodoncia, uso en consulta…"></label>`,
+  ()=>{
+    const c=numInv($('#mv_cant').value);
+    if(c<=0){avisar('Escribe cuánto se usó');return false;}
+    if(c>stock+0.004){avisar(`Solo hay ${stock} ${it.unidad||''}. Revisa la cantidad o registra un ingreso primero.`);return false;}
+    const nom=$('#mv_pac').value.trim(),pt=nom?datos.pacientes.find(x=>(x.nombre||'').trim().toLowerCase()===nom.toLowerCase()):null;
+    it.movimientos=it.movimientos||[];
+    it.movimientos.push({id:uid(),tipo:'salida',fecha:$('#mv_fecha').value||hoy(),cantidad:c,motivo:$('#mv_motivo').value.trim(),
+      pacienteId:pt?pt.id:null,pacienteNombre:pt?pt.nombre:nom});
+    it.cantidad=numInv(stock-c);
+    guardar();renderInventario();avisar(`Descargado: ${c} ${it.unidad||''} de ${it.nombre}`);
+  });
+  const ok=$('#mOk');if(ok)ok.textContent='Descargar';
+  setTimeout(()=>{const i=document.getElementById('mv_cant');if(i)i.focus();},50);
+}
+function ingresarMaterial(id){
+  const it=itemInv(id);if(!it)return;
+  const stock=numInv(it.cantidad);
+  abrirModal('Ingresar material',`
+    <p style="margin-top:0"><b>${esc(it.nombre)}</b> · hay <b>${esc(stock)} ${esc(it.unidad||'')}</b></p>
+    <div class="grid">
+      <label class="campo"><span>Cantidad que ingresa</span><input type="number" step="0.01" min="0" id="mv_cant" inputmode="decimal"></label>
+      <label class="campo"><span>Fecha</span><input type="date" id="mv_fecha" value="${hoy()}"></label>
+      <label class="campo"><span>Proveedor (opcional)</span><input type="text" id="mv_prov"></label>
+      <label class="campo"><span>Nuevo lote (opcional)</span><input type="text" id="mv_lote" value=""></label>
+      <label class="campo"><span>Nueva fecha de vencimiento (opcional)</span><input type="date" id="mv_venc" value=""></label>
+    </div>`,
+  ()=>{
+    const c=numInv($('#mv_cant').value);
+    if(c<=0){avisar('Escribe la cantidad que ingresa');return false;}
+    const lote=$('#mv_lote').value.trim(),venc=$('#mv_venc').value;
+    it.movimientos=it.movimientos||[];
+    it.movimientos.push({id:uid(),tipo:'entrada',fecha:$('#mv_fecha').value||hoy(),cantidad:c,proveedor:$('#mv_prov').value.trim(),lote});
+    it.cantidad=numInv(stock+c);
+    if(lote)it.lote=lote;if(venc)it.fechaVenc=venc;
+    guardar();renderInventario();avisar(`Ingresado: ${c} ${it.unidad||''} de ${it.nombre}`);
+  });
+  const ok=$('#mOk');if(ok)ok.textContent='Ingresar';
+}
+function historialMaterial(id){
+  const it=itemInv(id);if(!it)return;
+  const movs=[...(it.movimientos||[])].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  const usado=movs.filter(m=>m.tipo==='salida').reduce((x,m)=>x+numInv(m.cantidad),0);
+  abrirModal(`Historial · ${it.nombre}`,`
+    <p class="mini" style="margin-top:0">Hay ${esc(numInv(it.cantidad))} ${esc(it.unidad||'')} · usado en total: ${esc(numInv(usado))} ${esc(it.unidad||'')}</p>
+    ${movs.length?`<table style="width:100%"><thead><tr><th>Fecha</th><th>Movimiento</th><th>Detalle</th><th class="der">Cantidad</th><th></th></tr></thead><tbody>
+      ${movs.map(m=>`<tr><td class="num">${fechaCorta(m.fecha)}</td><td>${m.tipo==='salida'?'Descarga (uso)':'Ingreso'}</td>
+        <td class="mini">${m.tipo==='salida'?[m.pacienteNombre,m.motivo].filter(Boolean).map(esc).join(' · '):[m.proveedor,m.lote?'Lote '+m.lote:''].filter(Boolean).map(esc).join(' · ')}</td>
+        <td class="der num" style="color:${m.tipo==='salida'?'var(--alerta)':'var(--clinico)'}">${m.tipo==='salida'?'−':'+'}${esc(numInv(m.cantidad))}</td>
+        <td class="der"><button class="btn chico peligro" onclick="borrarMovimientoInv('${it.id}','${m.id}')" title="Anular">×</button></td></tr>`).join('')}</tbody></table>`
+      :'<p class="mini">Todavía no hay descargas ni ingresos de este producto.</p>'}`);
+}
+function borrarMovimientoInv(itemId,movId){
+  const it=itemInv(itemId);if(!it)return;
+  const m=(it.movimientos||[]).find(x=>x.id===movId);if(!m)return;
+  if(!confirm(`¿Anular este ${m.tipo==='salida'?'uso':'ingreso'} de ${numInv(m.cantidad)} ${it.unidad||''}? La cantidad del producto se corrige sola.`))return;
+  const nueva=numInv(it.cantidad)+(m.tipo==='salida'?1:-1)*numInv(m.cantidad);
+  it.cantidad=numInv(Math.max(0,nueva));
+  it.movimientos=it.movimientos.filter(x=>x.id!==movId);
+  guardar();renderInventario();historialMaterial(itemId);avisar('Movimiento anulado');
+}
+function usoRecienteHTML(){
+  const desde=addDias(hoy(),-30),filas=[];
+  (datos.inventario||[]).forEach(it=>(it.movimientos||[]).forEach(m=>{if(m.tipo==='salida'&&(m.fecha||'')>=desde)filas.push({it,m});}));
+  if(!filas.length)return '';
+  filas.sort((a,b)=>(b.m.fecha||'').localeCompare(a.m.fecha||''));
+  const porProd={};filas.forEach(({it,m})=>{const k=it.nombre+(it.unidad?' ('+it.unidad+')':'');porProd[k]=numInv((porProd[k]||0)+numInv(m.cantidad));});
+  return `<div class="panel-2col" style="margin-bottom:14px">
+    <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Material usado · últimos 30 días</h3></div>${filasBarras(porProd,v=>v)}</div>
+    <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Últimas descargas</h3></div>
+      <table style="width:100%">${filas.slice(0,12).map(({it,m})=>`<tr><td class="num mini">${fechaCorta(m.fecha)}</td><td>${esc(it.nombre)}<br><span class="mini">${[m.pacienteNombre,m.motivo].filter(Boolean).map(esc).join(' · ')}</span></td><td class="der num">−${esc(numInv(m.cantidad))} ${esc(it.unidad||'')}</td></tr>`).join('')}</table></div>
+  </div>`;
 }
 function abrirItemInventario(id){
   const it=id?datos.inventario.find(x=>x.id===id):{nombre:'',lote:'',fechaVenc:'',cantidad:'',unidad:'unidades',stockMinimo:''};
@@ -6442,7 +6536,7 @@ function abrirItemInventario(id){
     const nombre=$('#iv_nombre').value.trim();
     if(!nombre){avisar('Escribe el nombre del producto');return false;}
     const d={id:it.id||uid(),nombre,lote:$('#iv_lote').value.trim(),fechaVenc:$('#iv_venc').value,
-      cantidad:$('#iv_cant').value,unidad:$('#iv_unidad').value.trim()||'unidades',stockMinimo:$('#iv_min').value};
+      cantidad:$('#iv_cant').value,unidad:$('#iv_unidad').value.trim()||'unidades',stockMinimo:$('#iv_min').value,movimientos:it.movimientos||[]};
     datos.inventario=datos.inventario||[];
     const i=datos.inventario.findIndex(x=>x.id===d.id);
     i>=0?datos.inventario[i]=d:datos.inventario.push(d);
