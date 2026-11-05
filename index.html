@@ -5686,6 +5686,20 @@ function repartoAbonos(p){
   ts.forEach(t=>{const falta=Math.max(0,(Number(t.costo)||0)-por[t.id]);const x=Math.min(falta,pool);por[t.id]+=x;pool-=x;});
   return {porSesion:por,sobrante:Math.max(0,pool),huerfano};
 }
+/* qué parte de cada pago general (sin sesión elegida) cubre cada sesión: misma regla que repartoAbonos
+   (sesiones más antiguas primero, pagos generales más antiguos primero). Solo para mostrarlo bajo cada tratamiento. */
+function aplicacionGenerales(p){
+  const ts=[...(p.tratamientos||[])].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')||(Number(a.sesion)||0)-(Number(b.sesion)||0));
+  const ids=new Set(ts.map(t=>t.id)),propio={},por={};
+  ts.forEach(t=>{propio[t.id]=0;por[t.id]=[];});
+  const cola=[];
+  (p.abonos||[]).forEach(a=>{const m=Number(a.monto)||0;if(a.tratamientoId&&ids.has(a.tratamientoId))propio[a.tratamientoId]+=m;else if(!a.tratamientoId&&!a.aFavor)cola.push({a,resto:m});});
+  cola.sort((x,y)=>(x.a.fecha||'').localeCompare(y.a.fecha||''));
+  ts.forEach(t=>{let falta=Math.max(0,(Number(t.costo)||0)-propio[t.id]);
+    for(const g of cola){if(falta<=0.004)break;if(g.resto<=0.004)continue;
+      const x=Math.round(Math.min(falta,g.resto)*100)/100;por[t.id].push({a:g.a,monto:x});g.resto-=x;falta-=x;}});
+  return por;
+}
 /* ---------- pagos: cada dólar queda en una sesión, a la vista (sin repartos ocultos) ---------- */
 function sesionesConSaldo(p){
   const rp=repartoAbonos(p);
@@ -5786,17 +5800,26 @@ function textoDestinoPago(m){
 }
 /* pagos organizados por tratamiento: igual que la pestaña Tratamientos, con los pagos de cada uno debajo */
 function cuentaPorTratamiento(p){
-  const rep=repartoAbonos(p),ts=[...(p.tratamientos||[])].filter(t=>Number(t.costo)>0)
+  const rep=repartoAbonos(p),gen=aplicacionGenerales(p),ts=[...(p.tratamientos||[])].filter(t=>Number(t.costo)>0)
     .sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
   const ids=new Set((p.tratamientos||[]).map(t=>t.id));
   const sesiones=ts.map(t=>{const pagado=Math.round((rep.porSesion[t.id]||0)*100)/100,costo=Number(t.costo)||0;
     return {t,costo,pagado,saldo:Math.round((costo-pagado)*100)/100,
-      pagos:(p.abonos||[]).filter(a=>a.tratamientoId===t.id).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''))};});
+      pagos:(p.abonos||[]).filter(a=>a.tratamientoId===t.id).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')),
+      deGeneral:gen[t.id]||[]};});
   const generales=(p.abonos||[]).filter(a=>!a.tratamientoId&&!a.aFavor);
   const aFavor=(p.abonos||[]).filter(a=>a.aFavor||(a.tratamientoId&&!ids.has(a.tratamientoId)));
   return {sesiones,generales,aFavor,rep};
 }
 function nombreCorto(t){return (nombreSesion(t)||('Sesión '+(t.sesion||''))).split('\n')[0].slice(0,90);}
+function filaGeneralHTML(p,g){   // parte de un pago general que cubre esta sesión
+  const a=g.a,tot=Number(a.monto)||0;
+  return `<tr class="fila-pago"><td class="num mini">${fechaCorta(a.fecha)}</td>
+    <td class="mini">Pago general${a.metodo?' · '+esc(a.metodo):''}${a.nota?' · '+esc(a.nota):''}${Math.abs(tot-g.monto)>0.004?` <span style="color:var(--suave,#667)">(${usd(g.monto)} de un pago de ${usd(tot)})</span>`:''}</td>
+    <td></td><td class="der mini" style="color:var(--clinico)">${usd(g.monto)}</td><td></td>
+    <td class="der" style="white-space:nowrap"><button class="btn chico" onclick="imprimirRecibo('${a.id}')">Recibo</button>
+    <button class="btn chico" onclick="editarAbono('${a.id}')">Editar</button></td></tr>`;
+}
 function filaPagoHTML(p,a){
   const g=a.grupo?(p.abonos||[]).filter(x=>x.grupo===a.grupo):null,tot=g?g.reduce((x,y)=>x+(Number(y.monto)||0),0):0;
   const borrado=a.tratamientoId&&!(p.tratamientos||[]).some(t=>t.id===a.tratamientoId);
@@ -5822,17 +5845,15 @@ function tabPagos(p,c){
       <div class="saldo ${d>0.004?'debe':''}"><b>${usd(Math.abs(d))}</b><span>${d>0.004?'Saldo pendiente':d<-0.004?'A favor del paciente':'Sin deuda'}</span></div></div>
     <div class="bloque"><div class="barra-tit"><h3>Cuenta por tratamiento</h3><span class="der mini">igual que en Tratamientos, con los pagos de cada uno</span></div>
       ${cu.sesiones.length?`<table class="tabla-cuenta"><thead><tr><th style="width:92px">Fecha</th><th>Tratamiento</th><th class="der" style="width:90px">Costo</th><th class="der" style="width:90px">Pagado</th><th class="der" style="width:90px">Saldo</th><th style="width:250px"></th></tr></thead><tbody>
-        ${cu.sesiones.map(x=>{const uno=x.pagos.length===1?x.pagos[0]:null;
-          const gU=uno&&uno.grupo?(p.abonos||[]).filter(k=>k.grupo===uno.grupo):null;
+        ${cu.sesiones.map(x=>{const n=x.pagos.length+x.deGeneral.length;
           return `<tr class="fila-ses"><td class="num"><b>${fechaCorta(x.t.fecha)}</b>${x.t.sesion?'<br><span class="mini">'+esc(x.t.sesion)+'</span>':''}</td>
-          <td><b>${esc(nombreCorto(x.t))}</b>${uno?`<br><span class="mini" style="color:var(--clinico)">Pago del ${fechaCorta(uno.fecha)}${uno.metodo?' · '+esc(uno.metodo):''}${uno.nota&&!/^Sesión /.test(uno.nota)?' · '+esc(uno.nota):''}${gU&&gU.length>1?' (parte de un pago de '+usd(gU.reduce((k,y)=>k+(Number(y.monto)||0),0))+')':''}</span>`:''}</td>
+          <td><b>${esc(nombreCorto(x.t))}</b>${n?`<br><span class="mini">${n} abono${n===1?'':'s'}:</span>`:'<br><span class="mini">Sin abonos</span>'}</td>
           <td class="der">${usd(x.costo)}</td><td class="der">${x.pagado?usd(x.pagado):'—'}</td>
           <td class="der" style="color:${x.saldo>0.004?'var(--alerta)':'var(--clinico)'}"><b>${x.saldo>0.004?usd(x.saldo):'Pagado'}</b></td>
-          <td class="der" style="white-space:nowrap">${x.saldo>0.004?`<button class="btn chico" onclick="registrarPago('${x.t.id}')">Abonar</button>`:''}
-            ${uno?`<button class="btn chico" onclick="imprimirRecibo('${uno.id}')">Recibo</button><button class="btn chico" onclick="editarAbono('${uno.id}')">Editar</button><button class="btn chico peligro" onclick="borrarPago('${uno.id}')">×</button>`:''}</td></tr>
-          ${uno?'':x.pagos.map(a=>filaPagoHTML(p,a)).join('')}`;}).join('')}
+          <td class="der" style="white-space:nowrap">${x.saldo>0.004?`<button class="btn chico" onclick="registrarPago('${x.t.id}')">Abonar</button>`:''}</td></tr>
+          ${[...x.pagos.map(a=>({f:a.fecha||'',h:filaPagoHTML(p,a)})),...x.deGeneral.map(g=>({f:g.a.fecha||'',h:filaGeneralHTML(p,g)}))].sort((u,v)=>u.f.localeCompare(v.f)).map(o=>o.h).join('')}`;}).join('')}
         </tbody></table>`:'<p class="mini">Aún no hay tratamientos con costo.</p>'}</div>
-    ${cu.generales.length?`<div class="bloque"><div class="barra-tit"><h3>Pagos generales</h3><span class="der mini">pagos antiguos sin sesión: se descuentan de las sesiones más antiguas</span></div>
+    ${cu.generales.length?`<div class="bloque"><div class="barra-tit"><h3>Pagos generales</h3><span class="der mini">pagos sin sesión elegida: arriba se ve qué parte cubre cada tratamiento</span></div>
       <table><tbody>${cu.generales.map(a=>filaPagoHTML(p,a)).join('')}</tbody></table></div>`:''}
     ${cu.aFavor.length?`<div class="bloque"><div class="barra-tit"><h3>A favor del paciente · ${usd(totFav)}</h3><span class="der mini">no se usa solo: toca «Usar saldo a favor» o «Editar»</span></div>
       <table><tbody>${cu.aFavor.map(a=>filaPagoHTML(p,a)).join('')}</tbody></table></div>`:''}`;
