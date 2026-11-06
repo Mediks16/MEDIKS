@@ -703,6 +703,7 @@ tr.anulado td{color:#999}tr.anulado td.der{text-decoration:line-through}
         <button id="btnRecetas">Recetas emitidas</button>
         <button id="btnReporte">Reportes de ingresos</button>
         <button id="btnCaja">Cierre de caja</button>
+        <button id="btnCitasLinea">Citas en línea</button>
         <hr>
         <button id="btnPersonalizar">Personalizar</button>
         <button id="btnConfig">Consultorio</button>
@@ -1197,6 +1198,7 @@ async function arrancar(){
   }else{
     actualizarBotonNube();
   }
+  revisarCitaEnlace();
 }
 
 
@@ -7330,7 +7332,8 @@ function enlaceWhatsapp(tel,nombre,fecha,hora){
 
 function abrirCita(id,prefill){
   const existente=id?(datos.citas||[]).find(x=>x.id===id):null;
-  const c=existente||{fecha:(prefill&&prefill.fecha)||agendaFecha,hora:(prefill&&prefill.hora)||'09:00',duracion:30,estado:'Agendada',
+  const c=existente||{fecha:(prefill&&prefill.fecha)||agendaFecha,hora:(prefill&&prefill.hora)||'09:00',duracion:(prefill&&prefill.duracion)||30,estado:'Agendada',
+    origen:(prefill&&prefill.origen)||null,nota:(prefill&&prefill.nota)||'',
     nombre:(prefill&&prefill.nombre)||'',telefono:(prefill&&prefill.telefono)||'',pacienteId:(prefill&&prefill.pacienteId)||null,motivo:(prefill&&prefill.motivo)||''};
   const listaPac=datos.pacientes.map(p=>`<option value="${esc(p.nombre)}">`).join('');
   const origenTxt={
@@ -7339,7 +7342,9 @@ function abrirCita(id,prefill){
     'ortoControl':'el próximo control de ortodoncia',
     'receta':'el control indicado en una receta'
   }[c.origen&&c.origen.tipo]||null;
+  const enLinea=c.origen&&c.origen.tipo==='enLinea';
   abrirModal(id?'Editar cita':'Nueva cita',`
+    ${enLinea?`<p class="mini" style="margin-top:0;color:var(--clinico)"><b>${id?'Pedida':'Solicitud recibida'} por la página de citas en línea.</b>${id?'':' Revisa que el horario esté libre y toca «Guardar»; luego confírmale al paciente por WhatsApp.'}</p>`:''}
     ${origenTxt?`<p class="mini" style="margin-top:0">Esta cita se generó automáticamente desde ${origenTxt}. Si la editas o eliminas aquí, no se borra ese registro original.</p>`:''}
     <label class="campo"><span>Paciente</span><input type="text" id="ci_pac" list="dlPac" value="${esc(c.nombre||'')}" placeholder="Escribe para buscar o escribe uno nuevo"></label>
     <datalist id="dlPac">${listaPac}</datalist>
@@ -8633,6 +8638,100 @@ function imprimirCaja(){
   lanzarImpresion();
 }
 
+/* ---------- citas en línea ----------
+   Una página pública (reservar.html) donde el paciente elige día, hora y motivo. No hay servidor: la página arma un mensaje
+   de WhatsApp dirigido al número del consultorio, con un enlace (#cita=...) que, abierto aquí, llena la «Nueva cita».
+   La configuración (número, días, horario, duración) va dentro del enlace público, en datos.config.citasLinea. */
+const b64url=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const deB64url=s=>decodeURIComponent(escape(atob(String(s).replace(/-/g,'+').replace(/_/g,'/'))));
+function cfgCitasLinea(){
+  const g=datos.config||{},c=g.citasLinea||{};
+  return {w:c.w||telWhatsapp(g.telefono||''),d:c.d||[1,2,3,4,5],m:c.m||30,
+    man:c.man||['09:00','13:00'],tar:c.tar===undefined?['15:00','19:00']:c.tar};
+}
+function enlaceCitasLinea(){
+  const c=cfgCitasLinea(),g=datos.config||{};
+  if(!c.w)return '';
+  const h=[c.man,c.tar].filter(x=>x&&x[0]&&x[1]&&x[0]<x[1]);
+  if(!h.length||!c.d.length)return '';
+  return new URL('reservar.html',location.href).href.split('#')[0].split('?')[0]+
+    '?c='+b64url(JSON.stringify({n:g.establecimiento||'',w:c.w,d:c.d,h,m:c.m}));
+}
+function verCitasLinea(){
+  selId=null;ocultarPanel();pintarLista();
+  const c=cfgCitasLinea(),L=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],orden=[1,2,3,4,5,6,0];
+  const url=enlaceCitasLinea();
+  $('#vista').innerHTML=`<div class="cabecera"><div><h2>Citas en línea</h2>
+      <div class="sub">Tus pacientes piden su cita desde un enlace y te llega por WhatsApp, lista para agregarla a la agenda.</div></div></div>
+    <div class="bloque" style="margin-top:16px"><h3 style="margin-top:0">Tu enlace para pacientes</h3>
+      ${url?`<p class="mini" style="margin-top:0">Ponlo en tu Instagram, Facebook, Google o en tu estado de WhatsApp.</p>
+        <input type="text" readonly id="cl_url" value="${esc(url)}" onclick="this.select()" style="width:100%;font-size:13px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn primario chico" type="button" onclick="copiarEnlaceCitas()">Copiar enlace</button>
+          <button class="btn chico" type="button" onclick="window.open(enlaceCitasLinea(),'_blank')">Ver cómo lo ven los pacientes</button>
+          <button class="btn chico" type="button" onclick="window.open('https://wa.me/?text='+encodeURIComponent('Agenda tu cita aquí: '+enlaceCitasLinea()),'_blank')">Compartir por WhatsApp</button></div>`
+      :'<p class="mini" style="margin-top:0;color:var(--alerta)">Completa abajo el número de WhatsApp del consultorio, los días y el horario para crear tu enlace.</p>'}
+    </div>
+    <div class="bloque"><h3 style="margin-top:0">Horario que verán los pacientes</h3>
+      <div class="grid">
+        <label class="campo"><span>WhatsApp del consultorio (donde llegan las solicitudes)</span><input type="tel" id="cl_w" value="${esc(c.w)}" placeholder="0991234567"></label>
+        <label class="campo"><span>Duración de cada cita</span><select id="cl_m">${[15,20,30,45,60].map(m=>`<option value="${m}" ${c.m===m?'selected':''}>${m} min</option>`).join('')}</select></label></div>
+      <div class="campo" style="margin-bottom:14px"><span>Días de atención</span><div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${orden.map(d=>`<label class="chk" style="border:1px solid var(--linea);border-radius:8px;padding:4px 10px;margin:0"><input type="checkbox" class="cl_d" value="${d}" ${c.d.includes(d)?'checked':''}> ${L[d]}</label>`).join('')}</div></div>
+      <div class="grid">
+        <label class="campo"><span>Mañana desde</span><input type="time" id="cl_m1" value="${esc((c.man||[])[0]||'')}"></label>
+        <label class="campo"><span>Mañana hasta</span><input type="time" id="cl_m2" value="${esc((c.man||[])[1]||'')}"></label>
+        <label class="campo"><span>Tarde desde</span><input type="time" id="cl_t1" value="${esc((c.tar||[])[0]||'')}"></label>
+        <label class="campo"><span>Tarde hasta</span><input type="time" id="cl_t2" value="${esc((c.tar||[])[1]||'')}"></label></div>
+      <p class="mini" style="margin-top:0">Si no atiendes en la tarde, deja vacías las horas de la tarde. Las horas ocupadas no se ocultan: tú confirmas cada solicitud.</p>
+      <button class="btn primario" type="button" onclick="guardarCitasLinea()">Guardar horario</button>
+      <p class="mini">Si cambias el horario, vuelve a copiar el enlace y reemplázalo donde lo hayas publicado.</p></div>
+    <div class="bloque"><h3 style="margin-top:0">¿Cómo funciona?</h3>
+      <ol class="mini" style="margin:0;padding-left:18px;line-height:1.7">
+        <li>El paciente abre tu enlace, escribe su nombre y elige motivo, día y hora.</li>
+        <li>Se abre su WhatsApp con la solicitud lista y te la envía a ti.</li>
+        <li>En el mensaje viene un enlace «agregar a la agenda». Tócalo y se abre la cita ya llena aquí; revisa y toca «Guardar».</li>
+        <li>Confírmale al paciente por WhatsApp.</li></ol></div>`;
+}
+function guardarCitasLinea(){
+  const w=telWhatsapp($('#cl_w').value);
+  if(!w||w.length<11){avisar('Escribe el número de WhatsApp del consultorio');return;}
+  const d=[...document.querySelectorAll('.cl_d:checked')].map(x=>Number(x.value));
+  if(!d.length){avisar('Elige al menos un día de atención');return;}
+  const man=[$('#cl_m1').value,$('#cl_m2').value],tar=[$('#cl_t1').value,$('#cl_t2').value];
+  const ok=x=>x[0]&&x[1]&&x[0]<x[1];
+  if((man[0]||man[1])&&!ok(man)){avisar('Revisa el horario de la mañana');return;}
+  if((tar[0]||tar[1])&&!ok(tar)){avisar('Revisa el horario de la tarde');return;}
+  if(!ok(man)&&!ok(tar)){avisar('Escribe al menos un horario');return;}
+  datos.config=datos.config||{};
+  datos.config.citasLinea={w,d,m:Number($('#cl_m').value)||30,man:ok(man)?man:['',''],tar:ok(tar)?tar:['','']};
+  guardar();avisar('Horario guardado');verCitasLinea();
+}
+async function copiarEnlaceCitas(){
+  const u=enlaceCitasLinea();
+  try{await navigator.clipboard.writeText(u);avisar('Enlace copiado');}
+  catch(e){const i=$('#cl_url');if(i){i.select();try{document.execCommand('copy');avisar('Enlace copiado');}catch(_){avisar('Mantén presionado el enlace para copiarlo');}}}
+}
+/* Al abrir la app con #cita=... (el enlace que llega en el WhatsApp), se abre la nueva cita ya llena. */
+function revisarCitaEnlace(intentos){
+  const m=/^#cita=([\w-]+)/.exec(location.hash||'');if(!m)return;
+  const bloqueo=document.getElementById('bloqueoLogin');
+  if(bloqueo&&(intentos||0)<1200){setTimeout(()=>revisarCitaEnlace((intentos||0)+1),1000);return;}
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+  let d;try{d=JSON.parse(deB64url(m[1]));}catch(e){avisar('El enlace de la cita no es válido');return;}
+  if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d.f||'')||!/^\d{2}:\d{2}$/.test(d.h||'')){avisar('El enlace de la cita no es válido');return;}
+  const ya=(datos.citas||[]).find(x=>x.origen&&x.origen.tipo==='enLinea'&&x.origen.id===d.i);
+  agendaFecha=d.f;verAgenda();
+  if(ya){avisar('Esta solicitud ya está en tu agenda');abrirCita(ya.id);return;}
+  const tel=String(d.t||'').slice(0,30),dig=telWhatsapp(tel);
+  const ptc=datos.pacientes.find(p=>dig&&telWhatsapp(p.telefono||'')===dig)||
+    datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===String(d.n||'').trim().toLowerCase());
+  abrirCita(null,{fecha:d.f,hora:d.h,duracion:[15,20,30,45,60,90,120].includes(Number(d.d))?Number(d.d):30,
+    nombre:ptc?ptc.nombre:String(d.n||'').slice(0,120),telefono:tel||(ptc&&ptc.telefono)||'',pacienteId:ptc?ptc.id:null,
+    motivo:String(d.m||'').slice(0,200),nota:String(d.c||'').slice(0,1000),origen:{tipo:'enLinea',id:String(d.i||'').slice(0,40)}});
+  const inp=document.getElementById('ci_pac');if(inp&&inp.oninput)inp.oninput();
+}
+window.addEventListener('hashchange',()=>revisarCitaEnlace());
 /* ---------- 8. instalable en el iPad / sin conexión ---------- */
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
@@ -8745,6 +8844,7 @@ $('#btnProfesionales').onclick=()=>verProfesionales();
 $('#btnGastos').onclick=()=>verGastos();
 $('#btnReporte').onclick=()=>verReporte();
 $('#btnCaja').onclick=()=>verCaja();
+$('#btnCitasLinea').onclick=()=>verCitasLinea();
 $('#btnInventario').onclick=()=>verInventario();
 $('#btnNube').onclick=()=>abrirNube();
 $('#btnResumen').onclick=()=>{ocultarPanel();verResumen();};

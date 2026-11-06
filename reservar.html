@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Agenda tu cita</title>
+<style>
+:root{--fondo:#f3f6f6;--papel:#fff;--tinta:#16302d;--suave:#5b6e6b;--linea:#d9e3e1;--acento:#0f7b6c;--acento2:#0b5f53;--wsp:#25d366;--alerta:#b3372b}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--tinta)}
+main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+.cab{text-align:center;margin:8px 0 18px}
+.cab .ico{width:56px;height:56px;border-radius:16px;background:var(--acento);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:8px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--suave);font-size:14px;margin:0}
+.card{background:var(--papel);border:1px solid var(--linea);border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+label{display:block;margin:0 0 14px}
+label>span{display:block;font-size:13px;font-weight:600;color:var(--suave);margin-bottom:5px}
+input,select,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acento);outline-offset:0;border-color:var(--acento)}
+textarea{min-height:70px;resize:vertical}
+.fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.horas{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-bottom:14px}
+.horas button{-webkit-tap-highlight-color:transparent;font:inherit;font-size:15px;padding:9px 0;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta);cursor:pointer}
+.horas button[aria-pressed="true"]{background:var(--acento);border-color:var(--acento);color:#fff;font-weight:600}
+.horas .vacio{grid-column:1/-1;color:var(--suave);font-size:14px;margin:0}
+.btn{width:100%;font:inherit;font-weight:700;font-size:17px;padding:14px;border:0;border-radius:12px;background:var(--wsp);color:#073b1d;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{color:var(--alerta);font-size:14px;margin:-4px 0 12px;min-height:0}
+.nota{font-size:13px;color:var(--suave);text-align:center;margin:14px 0 0}
+.pie{font-size:12px;color:var(--suave);text-align:center;margin-top:24px}
+.pie a{color:var(--suave)}
+.malo{text-align:center;padding:40px 10px;color:var(--suave)}
+@media (prefers-reduced-motion:no-preference){.horas button{transition:background .15s}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+/* Página pública para pedir una cita. Los datos del consultorio vienen en el enlace (?c=...).
+   No guarda nada en ningún servidor: arma un mensaje y lo abre en el WhatsApp del paciente, dirigido al número del consultorio.
+   El mensaje lleva un enlace para que el consultorio la agregue a su agenda con un toque. */
+const APP='./';            // dónde está la app del consultorio (relativo a esta página)
+const PIE='';              // texto al pie (vacío en Mediks)
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const b64d=s=>decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
+const b64e=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+let cfg=null;
+try{cfg=JSON.parse(b64d(new URLSearchParams(location.search).get('c')||''));}catch(e){}
+const DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+/* Fecha y hora de Ecuador, aunque el teléfono del paciente tenga otra zona horaria. */
+function ahoraEc(){
+  const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Guayaquil',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
+    .formatToParts(new Date()).map(x=>[x.type,x.value]));
+  return {fecha:`${p.year}-${p.month}-${p.day}`,min:(Number(p.hour)%24)*60+Number(p.minute)};
+}
+function sumarDias(iso,n){const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+function diaSemana(iso){return new Date(iso+'T12:00:00Z').getUTCDay();}
+function textoFecha(iso){const d=new Date(iso+'T12:00:00Z');return `${DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`;}
+const aMin=h=>{const [a,b]=String(h).split(':').map(Number);return a*60+(b||0);};
+const aHora=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+function horasDe(iso){
+  const dur=Math.max(10,Number(cfg.m)||30),ahora=ahoraEc(),out=[];
+  (cfg.h||[]).forEach(([a,b])=>{for(let t=aMin(a);t+dur<=aMin(b);t+=dur)out.push(t);});
+  return out.filter(t=>iso!==ahora.fecha||t>=ahora.min+60).sort((x,y)=>x-y).map(aHora);
+}
+function fechasDisponibles(){
+  const hoy=ahoraEc().fecha,out=[];
+  for(let i=0;i<45&&out.length<30;i++){const f=sumarDias(hoy,i);if((cfg.d||[]).includes(diaSemana(f))&&horasDe(f).length)out.push(f);}
+  return out;
+}
+function pintar(){
+  if(!cfg||!cfg.w||!Array.isArray(cfg.d)||!Array.isArray(cfg.h)){
+    $('#app').innerHTML='<div class="malo"><h1>Enlace no válido</h1><p>Pide al consultorio que te envíe de nuevo su enlace para agendar.</p></div>';return;
+  }
+  document.title='Agenda tu cita · '+(cfg.n||'Consultorio');
+  const fechas=fechasDisponibles();
+  const motivos=['Primera consulta / valoración','Limpieza dental','Dolor o urgencia','Control de ortodoncia','Blanqueamiento','Control','Otro'];
+  $('#app').innerHTML=`
+    <div class="cab"><div class="ico" aria-hidden="true">🦷</div><h1>${esc(cfg.n||'Agenda tu cita')}</h1>
+      <p class="sub">Elige el día y la hora que prefieras. El consultorio te confirmará por WhatsApp.</p></div>
+    <form class="card" id="f" novalidate>
+      <label><span>Tu nombre y apellido</span><input id="nombre" autocomplete="name" required></label>
+      <label><span>Tu número de WhatsApp</span><input id="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej. 0991234567" required></label>
+      <label><span>Motivo de la cita</span><select id="motivo">${motivos.map(m=>`<option>${m}</option>`).join('')}</select></label>
+      <label><span>Día</span><select id="fecha">${fechas.length?fechas.map(f=>`<option value="${f}">${textoFecha(f).replace(/^./,c=>c.toUpperCase())}</option>`).join(''):'<option value="">No hay días disponibles</option>'}</select></label>
+      <span style="display:block;font-size:13px;font-weight:600;color:var(--suave);margin-bottom:5px">Hora</span>
+      <div class="horas" id="horas" role="group" aria-label="Hora"></div>
+      <label><span>Comentario (opcional)</span><textarea id="nota" placeholder="Algo que debamos saber"></textarea></label>
+      <p class="err" id="err" role="alert"></p>
+      <button class="btn" id="enviar" type="submit">Enviar solicitud por WhatsApp</button>
+      <p class="nota">Se abrirá WhatsApp con tu solicitud lista. Solo tienes que tocar «Enviar».</p>
+    </form>
+    ${PIE?`<p class="pie">${PIE}</p>`:''}`;
+  let hora='';
+  const pintarHoras=()=>{
+    const f=$('#fecha').value,hs=f?horasDe(f):[];hora='';
+    $('#horas').innerHTML=hs.length?hs.map(h=>`<button type="button" aria-pressed="false" data-h="${h}">${h}</button>`).join(''):'<p class="vacio">No hay horas disponibles este día.</p>';
+    $('#horas').querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{hora=b.dataset.h;
+      $('#horas').querySelectorAll('[data-h]').forEach(x=>x.setAttribute('aria-pressed',x===b));$('#err').textContent='';});
+  };
+  $('#fecha').onchange=pintarHoras;pintarHoras();
+  $('#f').onsubmit=e=>{
+    e.preventDefault();
+    const nombre=$('#nombre').value.trim(),tel=$('#tel').value.trim(),fecha=$('#fecha').value;
+    const err=$('#err');
+    if(!nombre){err.textContent='Escribe tu nombre.';$('#nombre').focus();return;}
+    if(tel.replace(/\D/g,'').length<9){err.textContent='Escribe tu número de WhatsApp completo.';$('#tel').focus();return;}
+    if(!fecha){err.textContent='Elige un día.';return;}
+    if(!hora){err.textContent='Elige una hora.';return;}
+    err.textContent='';
+    const motivo=$('#motivo').value,nota=$('#nota').value.trim();
+    const datosCita={i:Date.now().toString(36)+Math.random().toString(36).slice(2,6),n:nombre,t:tel,f:fecha,h:hora,m:motivo,c:nota,d:Number(cfg.m)||30};
+    const enlace=new URL(APP,location.href).href.split('#')[0]+'#cita='+b64e(JSON.stringify(datosCita));
+    const txt=`Hola 👋 Quisiera agendar una cita.\n\n👤 Nombre: ${nombre}\n📱 Teléfono: ${tel}\n🦷 Motivo: ${motivo}\n📅 Día: ${textoFecha(fecha)}\n🕐 Hora: ${hora}`+
+      (nota?`\n💬 Comentario: ${nota}`:'')+`\n\n(Para el consultorio — agregar a la agenda: ${enlace} )`;
+    location.href=`https://wa.me/${String(cfg.w).replace(/\D/g,'')}?text=${encodeURIComponent(txt)}`;
+  };
+}
+pintar();
+</script>
+</body>
+</html>
