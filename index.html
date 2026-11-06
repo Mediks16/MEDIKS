@@ -3515,7 +3515,34 @@ function etapasOrto(o){
     if(o.controlesPlan&&!e0.controlesPlan)e0.controlesPlan=o.controlesPlan;}
   o.etapas.forEach(e=>{if(e.entrada!==undefined&&!Array.isArray(e.entradas)){e.entradas=[e.entrada];e.numEntradas=Number(e.entrada)>0?1:0;delete e.entrada;}});
   repararEtapasOrto(o);
+  migrarPreciosPlanAnterior(o);
   return o.etapas;
+}
+/* Pacientes con el plan de antes (pestaña de ortodoncia anterior al 27/10): sus valores pactados están en o.plan
+   (entradas, cuota mensual, número de cuotas) y su cronograma de cuotas no tiene etapa. Al pasar a etapas esos valores
+   no se copiaron y el Plan salía vacío. Aquí se copian a la etapa 1 (si no los tiene) y se marca «planAnterior»:
+   mientras no se cambien los precios a propósito, el cronograma y los pagos de antes se quedan exactamente como están. */
+function migrarPreciosPlanAnterior(o){
+  const e0=o.etapas[0];if(!e0||e0.planAnteriorMig)return false;
+  const sinPrecio=!(Number(e0.cuota)>0)&&!(e0.entradas||[]).some(m=>Number(m)>0);
+  if(!sinPrecio){e0.planAnteriorMig=true;return false;}
+  const viejas=(o.cuotas||[]).filter(q=>!q.etapaId&&!esExtraOrto(q)&&!esProcOrto(q)&&!q.anulada);
+  const pl=o.plan||{};
+  let ent=[Number(pl.montoInicial)||0,Number(pl.montoInicial2)||0].filter(m=>m>0);
+  let cuota=Number(pl.cuotaMensual)||0,n=Number(pl.numCuotas)||0;
+  if(viejas.length){   // si el plan viejo no tenía los datos, se leen de su cronograma
+    if(!ent.length)ent=viejas.filter(q=>q.esEntrada).sort((a,b)=>(a.entradaNum||0)-(b.entradaNum||0)).map(q=>Number(q.monto)||0).filter(m=>m>0);
+    const ctl=viejas.filter(q=>!q.esEntrada);
+    if(!cuota){const frec={};ctl.forEach(q=>{const m=Number(q.monto)||0;if(m>0)frec[m]=(frec[m]||0)+1;});const md=Object.entries(frec).sort((a,b)=>b[1]-a[1])[0];if(md)cuota=Number(md[0]);}
+    if(!n)n=ctl.length;
+  }
+  if(!ent.length&&!cuota)return false;
+  if(ent.length){e0.entradas=ent.slice(0,3);e0.numEntradas=Math.min(3,ent.length);}
+  if(cuota)e0.cuota=cuota;
+  if(n&&!(Number(e0.controlesPlan)>0))e0.controlesPlan=n;
+  if(viejas.length)e0.planAnterior=true;
+  e0.planAnteriorMig=true;
+  return true;
 }
 /* Reparación: si la etapa se perdió y se volvió a crear (con otro id), su cronograma quedó «huérfano»: las cuotas siguen
    con el id viejo y el Plan sale vacío. Aquí la etapa recupera su id y los valores pactados se leen de esas mismas cuotas
@@ -3707,7 +3734,7 @@ function sincronizarCronogramaOrto(o){
     const ini=inf.calc[i].ini||hoy(),n=Number(e.numEntradas)||0,cuota=Number(e.cuota)||0,filas=Number(e.controlesPlan)||Number(e.meses)||0;
     const conPrecio=cuota>0||(e.entradas||[]).slice(0,n).some(m=>Number(m)>0);
     // paciente con cronograma anterior y etapa sin precios: sus cuotas viejas siguen siendo las filas de control
-    const usarViejas=i===0&&!conPrecio&&o.cuotas.some(q=>!q.etapaId&&!esExtraOrto(q)&&!esProcOrto(q));
+    const usarViejas=i===0&&(!conPrecio||e.planAnterior)&&o.cuotas.some(q=>!q.etapaId&&!esExtraOrto(q)&&!esProcOrto(q));
     const desead=[];
     if(!usarViejas){
       (e.entradas||[]).slice(0,n).forEach((m,k)=>{if(Number(m)>0)desead.push({clave:'E'+(k+1),esEntrada:true,entradaNum:k+1,numero:0,monto:Number(m),fechaVenc:ini});});
@@ -3718,7 +3745,7 @@ function sincronizarCronogramaOrto(o){
       if(!q)o.cuotas.push({id:uid(),etapaId:e.id,pagada:false,pagos:[],...x});
       else if(!tienePagosOrto(q)&&!q.editada&&!q.anulada)Object.assign(q,{monto:x.monto,fechaVenc:x.fechaVenc,numero:x.numero});});
     o.cuotas=o.cuotas.filter(c=>!(c.etapaId===e.id&&c.clave&&!claves.has(c.clave)&&!tienePagosOrto(c)&&!c.controlId));
-    if(i===0&&conPrecio)absorberCuotasAnterioresOrto(o,e);
+    if(i===0&&conPrecio&&!e.planAnterior)absorberCuotasAnterioresOrto(o,e);
   });
   o.cuotas=o.cuotas.filter(c=>!(c.etapaId&&!vivas.has(c.etapaId)&&!tienePagosOrto(c)));   // etapa quitada: se van sus cuotas pendientes
 }
@@ -3881,6 +3908,7 @@ function tabOrto(p,c){
         <div class="etapa-pie">
           ${!e.inicio&&infoEt.calc[i].ini?`<span class="mini">Empieza aprox. el ${fechaCorta(infoEt.calc[i].ini)}</span>`:''}
           ${infoEt.calc[i].fin?`<span class="mini">Termina aprox. el ${fechaCorta(infoEt.calc[i].fin)}</span>`:''}
+          ${e.planAnterior?`<span class="mini">Valores del plan anterior · el cronograma y los pagos siguen igual en <a href="#" onclick="ortoSub='cuotas';pintarVista();return false">Controles</a></span>`:''}
           ${(()=>{const tot=R2((o.cuotas||[]).filter(q=>q.etapaId===e.id&&esCargoOrto(q)).reduce((t,q)=>t+(Number(q.monto)||0),0));
             return tot>0?`<span class="mini">Costo de la etapa: <b>${usd(tot)}</b> · los controles y pagos están en <a href="#" onclick="ortoSub='cuotas';pintarVista();return false">Controles</a></span>`:'';})()}
           <label class="chk" style="margin-left:auto"><input type="checkbox" data-et="${i}" data-ek="terminada" ${e.terminada?'checked':''}> Terminada</label>
@@ -3941,11 +3969,11 @@ function tabOrto(p,c){
   const cp=document.getElementById('orto_ctrlPlan');
   if(cp)cp.addEventListener('change',()=>{o.controlesPlan=cp.value;guardar();pintarVista();});
   c.querySelectorAll('[data-ent]').forEach(el=>el.addEventListener('change',()=>{
-    const e=etapas[Number(el.dataset.ent)];e.entradas=e.entradas||[];e.entradas[Number(el.dataset.entk)]=el.value;
+    const e=etapas[Number(el.dataset.ent)];e.entradas=e.entradas||[];e.entradas[Number(el.dataset.entk)]=el.value;delete e.planAnterior;
     sincronizarCronogramaOrto(o);guardar();pintarVista();}));
   c.querySelectorAll('[data-et]').forEach(el=>{
     const e=etapas[Number(el.dataset.et)],k=el.dataset.ek;
-    const aplicar=repintar=>{e[k]=el.type==='checkbox'?el.checked:el.value;if(k==='numEntradas'){e.numEntradas=Number(el.value)||0;e.entradas=e.entradas||[];}
+    const aplicar=repintar=>{e[k]=el.type==='checkbox'?el.checked:el.value;if(['cuota','numEntradas','controlesPlan'].includes(k))delete e.planAnterior;if(k==='numEntradas'){e.numEntradas=Number(el.value)||0;e.entradas=e.entradas||[];}
       sincronizarCronogramaOrto(o);guardar();if(repintar)pintarVista();};
     if(el.type==='date'){el.addEventListener('change',()=>aplicar(false));el.addEventListener('blur',()=>aplicar(true));}   // ver nota en ligar()
     else el.addEventListener('change',()=>aplicar(true));
