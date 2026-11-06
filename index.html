@@ -54,7 +54,7 @@ header.top .btn.chico:hover{background:rgba(255,255,255,.18)}
 .menu-drop-lista{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--papel);
   border:1px solid var(--linea);border-radius:10px;box-shadow:0 10px 28px rgba(10,25,45,.18);
   min-width:190px;padding:6px;z-index:50}
-.menu-drop-lista.abierto{display:block}
+.menu-drop-lista.abierto{display:block}.menu-drop-lista{left:auto;right:0;max-width:calc(100vw - 24px)}.menu-drop-lista button{white-space:nowrap}
 .menu-drop-lista button{display:block;width:100%;text-align:left;background:none;border:0;
   padding:9px 11px;border-radius:7px;color:var(--tinta);font-weight:500;font-size:13.5px;cursor:pointer}
 .menu-drop-lista button:hover{background:var(--porcelana)}
@@ -520,6 +520,10 @@ header.top #logoConsultorio{border-radius:50%;background:#000}
   .bottom-nav button:active{background:var(--clinico-claro);color:var(--clinico)}
   main{padding-bottom:84px}
   .btn,.menu-drop-lista button{min-height:42px}
+  /* en el celular, «Gestión» de la barra de abajo abre el menú como una hoja sobre la barra */
+  header.top .menu-drop{display:block;position:static;width:0;height:0;overflow:visible}
+  header.top #btnGestion{display:none}
+  .menu-drop-lista.abierto{position:fixed;left:12px;right:12px;top:auto;bottom:calc(74px + env(safe-area-inset-bottom));max-height:65vh;overflow-y:auto;font-size:15px;max-width:none}
   input,select,textarea{font-size:16px}
   .pv-nav .pv-datos{display:none}
   table{display:block;overflow-x:auto}
@@ -8573,7 +8577,12 @@ function abrirModal(titulo,html,onGuardar){
 $('#btnAgenda').onclick=()=>verAgenda();
 $('#btnTareas').onclick=()=>verTareas();
 $('#btnRecetas').onclick=()=>verRecetas();
-$('#btnGestion').onclick=(ev)=>{ev.stopPropagation();$('#gestionLista').classList.toggle('abierto');};
+// el menú Gestión se acomoda para que se vea completo dentro de la pantalla (a la derecha o a la izquierda del botón)
+function encuadrarMenu(){const l=document.getElementById('gestionLista');if(!l||!l.classList.contains('abierto'))return;
+  l.style.left='';l.style.right='';if(getComputedStyle(l).position==='fixed')return;
+  const r=l.getBoundingClientRect();if(r.left<8){l.style.left='0';l.style.right='auto';}else if(r.right>innerWidth-8){l.style.left='auto';l.style.right='0';}}
+addEventListener('resize',encuadrarMenu);
+$('#btnGestion').onclick=(ev)=>{ev.stopPropagation();$('#gestionLista').classList.toggle('abierto');encuadrarMenu();};
 $('#gestionLista').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>$('#gestionLista').classList.remove('abierto')));
 document.addEventListener('click',()=>$('#gestionLista').classList.remove('abierto'));
 $('#btnProfesionales').onclick=()=>verProfesionales();
@@ -8597,7 +8606,9 @@ function aplicarModoOscuro(on){
   try{localStorage.removeItem('mediks-tema');}catch(e){}   // sin modo noche: siempre claro
   aplicarModoOscuro(on);
   const b=document.getElementById('btnTema');
-  document.querySelectorAll('#bottomNav [data-bn]').forEach(x=>x.onclick=()=>{const t=document.getElementById(x.dataset.bn);if(t)t.click();});
+  document.querySelectorAll('#bottomNav [data-bn]').forEach(x=>x.onclick=ev=>{
+    if(x.dataset.bn==='btnGestion'){ev.stopPropagation();$('#gestionLista').classList.toggle('abierto');encuadrarMenu();return;}
+    $('#gestionLista').classList.remove('abierto');const t=document.getElementById(x.dataset.bn);if(t)t.click();});
 })();
 arrancar();
 setTimeout(copiaAutomatica,6000);
