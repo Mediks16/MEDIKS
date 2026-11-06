@@ -3518,47 +3518,63 @@ function etapasOrto(o){
   return o.etapas;
 }
 /* Reparación: si la etapa se perdió y se volvió a crear (con otro id), su cronograma quedó «huérfano»: las cuotas siguen
-   ahí con el id viejo, pero el Plan sale vacío y, al tocarlo, las cuotas pendientes se borrarían. Aquí la etapa recupera su id
-   y los valores pactados se vuelven a leer de esas mismas cuotas (entradas, valor por control y número de controles).
-   Solo se hace cuando la etapa no tiene precios propios y el grupo huérfano todavía tiene cuotas sin pagar
-   (si alguien quitó una etapa a propósito, solo quedan sus cuotas pagadas y no se toca nada). */
+   con el id viejo y el Plan sale vacío. Aquí la etapa recupera su id y los valores pactados se leen de esas mismas cuotas
+   (entradas, valor por control y número de controles). Si con la versión anterior ya se tocó el Plan, la etapa nueva tiene
+   filas «de relleno» (valor 0, sin pagos): se quitan y se vuelven a armar las cuotas que faltan con los valores recuperados.
+   Nada pagado se borra ni se cambia. Si solo quedan cuotas pagadas y no hay etapa de relleno, esa etapa se quitó a propósito
+   y no se toca. */
 function repararEtapasOrto(o){
   const cs=o.cuotas||[];if(!cs.length)return false;
+  const sinPrecio=e=>!(Number(e.cuota)>0)&&!(e.entradas||[]).some(m=>Number(m)>0);
+  const relleno=q=>!(Number(q.monto)>0)&&!tienePagosOrto(q)&&!q.editada&&!q.anulada;
   const ids=new Set(o.etapas.map(e=>e.id));
   const grupos={};cs.forEach(q=>{if(q.etapaId&&!ids.has(q.etapaId)&&q.clave&&!q.anulada)(grupos[q.etapaId]=grupos[q.etapaId]||[]).push(q);});
-  // solo grupos que todavía tienen cuotas sin pagar (si solo quedan pagadas, esa etapa se quitó a propósito)
-  const lista=Object.entries(grupos).filter(([,f])=>f.some(q=>!tienePagosOrto(q)))
-    .map(([hid,f])=>({hid,f,ini:f.map(q=>q.fechaVenc||'9999').sort()[0]})).sort((a,b)=>a.ini.localeCompare(b.ini));
+  const lista=Object.entries(grupos).filter(([,f])=>f.some(q=>Number(q.monto)>0))
+    .map(([hid,f])=>({hid,f,intacto:f.some(q=>!tienePagosOrto(q)),ini:f.map(q=>q.fechaVenc||'9999').sort()[0]}))
+    .sort((a,b)=>a.ini.localeCompare(b.ini));
   if(!lista.length)return false;
-  const sinPrecio=e=>!(Number(e.cuota)>0)&&!(e.entradas||[]).some(m=>Number(m)>0);
-  const varios=Object.keys(grupos).length>1;   // había más de una etapa: cada una recupera su inicio y duración
-  lista.forEach(({hid,f})=>{
-    let et=o.etapas.find(e=>sinPrecio(e)&&!cs.some(q=>q.etapaId===e.id));
+  const propias=e=>(o.cuotas||[]).filter(q=>q.etapaId===e.id);
+  const candidata=e=>sinPrecio(e)&&propias(e).every(relleno);
+  const varios=Object.keys(grupos).length>1;
+  let hizo=false;
+  lista.forEach(({hid,f,intacto})=>{
+    let et=o.etapas.find(e=>candidata(e)&&!propias(e).length);           // etapa vacía sin cronograma
+    if(!et)et=o.etapas.find(e=>candidata(e)&&propias(e).length);           // etapa con filas de relleno (ya se tocó el Plan)
+    if(!et&&!intacto)return;                                               // solo pagadas y nada que reparar: se quitó a propósito
     if(!et){et={tipo:'',inicio:'',meses:'',terminada:false};o.etapas.push(et);}
+    const viejo=et.id;
+    if(viejo)o.cuotas=(o.cuotas||[]).filter(q=>!(q.etapaId===viejo&&relleno(q)));   // filas de relleno fuera (los controles se vuelven a acomodar solos)
     et.id=hid;
     const ent=f.filter(q=>q.esEntrada&&/^E\d+$/.test(q.clave)).sort((a,b)=>(a.entradaNum||0)-(b.entradaNum||0));
     const ctl=f.filter(q=>!q.esEntrada&&/^C\d+$/.test(q.clave));
     if(ent.length){et.entradas=ent.map(q=>Number(q.monto)||0).slice(0,3);et.numEntradas=Math.min(3,ent.length);}
     let n=0;
     if(ctl.length){
-      const frec={};ctl.filter(q=>!q.editada).forEach(q=>{const m=Number(q.monto)||0;frec[m]=(frec[m]||0)+1;});
+      const frec={};ctl.filter(q=>!q.editada).forEach(q=>{const m=Number(q.monto)||0;if(m>0)frec[m]=(frec[m]||0)+1;});
       const moda=Object.entries(frec).sort((a,b)=>b[1]-a[1])[0];
       if(moda&&Number(moda[0])>0)et.cuota=Number(moda[0]);
       n=Math.max(...ctl.map(q=>Number(String(q.clave).slice(1))||0));
-      if(n>0&&!(Number(et.controlesPlan)>0))et.controlesPlan=n;
     }
-    // con varias etapas, cada una recupera su propio inicio y duración desde sus cuotas
+    // si las cuotas pendientes ya se habían borrado, el número de controles sale del plan (controles planificados o meses)
+    if(!intacto&&!varios)n=Math.max(n,Number(et.controlesPlan)||0,Number(et.meses)||0);
+    if(n>0&&(!(Number(et.controlesPlan)>0)||!intacto))et.controlesPlan=n;
     if(varios){
       const c1=ctl.find(q=>q.clave==='C1');
       const ini=ent.length?ent[0].fechaVenc:(c1&&c1.fechaVenc?sumarMeses(c1.fechaVenc,-1):'');
       if(ini)et.inicio=ini;
       if(n>0)et.meses=String(n);
     }
-    et.reparada=hoy();
+    // volver a armar las cuotas que falten, con los valores recuperados (las existentes no se tocan)
+    const ini=(ent[0]&&ent[0].fechaVenc)||et.inicio||o.inicio||hoy();
+    const tiene=cl=>(o.cuotas||[]).some(q=>q.etapaId===hid&&q.clave===cl);
+    (et.entradas||[]).slice(0,Number(et.numEntradas)||0).forEach((m,k)=>{if(Number(m)>0&&!tiene('E'+(k+1)))
+      o.cuotas.push({id:uid(),etapaId:hid,clave:'E'+(k+1),esEntrada:true,entradaNum:k+1,numero:0,monto:Number(m),fechaVenc:ini,pagada:false,pagos:[]});});
+    if(Number(et.cuota)>0)for(let k=1;k<=n;k++)if(!tiene('C'+k))
+      o.cuotas.push({id:uid(),etapaId:hid,clave:'C'+k,numero:k,monto:Number(et.cuota),fechaVenc:sumarMeses(ini,k),pagada:false,pagos:[]});
+    et.reparada=hoy();hizo=true;
   });
-  // las etapas reparadas quedan en el orden de sus fechas
-  if(varios)o.etapas.sort((a,b)=>(a.inicio||'9999').localeCompare(b.inicio||'9999'));
-  return true;
+  if(hizo&&varios)o.etapas.sort((a,b)=>(a.inicio||'9999').localeCompare(b.inicio||'9999'));
+  return hizo;
 }
 /* Fechas de cada etapa: si una etapa no tiene inicio escrito, empieza cuando termina la anterior.
    También deja al día los datos generales (aparatología actual, inicio y alta estimada) que usan los avisos. */
