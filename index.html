@@ -8244,6 +8244,9 @@ async function abrirComparador(origen){
     <div class="grid">
       <label class="campo"><span>Izquierda</span><select id="cmp_a">${opts(antes)}</select></label>
       <label class="campo"><span>Derecha</span><select id="cmp_b">${opts(despues)}</select></label></div>
+    <div class="cmp-modo" role="group" aria-label="Forma de comparar" style="display:flex;gap:6px;margin:4px 0">
+      <button class="btn chico primario" type="button" id="cmp_m_desl" aria-pressed="true">Deslizar</button>
+      <button class="btn chico" type="button" id="cmp_m_lado" aria-pressed="false">Lado a lado</button></div>
     <div id="cmp_vista" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;min-height:60px"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn chico" type="button" id="cmp_desc">Descargar comparación</button>
@@ -8254,8 +8257,43 @@ async function abrirComparador(origen){
     $('#cmp_vista').innerHTML='<p class="mini">Cargando…</p>';
     [urlA,urlB]=await Promise.all([cargarDataUrl(rA._clave),cargarDataUrl(rB._clave)]);
     const v=document.getElementById('cmp_vista');if(!v)return;
-    v.innerHTML=[[rA,urlA],[rB,urlB]].map(([r,u])=>`<figure style="margin:0"><img src="${u}" alt="" style="width:100%;border-radius:8px;display:block"><figcaption class="mini" style="margin-top:4px">${esc(r.tipo||'Imagen')} · ${fechaCorta(r.fecha)}</figcaption></figure>`).join('');
+    pintarCmp();
   };
+  /* Dos formas de ver: «Deslizar» (una foto encima de la otra con una barra que se arrastra) o «Lado a lado». */
+  let modoCmp='deslizar',posCmp=50;
+  const pintarCmp=()=>{
+    const v=document.getElementById('cmp_vista');if(!v||!urlA||!urlB)return;
+    const rA=imgs.find(x=>x.id===$('#cmp_a').value),rB=imgs.find(x=>x.id===$('#cmp_b').value);
+    const pie=r=>`${esc(r.tipo||'Imagen')} · ${fechaCorta(r.fecha)}`;
+    ['desl','lado'].forEach(k=>{const b=document.getElementById('cmp_m_'+k);const on=(k==='desl')===(modoCmp==='deslizar');
+      b.classList.toggle('primario',on);b.setAttribute('aria-pressed',on);});
+    if(modoCmp==='lado'){
+      v.style.display='grid';
+      v.innerHTML=[[rA,urlA],[rB,urlB]].map(([r,u])=>`<figure style="margin:0"><img src="${u}" alt="" style="width:100%;border-radius:8px;display:block"><figcaption class="mini" style="margin-top:4px">${pie(r)}</figcaption></figure>`).join('');
+      return;
+    }
+    v.style.display='block';
+    v.innerHTML=`<div id="cmp_caja" style="position:relative;width:100%;border-radius:8px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;cursor:ew-resize;background:#000">
+        <img id="cmp_imgB" src="${urlB}" alt="" draggable="false" style="width:100%;display:block">
+        <img src="${urlA}" alt="" draggable="false" id="cmp_imgA" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;clip-path:inset(0 ${100-posCmp}% 0 0)">
+        <div id="cmp_linea" style="position:absolute;top:0;bottom:0;left:${posCmp}%;width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.5);pointer-events:none">
+          <div style="position:absolute;top:50%;left:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font:700 15px system-ui;color:#333">⟷</div></div>
+        <span style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:6px;pointer-events:none">${pie(rA)}</span>
+        <span style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:6px;pointer-events:none">${pie(rB)}</span></div>
+      <input type="range" id="cmp_rango" min="0" max="100" value="${posCmp}" aria-label="Mover la división entre las dos fotos" style="width:100%;margin-top:8px">`;
+    const caja=document.getElementById('cmp_caja'),rango=document.getElementById('cmp_rango');
+    const mover=x=>{posCmp=Math.max(0,Math.min(100,x));
+      document.getElementById('cmp_imgA').style.clipPath=`inset(0 ${100-posCmp}% 0 0)`;
+      document.getElementById('cmp_linea').style.left=posCmp+'%';rango.value=posCmp;};
+    const desdeEvento=e=>{const b=caja.getBoundingClientRect();mover((e.clientX-b.left)/b.width*100);};
+    let arrastrando=false;
+    caja.addEventListener('pointerdown',e=>{arrastrando=true;try{caja.setPointerCapture(e.pointerId);}catch(_){}desdeEvento(e);});
+    caja.addEventListener('pointermove',e=>{if(arrastrando)desdeEvento(e);});
+    const soltar=()=>{arrastrando=false;};caja.addEventListener('pointerup',soltar);caja.addEventListener('pointercancel',soltar);
+    rango.oninput=()=>mover(Number(rango.value));
+  };
+  $('#cmp_m_desl').onclick=()=>{modoCmp='deslizar';pintarCmp();};
+  $('#cmp_m_lado').onclick=()=>{modoCmp='lado';pintarCmp();};
   const generar=async()=>{
     const rA=imgs.find(x=>x.id===$('#cmp_a').value),rB=imgs.find(x=>x.id===$('#cmp_b').value);
     if(!urlA||!urlB){avisar('No se pudieron cargar las imágenes');return null;}
