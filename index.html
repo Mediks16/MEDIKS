@@ -3523,27 +3523,42 @@ function etapasOrto(o){
    Solo se hace cuando la etapa no tiene precios propios y el grupo huérfano todavía tiene cuotas sin pagar
    (si alguien quitó una etapa a propósito, solo quedan sus cuotas pagadas y no se toca nada). */
 function repararEtapasOrto(o){
-  const cs=o.cuotas||[];if(!cs.length)return;
+  const cs=o.cuotas||[];if(!cs.length)return false;
   const ids=new Set(o.etapas.map(e=>e.id));
   const grupos={};cs.forEach(q=>{if(q.etapaId&&!ids.has(q.etapaId)&&q.clave&&!q.anulada)(grupos[q.etapaId]=grupos[q.etapaId]||[]).push(q);});
-  Object.entries(grupos).forEach(([hid,filas])=>{
-    if(!filas.some(q=>!tienePagosOrto(q)))return;   // solo pagadas: etapa quitada a propósito
-    const sinPrecio=e=>!(Number(e.cuota)>0)&&!(e.entradas||[]).some(m=>Number(m)>0);
-    const libre=o.etapas.find(e=>sinPrecio(e)&&!cs.some(q=>q.etapaId===e.id));
-    if(!libre)return;
-    libre.id=hid;
-    const ent=filas.filter(q=>q.esEntrada&&/^E\d+$/.test(q.clave)).sort((a,b)=>(a.entradaNum||0)-(b.entradaNum||0));
-    const ctl=filas.filter(q=>!q.esEntrada&&/^C\d+$/.test(q.clave));
-    if(ent.length){libre.entradas=ent.map(q=>Number(q.monto)||0).slice(0,3);libre.numEntradas=Math.min(3,ent.length);}
+  // solo grupos que todavía tienen cuotas sin pagar (si solo quedan pagadas, esa etapa se quitó a propósito)
+  const lista=Object.entries(grupos).filter(([,f])=>f.some(q=>!tienePagosOrto(q)))
+    .map(([hid,f])=>({hid,f,ini:f.map(q=>q.fechaVenc||'9999').sort()[0]})).sort((a,b)=>a.ini.localeCompare(b.ini));
+  if(!lista.length)return false;
+  const sinPrecio=e=>!(Number(e.cuota)>0)&&!(e.entradas||[]).some(m=>Number(m)>0);
+  const varios=Object.keys(grupos).length>1;   // había más de una etapa: cada una recupera su inicio y duración
+  lista.forEach(({hid,f})=>{
+    let et=o.etapas.find(e=>sinPrecio(e)&&!cs.some(q=>q.etapaId===e.id));
+    if(!et){et={tipo:'',inicio:'',meses:'',terminada:false};o.etapas.push(et);}
+    et.id=hid;
+    const ent=f.filter(q=>q.esEntrada&&/^E\d+$/.test(q.clave)).sort((a,b)=>(a.entradaNum||0)-(b.entradaNum||0));
+    const ctl=f.filter(q=>!q.esEntrada&&/^C\d+$/.test(q.clave));
+    if(ent.length){et.entradas=ent.map(q=>Number(q.monto)||0).slice(0,3);et.numEntradas=Math.min(3,ent.length);}
+    let n=0;
     if(ctl.length){
       const frec={};ctl.filter(q=>!q.editada).forEach(q=>{const m=Number(q.monto)||0;frec[m]=(frec[m]||0)+1;});
       const moda=Object.entries(frec).sort((a,b)=>b[1]-a[1])[0];
-      if(moda&&Number(moda[0])>0)libre.cuota=Number(moda[0]);
-      const n=Math.max(...ctl.map(q=>Number(String(q.clave).slice(1))||0));
-      if(n>0&&!(Number(libre.controlesPlan)>0))libre.controlesPlan=n;
+      if(moda&&Number(moda[0])>0)et.cuota=Number(moda[0]);
+      n=Math.max(...ctl.map(q=>Number(String(q.clave).slice(1))||0));
+      if(n>0&&!(Number(et.controlesPlan)>0))et.controlesPlan=n;
     }
-    libre.reparada=hoy();
+    // con varias etapas, cada una recupera su propio inicio y duración desde sus cuotas
+    if(varios){
+      const c1=ctl.find(q=>q.clave==='C1');
+      const ini=ent.length?ent[0].fechaVenc:(c1&&c1.fechaVenc?sumarMeses(c1.fechaVenc,-1):'');
+      if(ini)et.inicio=ini;
+      if(n>0)et.meses=String(n);
+    }
+    et.reparada=hoy();
   });
+  // las etapas reparadas quedan en el orden de sus fechas
+  if(varios)o.etapas.sort((a,b)=>(a.inicio||'9999').localeCompare(b.inicio||'9999'));
+  return true;
 }
 /* Fechas de cada etapa: si una etapa no tiene inicio escrito, empieza cuando termina la anterior.
    También deja al día los datos generales (aparatología actual, inicio y alta estimada) que usan los avisos. */
