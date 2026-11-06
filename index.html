@@ -4241,7 +4241,7 @@ function eliminarFilaOrto(id){
   if(esProcOrto(q)){const pr=(o.procedimientos||[]).find(k=>k.id===q.procId);if(pr)borrarProcOrto(pr.id);return;}
   if(esSinAsignarOrto(q)){
     if(!confirm(`¿Eliminar este pago de ${usd(pg)}?\n\nNo se borra del todo: queda en el historial como anulado y deja de sumar a lo pagado.`))return;
-    pagosActivosFila(q).forEach(x=>{x.anulado=true;x.anuladoFecha=ahora;x.anuladoMotivo='Eliminado';});
+    pagosActivosFila(q).forEach(x=>{registrarPagoEliminadoOrto(o,q,x,'Eliminado');x.anulado=true;x.anuladoFecha=ahora;x.anuladoMotivo='Eliminado';});
     q.anulada=true;registrarHistorialOrto(q,'Pago eliminado');actualizarFilaOrto(q);
   }else{
     const ctrl=q.controlId&&(o.controles||[]).find(k=>k.id===q.controlId);
@@ -4280,19 +4280,21 @@ function regenerarCronogramaOrto(){
   sincronizarCronogramaOrto(o);vincularControlesOrto(o);
   guardar();pintarVista();avisar('Cronograma regenerado');
 }
-function historialPagosOrtoHTML(o,num){
-  const filas=[];
-  (o.cuotas||[]).forEach(q=>pagosDeFila(q).forEach(x=>filas.push({x,q})));
-  if(!filas.length)return '';
-  const grupos=new Map();
-  filas.forEach(f=>{const k=f.x.grupo||f.x.id;if(!grupos.has(k))grupos.set(k,[]);grupos.get(k).push(f);});
-  const lista=[...grupos.values()].sort((a,b)=>(b[0].x.fecha||'').localeCompare(a[0].x.fecha||''));
-  return `<details class="historial-pagos"><summary>Historial de pagos (${lista.length})</summary>
-    <table><thead><tr><th>Fecha</th><th>Aplicado a</th><th>Forma</th><th class="der">Monto</th></tr></thead><tbody>
-    ${lista.map(gr=>{const x0=gr[0].x,an=gr.every(f=>f.x.anulado),tot=R2(gr.reduce((t,f)=>t+(Number(f.x.monto)||0),0));
-      return `<tr class="${an?'anulado':''}"><td class="num">${fechaCorta(x0.fecha)}</td>
-        <td>${gr.map(f=>esc(etiquetaFilaOrto(o,f.q,num))+(gr.length>1?' '+usd(f.x.monto):'')).join('<br>')}${x0.libre?'<br><span class="mini">Pago repartido en cuotas pendientes</span>':''}${x0.nota?`<br><span class="mini">${esc(x0.nota)}</span>`:''}${an?`<br><span class="mini">Anulado${x0.anuladoMotivo?': '+esc(x0.anuladoMotivo):''}</span>`:''}</td>
-        <td>${esc(x0.metodo||'—')}</td><td class="der">${usd(tot)}</td></tr>`;}).join('')}
+/* Registro de pagos eliminados o anulados: se guarda aparte (o.pagosEliminados), así queda aunque luego se regenere el
+   cronograma. Solo se anotan las eliminaciones hechas por una persona (no los movimientos internos entre cuotas). */
+const PAGOS_ELIMINADOS_DESDE='2026-11-07';   // lo de antes de esta fecha (la limpieza de cuotas repetidas) no se muestra
+function registrarPagoEliminadoOrto(o,q,x,motivo){
+  (o.pagosEliminados=o.pagosEliminados||[]).push({id:uid(),eliminadoEl:hoy(),fecha:x.fecha||'',monto:Number(x.monto)||0,
+    metodo:x.metodo||'',aplicadoA:etiquetaFilaOrto(o,q),motivo:motivo||'Eliminado'});
+}
+function historialPagosOrtoHTML(o){
+  const lista=(o.pagosEliminados||[]).filter(e=>(e.eliminadoEl||'')>=PAGOS_ELIMINADOS_DESDE).sort((a,b)=>(b.eliminadoEl||'').localeCompare(a.eliminadoEl||''));
+  if(!lista.length)return '';
+  return `<details class="historial-pagos"><summary>Pagos eliminados (${lista.length})</summary>
+    <p class="mini" style="margin:4px 0">Cada pago que se elimina o anula queda anotado aquí, con quién lo tenía y por qué.</p>
+    <table><thead><tr><th>Eliminado el</th><th>Pago del</th><th>Era de</th><th>Forma</th><th>Motivo</th><th class="der">Monto</th></tr></thead><tbody>
+    ${lista.map(e=>`<tr class="anulado"><td class="num">${fechaCorta(e.eliminadoEl)}</td><td class="num">${fechaCorta(e.fecha)||'—'}</td>
+      <td>${esc(e.aplicadoA||'')}</td><td>${esc(e.metodo||'—')}</td><td>${esc(e.motivo||'')}</td><td class="der">${usd(e.monto)}</td></tr>`).join('')}
     </tbody></table></details>`;
 }
 const METODOS_PAGO=['Efectivo','Transferencia','Tarjeta','Otro'];
@@ -4365,7 +4367,7 @@ function anularPagoOrto(qid,pid){
   if(!confirm(`¿Anular este pago de ${usd(tot)} del ${fechaCorta(x.fecha)}?${grupo.length>1?'\n\nSe repartió en '+grupo.length+' filas: se anula completo.':''}\n\nNo se borra: queda en el historial como anulado.`))return;
   const motivo=(prompt('Motivo de la anulación (opcional):','Registrado por error')||'').trim();
   const ahora=new Date().toISOString();
-  grupo.forEach(({k,y})=>{y.anulado=true;y.anuladoFecha=ahora;if(motivo)y.anuladoMotivo=motivo;registrarHistorialOrto(k,'Pago de '+usd(y.monto)+' del '+fechaCorta(y.fecha)+' anulado'+(motivo?': '+motivo:''));actualizarFilaOrto(k);});
+  grupo.forEach(({k,y})=>{registrarPagoEliminadoOrto(o,k,y,motivo||'Anulado');y.anulado=true;y.anuladoFecha=ahora;if(motivo)y.anuladoMotivo=motivo;registrarHistorialOrto(k,'Pago de '+usd(y.monto)+' del '+fechaCorta(y.fecha)+' anulado'+(motivo?': '+motivo:''));actualizarFilaOrto(k);});
   guardar();pintarVista();editarCuotaOrto(qid);
 }
 function asignarPagoSueltoOrto(qid){
