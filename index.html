@@ -2682,7 +2682,7 @@ function editarTrat(id,pre){
   let lineas=JSON.parse(JSON.stringify(t.lineas||[]));
   let procManual=!!(t.proc&&!(t.lineas&&t.lineas.length));
   const resumenLab=t.labCosto?`${t.labNombre||'Laboratorio'} — ${usd(t.labCosto)}`:'opcional';
-  const resumenHon=t.honorarioMonto?`Acordado ${usd(t.honorarioMonto)}`:'opcional';
+  const resumenHon=t.honorarioTipo==='pct'&&t.honorarioPct!==undefined&&t.honorarioPct!==''?`${t.honorarioPct}% · ${usd(t.honorarioMonto)}`:t.honorarioMonto?`Acordado ${usd(t.honorarioMonto)}`:'opcional';
   abrirModal(`${id?'Editar':'Nueva'} sesión de tratamiento`,`
     <div class="grid">
       <label class="campo"><span>Sesión</span><input type="text" id="t_ses" value="${esc(t.sesion||'')}"></label>
@@ -2732,11 +2732,16 @@ function editarTrat(id,pre){
 
     <details class="opcional"><summary>Honorario al profesional — <span class="mini" style="margin-left:4px">${esc(resumenHon)}</span></summary>
       <div class="cont">
-        <p class="mini" style="margin-top:0">No se muestra al paciente, solo en «Gastos».</p>
+        <p class="mini" style="margin-top:0">No se muestra al paciente, solo en «Gastos» y en la producción del profesional.</p>
         <div class="grid">
-          <label class="campo"><span>Honorario acordado (USD)</span><input type="number" step="0.01" min="0" id="t_honMonto" value="${t.honorarioMonto??''}"></label>
+          <label class="campo"><span>Cómo se le paga</span><select id="t_honTipo">
+            <option value="fijo" ${t.honorarioTipo!=='pct'?'selected':''}>Monto fijo</option>
+            <option value="pct" ${t.honorarioTipo==='pct'?'selected':''}>Porcentaje</option></select></label>
+          <label class="campo" id="t_honMontoC"><span>Honorario acordado (USD)</span><input type="number" step="0.01" min="0" id="t_honMonto" value="${t.honorarioMonto??''}"></label>
+          <label class="campo" id="t_honPctC"><span>Porcentaje (%)</span><input type="number" step="0.1" min="0" max="100" id="t_honPct" value="${esc(t.honorarioPct??'')}"></label>
           <label class="campo"><span>Ya pagado al profesional (USD)</span><input type="number" step="0.01" min="0" id="t_honPagado" value="${t.honorarioPagado??''}"></label>
         </div>
+        <p class="mini" id="t_honCalc" style="margin:0"></p>
       </div></details>`,
   ()=>{
     const lineasOk=lineas.filter(l=>(l.trat||'').trim()).map(l=>({pieza:(l.pieza||'').trim(),trat:l.trat.trim(),caras:l.caras||[]}));
@@ -2750,6 +2755,11 @@ function editarTrat(id,pre){
       labNombre:$('#t_labNombre').value.trim(),labCosto:Number($('#t_labCosto').value)||0,labAbonado:Number($('#t_labAbonado').value)||0,
       honorarioMonto:Number($('#t_honMonto').value)||0,honorarioPagado:Number($('#t_honPagado').value)||0,
       tipoOdonto:tipoCat||t.tipoOdonto||null};
+    // honorario por porcentaje: se calcula sobre (costo − laboratorio) y se guarda también como monto, así Gastos y reportes lo usan igual
+    if($('#t_honTipo').value==='pct'&&$('#t_honPct').value!==''){
+      const pc=Math.min(100,Math.max(0,Number($('#t_honPct').value)||0));
+      d.honorarioTipo='pct';d.honorarioPct=pc;d.honorarioMonto=Math.round(Math.max(0,d.costo-d.labCosto)*pc)/100;
+    }else{d.honorarioTipo='fijo';delete d.honorarioPct;}
     /* si el procedimiento quedó vacío (o no se tocó a mano), se llena con lo que dicen las líneas */
     if(lineasOk.length&&(!d.proc||!procManual))d.proc=lineasOk.map(textoLinea).join('\n');
     /* si no se escribió diagnóstico, se toma el que ya está anotado en la(s) pieza(s) del odontograma */
@@ -2821,6 +2831,17 @@ function editarTrat(id,pre){
       if(d.costo>0)encolarModal(()=>ofrecerCobroSesion(p.id,d.id));
     }
   });
+  // honorario: monto fijo o porcentaje (el porcentaje del profesional se propone solo si la sesión no tiene honorario)
+  {const tipo=$('#t_honTipo'),pct=$('#t_honPct'),calc=$('#t_honCalc');
+    const profPct=()=>{const ps=document.getElementById('t_prof');const pr=ps&&ps.value?(datos.profesionales||[]).find(x=>x.id===ps.value):null;return pr&&pr.pct!==''&&pr.pct!==undefined?Number(pr.pct):null;};
+    const pinta=()=>{const esPct=tipo.value==='pct';$('#t_honMontoC').style.display=esPct?'none':'';$('#t_honPctC').style.display=esPct?'':'none';
+      const base=Math.max(0,(Number($('#t_costo').value)||0)-(Number($('#t_labCosto').value)||0));
+      calc.textContent=esPct&&pct.value!==''?`${pct.value}% de ${usd(base)} (costo − laboratorio) = ${usd(Math.round(base*(Number(pct.value)||0))/100)}`:
+        (!esPct&&!(Number($('#t_honMonto').value)>0)?`Sin honorario acordado: en la producción se muestra el valor final (${usd(base)}).`:'');};
+    const proponer=()=>{const pp=profPct();if(pp!==null&&!(Number($('#t_honMonto').value)>0)&&pct.value===''){tipo.value='pct';pct.value=pp;}pinta();};
+    tipo.onchange=pinta;['t_honPct','t_honMonto','t_costo','t_labCosto'].forEach(k=>{const el=document.getElementById(k);if(el)el.addEventListener('input',pinta);});
+    const ps=document.getElementById('t_prof');if(ps)ps.addEventListener('change',proponer);
+    if(!id||!(Number(t.honorarioMonto)>0))proponer();else pinta();}
   $('#t_elegirPieza').onclick=()=>{
     abrirSelectorDiente(num=>{
       const actual=$('#t_pieza').value.trim();
@@ -6139,7 +6160,7 @@ let prodProfId=null,prodTipo='mes',prodRef=hoy();
 function esDelProfesional(x,pr){return x.profesionalId?x.profesionalId===pr.id:(!!x.profesionalNombre&&x.profesionalNombre===pr.nombre);}
 function datosProdProfesional(pr,P){
   const enP=f=>{if(!f)return false;const d=String(f).slice(0,10);return d>=P.desde&&d<=P.hasta;};
-  const R={sesiones:[],produccion:0,cobrado:0,honAcordado:0,honPagado:0,otrosPagos:[],pacientes:new Set(),porProc:{}};
+  const R={sesiones:[],produccion:0,cobrado:0,lab:0,honFinal:0,honAcordado:0,honPagado:0,otrosPagos:[],pacientes:new Set(),porProc:{}};
   datos.pacientes.forEach(p=>{
     let rp=null;
     (p.tratamientos||[]).forEach(t=>{
@@ -6147,18 +6168,23 @@ function datosProdProfesional(pr,P){
       rp=rp||repartoAbonos(p);
       const costo=Number(t.costo)||0,cob=Math.min(costo,rp.porSesion[t.id]||0);
       const procs=(nombreSesion(t)||'Sesión sin detalle').split('\n').map(x=>x.trim()).filter(Boolean);
-      R.sesiones.push({fecha:t.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs,costo,cobrado:cob,
-        hon:Number(t.honorarioMonto)||0,honPag:Number(t.honorarioPagado)||0});
-      R.produccion+=costo;R.cobrado+=cob;R.honAcordado+=Number(t.honorarioMonto)||0;R.honPagado+=Number(t.honorarioPagado)||0;
+      // honorario «valor final»: el acordado (fijo o por porcentaje); si no hay acuerdo, lo que queda: costo − laboratorio
+      const lab=Number(t.labCosto)||0,hon=Number(t.honorarioMonto)||0,acordado=hon>0;
+      const honFinal=acordado?hon:Math.max(0,costo-lab);
+      R.sesiones.push({fecha:t.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs,costo,cobrado:cob,lab,honFinal,acordado,
+        pct:t.honorarioTipo==='pct'&&t.honorarioPct!==undefined&&t.honorarioPct!==''?Number(t.honorarioPct):null,
+        hon,honPag:Number(t.honorarioPagado)||0});
+      R.produccion+=costo;R.cobrado+=cob;R.lab+=lab;R.honFinal+=honFinal;R.honAcordado+=hon;R.honPagado+=Number(t.honorarioPagado)||0;
       R.pacientes.add(p.id);
       nombresDeSesion(t).forEach(n=>{R.porProc[n]=(R.porProc[n]||0)+1;});
     });
     ((p.orto&&p.orto.controles)||[]).forEach(x=>{
       if(!esDelProfesional(x,pr)||!enP(x.fecha))return;
       const n='Control de ortodoncia'+(x.procedimiento?' — '+x.procedimiento:'');
-      R.sesiones.push({fecha:x.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs:[n],costo:0,cobrado:0,
-        hon:Number(x.honorarioMonto)||0,honPag:Number(x.honorarioPagado)||0,orto:true});
-      R.honAcordado+=Number(x.honorarioMonto)||0;R.honPagado+=Number(x.honorarioPagado)||0;R.pacientes.add(p.id);
+      const hx=Number(x.honorarioMonto)||0;
+      R.sesiones.push({fecha:x.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs:[n],costo:0,cobrado:0,lab:0,honFinal:hx,acordado:hx>0,pct:null,
+        hon:hx,honPag:Number(x.honorarioPagado)||0,orto:true});
+      R.honFinal+=hx;R.honAcordado+=hx;R.honPagado+=Number(x.honorarioPagado)||0;R.pacientes.add(p.id);
       R.porProc['Control de ortodoncia']=(R.porProc['Control de ortodoncia']||0)+1;
     });
   });
@@ -6193,19 +6219,21 @@ function verProdProfesional(id){
       <div class="kpi-card kpi-naranja"><span>Sesiones / pacientes</span><b>${R.sesiones.length} / ${R.pacientes.size}</b></div>
     </div>
     <div class="kpi-grid">
-      <div class="kpi-card kpi-morado"><span>Honorarios acordados</span><b>${usd(R.honAcordado)}</b></div>
+      <div class="kpi-card kpi-teal"><span>Gasto de laboratorio</span><b>${usd(R.lab)}</b></div>
+      <div class="kpi-card kpi-morado"><span>Honorario (valor final)</span><b>${usd(R.honFinal)}</b></div>
       <div class="kpi-card kpi-indigo"><span>Honorarios pagados</span><b>${usd(R.honPagado)}</b></div>
       <div class="kpi-card ${honDebe>0.004?'kpi-rojo':'kpi-teal'}"><span>Le debes</span><b>${usd(honDebe)}</b></div>
       <div class="kpi-card kpi-rosa"><span>Otros pagos (en «Gastos»)</span><b>${usd(R.otrosTotal)}</b></div>
     </div>
-    <p class="mini" style="margin:-4px 0 12px">${varP!==null?`Producción ${varP>=0?'+':''}${varP}% frente ${T.prev} (${usd(A.produccion)}). `:''}Solo cuenta las sesiones donde se eligió a ${esc(pr.nombre)} como profesional.</p>
+    <p class="mini" style="margin:-4px 0 12px">${varP!==null?`Producción ${varP>=0?'+':''}${varP}% frente ${T.prev} (${usd(A.produccion)}). `:''}Solo cuenta las sesiones donde se eligió a ${esc(pr.nombre)} como profesional. Honorario = el acordado (monto fijo o porcentaje sobre costo − laboratorio); si no hay acuerdo, el valor final (costo − laboratorio). «Le debes» cuenta solo los honorarios acordados.</p>
     <div class="bloque"><div class="barra-tit"><h3>Sesiones y procedimientos realizados</h3><span class="mini der">${R.sesiones.length} ${R.sesiones.length===1?'sesión':'sesiones'}</span></div>
-      ${R.sesiones.length?`<table style="width:100%"><thead><tr><th style="width:92px">Fecha</th><th>Paciente</th><th>Procedimiento</th><th class="der">Costo</th><th class="der">Cobrado</th><th class="der">Honorario</th></tr></thead><tbody>
+      ${R.sesiones.length?`<table style="width:100%"><thead><tr><th style="width:92px">Fecha</th><th>Paciente</th><th>Procedimiento</th><th class="der">Costo</th><th class="der">Laboratorio</th><th class="der">Cobrado</th><th class="der">Honorario</th></tr></thead><tbody>
         ${R.sesiones.map(x=>`<tr><td class="num">${fechaCorta(x.fecha)}</td><td><button class="btn chico" onclick="abrir('${x.pid}')">${esc(x.paciente)}</button></td>
           <td>${x.procs.map(esc).join('<br>')}</td><td class="der num">${x.orto?'—':usd(x.costo)}</td>
+          <td class="der num">${x.lab?usd(x.lab):'—'}</td>
           <td class="der num" style="color:${x.costo-x.cobrado>0.004?'var(--alerta)':'var(--clinico)'}">${x.orto?'—':usd(x.cobrado)}</td>
-          <td class="der num">${x.hon?usd(x.hon)+(x.honPag+0.004<x.hon?`<br><span class="mini" style="color:var(--alerta)">pagado ${usd(x.honPag)}</span>`:'<br><span class="mini">pagado</span>'):'—'}</td></tr>`).join('')}
-        <tr><td colspan="3"><b>Total</b></td><td class="der"><b>${usd(R.produccion)}</b></td><td class="der"><b>${usd(R.cobrado)}</b></td><td class="der"><b>${usd(R.honAcordado)}</b></td></tr></tbody></table>`
+          <td class="der num">${usd(x.honFinal)}<br><span class="mini">${x.acordado?(x.pct!==null?x.pct+'% · ':'')+(x.honPag+0.004<x.hon?`<span style="color:var(--alerta)">pagado ${usd(x.honPag)}</span>`:'pagado'):'valor final'}</span></td></tr>`).join('')}
+        <tr><td colspan="3"><b>Total</b></td><td class="der"><b>${usd(R.produccion)}</b></td><td class="der"><b>${usd(R.lab)}</b></td><td class="der"><b>${usd(R.cobrado)}</b></td><td class="der"><b>${usd(R.honFinal)}</b></td></tr></tbody></table>`
         :'<p class="mini">No hay sesiones de este profesional en este período.</p>'}</div>
     <div class="panel-2col" style="margin-bottom:14px">
       <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Procedimientos más realizados</h3></div>${filasBarras(Object.fromEntries(Object.entries(R.porProc).sort((a,b)=>b[1]-a[1]).slice(0,10)),v=>v+(v===1?' vez':' veces'))}</div>
@@ -6221,8 +6249,8 @@ function descargarProdProfesional(){
   const pr=(datos.profesionales||[]).find(x=>x.id===prodProfId);if(!pr)return;
   const P=rangoRep(prodTipo,prodRef),R=datosProdProfesional(pr,P);
   const csv=f=>'﻿'+f.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const filas=[['Fecha','Paciente','Procedimiento','Costo','Cobrado','Honorario acordado','Honorario pagado'],
-    ...R.sesiones.map(x=>[x.fecha,x.paciente,x.procs.join(' / '),x.costo.toFixed(2),x.cobrado.toFixed(2),x.hon.toFixed(2),x.honPag.toFixed(2)])];
+  const filas=[['Fecha','Paciente','Procedimiento','Costo','Laboratorio','Cobrado','Honorario (valor final)','Forma','Honorario pagado'],
+    ...R.sesiones.map(x=>[x.fecha,x.paciente,x.procs.join(' / '),x.costo.toFixed(2),x.lab.toFixed(2),x.cobrado.toFixed(2),x.honFinal.toFixed(2),x.acordado?(x.pct!==null?x.pct+'%':'Monto fijo'):'Valor final',x.honPag.toFixed(2)])];
   descargarArchivo(csv(filas),`produccion-${(pr.nombre||'profesional').replace(/[^a-z0-9]+/gi,'-')}-${P.desde}${P.hasta!==P.desde?'_a_'+P.hasta:''}.csv`,'text/csv');
 }
 function imprimirProdProfesional(){
@@ -6235,10 +6263,10 @@ function imprimirProdProfesional(){
     <section><h4>RESUMEN</h4><div class="fila">
       <div><span class="rot">Producción</span>${usd(R.produccion)}</div><div><span class="rot">Cobrado</span>${usd(R.cobrado)}</div>
       <div><span class="rot">Sesiones</span>${R.sesiones.length}</div><div><span class="rot">Pacientes</span>${R.pacientes.size}</div></div>
-      <div class="fila" style="margin-top:6px"><div><span class="rot">Honorarios acordados</span>${usd(R.honAcordado)}</div><div><span class="rot">Honorarios pagados</span>${usd(R.honPagado)}</div>
+      <div class="fila" style="margin-top:6px"><div><span class="rot">Laboratorio</span>${usd(R.lab)}</div><div><span class="rot">Honorario (valor final)</span>${usd(R.honFinal)}</div><div><span class="rot">Honorarios pagados</span>${usd(R.honPagado)}</div>
       <div><span class="rot">Le debes</span>${usd(Math.max(0,R.honAcordado-R.honPagado))}</div><div><span class="rot">Otros pagos</span>${usd(R.otrosTotal)}</div></div></section>
-    <section><h4>SESIONES Y PROCEDIMIENTOS</h4><table><thead><tr><th>Fecha</th><th>Paciente</th><th>Procedimiento</th><th style="text-align:right">Costo</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Honorario</th></tr></thead><tbody>
-      ${R.sesiones.map(x=>`<tr><td>${fechaCorta(x.fecha)}</td><td>${esc(x.paciente)}</td><td>${x.procs.map(esc).join('<br>')}</td><td style="text-align:right">${usd(x.costo)}</td><td style="text-align:right">${usd(x.cobrado)}</td><td style="text-align:right">${usd(x.hon)}</td></tr>`).join('')||'<tr><td colspan="6">Sin sesiones en este período</td></tr>'}
+    <section><h4>SESIONES Y PROCEDIMIENTOS</h4><table><thead><tr><th>Fecha</th><th>Paciente</th><th>Procedimiento</th><th style="text-align:right">Costo</th><th style="text-align:right">Laboratorio</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Honorario</th></tr></thead><tbody>
+      ${R.sesiones.map(x=>`<tr><td>${fechaCorta(x.fecha)}</td><td>${esc(x.paciente)}</td><td>${x.procs.map(esc).join('<br>')}</td><td style="text-align:right">${usd(x.costo)}</td><td style="text-align:right">${usd(x.lab)}</td><td style="text-align:right">${usd(x.cobrado)}</td><td style="text-align:right">${usd(x.honFinal)}${x.acordado?(x.pct!==null?' ('+x.pct+'%)':''):' (valor final)'}</td></tr>`).join('')||'<tr><td colspan="7">Sin sesiones en este período</td></tr>'}
     </tbody></table></section></div>`;
   lanzarImpresion();
 }
@@ -6255,7 +6283,8 @@ function abrirProfesional(id){
       <label class="campo"><span>Especialidad</span><input type="text" id="pr_esp" value="${esc(pr.especialidad||'')}" placeholder="Ortodoncia, Cirugía oral…"></label>
       <label class="campo"><span>Teléfono</span><input type="tel" id="pr_tel" value="${esc(pr.telefono||'')}"></label>
       <label class="campo"><span>Correo</span><input type="email" id="pr_email" value="${esc(pr.email||'')}"></label>
-      <label class="campo"><span>Honorarios / referencia</span><input type="text" id="pr_hon" value="${esc(pr.honorarios||'')}" placeholder="% o monto fijo, como referencia"></label>
+      <label class="campo"><span>Porcentaje para el profesional (%)</span><input type="number" step="0.1" min="0" max="100" id="pr_pct" value="${esc(pr.pct??'')}" placeholder="Ej. 40 (opcional)"></label>
+      <label class="campo"><span>Honorarios / referencia</span><input type="text" id="pr_hon" value="${esc(pr.honorarios||'')}" placeholder="Notas sobre cómo se le paga"></label>
     </div>
     <label class="chk"><input type="checkbox" id="pr_activo" ${pr.activo!==false?'checked':''}> Activo (aparece para asignar en citas y tratamientos)</label>
     ${id?'<div style="margin-top:12px"><button class="btn peligro chico" type="button" id="pr_borrar">Eliminar profesional</button></div>':''}`,
@@ -6263,7 +6292,7 @@ function abrirProfesional(id){
     const nombre=$('#pr_nombre').value.trim();
     if(!nombre){avisar('Escribe el nombre del profesional');return false;}
     const d={id:pr.id||uid(),nombre,especialidad:$('#pr_esp').value.trim(),telefono:$('#pr_tel').value.trim(),
-      email:$('#pr_email').value.trim(),honorarios:$('#pr_hon').value.trim(),activo:$('#pr_activo').checked};
+      email:$('#pr_email').value.trim(),honorarios:$('#pr_hon').value.trim(),pct:$('#pr_pct').value===''?'':Math.min(100,Math.max(0,Number($('#pr_pct').value)||0)),activo:$('#pr_activo').checked};
     datos.profesionales=datos.profesionales||[];
     const i=datos.profesionales.findIndex(x=>x.id===d.id);
     i>=0?datos.profesionales[i]=d:datos.profesionales.push(d);
