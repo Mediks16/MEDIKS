@@ -702,6 +702,7 @@ tr.anulado td{color:#999}tr.anulado td.der{text-decoration:line-through}
         <button id="btnInventario">Inventario</button>
         <button id="btnRecetas">Recetas emitidas</button>
         <button id="btnReporte">Reportes de ingresos</button>
+        <button id="btnCaja">Cierre de caja</button>
         <hr>
         <button id="btnPersonalizar">Personalizar</button>
         <button id="btnConfig">Consultorio</button>
@@ -8517,6 +8518,99 @@ function imprimirReporte(){
   lanzarImpresion();
 }
 
+/* ---------- cierre de caja del día ----------
+   Lo cobrado del día (abonos de tratamientos y pagos de ortodoncia) por forma de pago, las salidas de efectivo que se anotan
+   aquí (compras, pasajes…) y los pagos a profesionales del día. Efectivo esperado = caja inicial + efectivo cobrado − salidas.
+   Se guarda en datos.caja[fecha]: {inicial, salidas:[{id,concepto,monto}], contado, nota, cerradoEl}. */
+let cajaFecha=hoy();
+function cajaDe(f){datos.caja=datos.caja||{};return datos.caja[f]||{inicial:'',salidas:[],contado:'',nota:''};}
+function guardarCaja(f,c){datos.caja=datos.caja||{};datos.caja[f]=c;guardar();}
+function datosCaja(f){
+  const R=datosReporte({desde:f,hasta:f}),c=cajaDe(f);
+  const porM={Efectivo:0,Transferencia:0,Tarjeta:0,Otro:0};
+  R.pagos.forEach(x=>{const m=porM[x.metodo]!==undefined?x.metodo:'Otro';porM[m]+=Number(x.monto)||0;});
+  const salidas=(c.salidas||[]).reduce((t,x)=>t+(Number(x.monto)||0),0);
+  const prof=(datos.gastosProfesionales||[]).filter(g=>g.fecha===f);
+  const inicial=Number(c.inicial)||0,esperado=Math.round((inicial+porM.Efectivo-salidas)*100)/100;
+  const contado=c.contado===''||c.contado===undefined?null:Number(c.contado)||0;
+  return {R,c,porM,salidas,prof,inicial,esperado,contado,dif:contado===null?null:Math.round((contado-esperado)*100)/100,
+    total:Object.values(porM).reduce((a,b)=>a+b,0)};
+}
+function verCaja(f){
+  if(f)cajaFecha=f;selId=null;ocultarPanel();pintarLista();
+  const d=datosCaja(cajaFecha),c=d.c,cerrada=!!c.cerradoEl;
+  const ico={Efectivo:'💵',Transferencia:'🏦',Tarjeta:'💳',Otro:'•'};
+  $('#vista').innerHTML=`<div class="cabecera"><div><h2>Cierre de caja</h2>
+      <div class="sub">${rpCap(rangoRep('dia',cajaFecha).titulo)}${cerrada?' · <b style="color:var(--clinico)">Caja cerrada</b>':''}</div></div>
+      <div class="spacer"></div>
+      <button class="btn chico" onclick="verCaja(addDias(cajaFecha,-1))">← Día anterior</button>
+      <button class="btn chico" onclick="verCaja(hoy())">Hoy</button>
+      <button class="btn chico" onclick="verCaja(addDias(cajaFecha,1))">Día siguiente →</button>
+      <input type="date" value="${cajaFecha}" onchange="if(this.value)verCaja(this.value)" aria-label="Ir a una fecha" style="width:auto;flex:none;max-width:170px;padding:4px 8px;border:1px solid var(--linea);border-radius:8px;background:var(--papel)">
+      <button class="btn chico" onclick="imprimirCaja()">Imprimir / PDF</button></div>
+    <div class="kpi-grid" style="margin-top:16px">
+      ${['Efectivo','Transferencia','Tarjeta','Otro'].filter(m=>m!=='Otro'||d.porM.Otro>0).map(m=>`<div class="kpi-card ${m==='Efectivo'?'kpi-verde':m==='Transferencia'?'kpi-azul':'kpi-morado'}"><span>${ico[m]} ${m}</span><b>${usd(d.porM[m])}</b></div>`).join('')}
+      <div class="kpi-card kpi-teal"><span>Total cobrado</span><b>${usd(d.total)}</b></div>
+    </div>
+    <div class="panel-2col" style="margin-bottom:14px">
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Efectivo en caja</h3></div>
+        <table style="width:100%;display:table">
+          <tr><td>Caja inicial (con lo que se abrió)</td><td class="der"><input type="number" step="0.01" min="0" id="cj_ini" value="${esc(c.inicial??'')}" placeholder="0.00" style="max-width:120px;text-align:right" ${cerrada?'disabled':''}></td></tr>
+          <tr><td>+ Cobrado en efectivo</td><td class="der num">${usd(d.porM.Efectivo)}</td></tr>
+          <tr><td>− Salidas de efectivo</td><td class="der num">${usd(d.salidas)}</td></tr>
+          <tr><td><b>= Debe haber en caja</b></td><td class="der num"><b>${usd(d.esperado)}</b></td></tr>
+          <tr><td>Contado al cerrar</td><td class="der"><input type="number" step="0.01" min="0" id="cj_cont" value="${esc(c.contado??'')}" placeholder="0.00" style="max-width:120px;text-align:right" ${cerrada?'disabled':''}></td></tr>
+          ${d.dif!==null?`<tr><td><b>${d.dif===0?'Cuadra':d.dif>0?'Sobra':'Falta'}</b></td><td class="der num" style="color:${d.dif===0?'var(--clinico)':'var(--alerta)'}"><b>${d.dif===0?'✓ $0.00':usd(Math.abs(d.dif))}</b></td></tr>`:''}
+        </table>
+        <label class="campo" style="margin-top:10px"><span>Nota del cierre</span><input type="text" id="cj_nota" value="${esc(c.nota||'')}" placeholder="Ej. faltan $2 de cambio" ${cerrada?'disabled':''}></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${cerrada?`<span class="mini">Cerrada el ${new Date(c.cerradoEl).toLocaleString('es-EC')}</span><button class="btn chico" onclick="reabrirCaja()">Reabrir</button>`:`<button class="btn primario chico" onclick="cerrarCaja()">Cerrar caja</button>`}</div></div>
+      <div class="bloque" style="margin-bottom:0"><div class="barra-tit"><h3>Salidas de efectivo</h3>${cerrada?'':'<button class="btn chico der" onclick="agregarSalidaCaja()">+ Agregar salida</button>'}</div>
+        ${(c.salidas||[]).length?`<table style="width:100%;display:table">${c.salidas.map(x=>`<tr><td>${esc(x.concepto||'Salida')}</td><td class="der num">${usd(x.monto)}</td><td class="der" style="width:40px">${cerrada?'':`<button class="btn chico peligro" onclick="quitarSalidaCaja('${x.id}')">×</button>`}</td></tr>`).join('')}</table>`:'<p class="mini">Sin salidas. Anota aquí lo que se paga con el efectivo de la caja (compras, pasajes, cambio…).</p>'}
+        ${d.prof.length?`<p class="mini" style="margin:12px 0 4px"><b>Pagos a profesionales registrados hoy</b> (en «Gastos»):</p><table style="width:100%;display:table">${d.prof.map(g=>`<tr><td>${esc(g.profesionalNombre||'')}${g.concepto?' · '+esc(g.concepto):''}</td><td class="der num">${usd(g.monto)}</td></tr>`).join('')}</table><p class="mini" style="margin:4px 0 0">Si se pagaron con efectivo de la caja, anótalos también como salida.</p>`:''}
+      </div>
+    </div>
+    <div class="bloque"><div class="barra-tit"><h3>Cobros del día</h3><span class="mini der">${d.R.pagos.length} pago${d.R.pagos.length===1?'':'s'}</span></div>
+      ${d.R.pagos.length?`<table style="width:100%"><thead><tr><th>Paciente</th><th>Concepto</th><th>Forma de pago</th><th class="der">Monto</th></tr></thead><tbody>
+        ${[...d.R.pagos].sort((a,b)=>String(a.metodo).localeCompare(String(b.metodo))).map(x=>`<tr><td>${esc(x.paciente)}</td><td class="mini">${esc(x.nota||'Abono')}</td><td>${esc(x.metodo||'—')}</td><td class="der num">${usd(x.monto)}</td></tr>`).join('')}
+        <tr><td colspan="3"><b>Total</b></td><td class="der num"><b>${usd(d.total)}</b></td></tr></tbody></table>`:'<p class="mini">No hay cobros registrados este día.</p>'}</div>`;
+  if(!cerrada){
+    const g=()=>{const x=cajaDe(cajaFecha);x.inicial=$('#cj_ini').value;x.contado=$('#cj_cont').value;x.nota=$('#cj_nota').value.trim();guardarCaja(cajaFecha,x);verCaja();};
+    ['cj_ini','cj_cont'].forEach(id=>$('#'+id).addEventListener('change',g));
+    $('#cj_nota').addEventListener('change',()=>{const x=cajaDe(cajaFecha);x.nota=$('#cj_nota').value.trim();guardarCaja(cajaFecha,x);});
+  }
+}
+function agregarSalidaCaja(){
+  abrirModal('Salida de efectivo',`<div class="grid">
+      <label class="campo"><span>Concepto</span><input type="text" id="cs_con" placeholder="Compra de gasas, pasaje, cambio…"></label>
+      <label class="campo"><span>Monto (USD)</span><input type="number" step="0.01" min="0" id="cs_mon" inputmode="decimal"></label></div>`,
+  ()=>{const m=Number($('#cs_mon').value)||0;if(m<=0){avisar('Escribe el monto');return false;}
+    const x=cajaDe(cajaFecha);x.salidas=x.salidas||[];x.salidas.push({id:uid(),concepto:$('#cs_con').value.trim()||'Salida',monto:Math.round(m*100)/100});
+    guardarCaja(cajaFecha,x);verCaja();avisar('Salida anotada');});
+}
+function quitarSalidaCaja(id){const x=cajaDe(cajaFecha);if(!confirm('¿Quitar esta salida?'))return;x.salidas=(x.salidas||[]).filter(s=>s.id!==id);guardarCaja(cajaFecha,x);verCaja();}
+function cerrarCaja(){
+  const x=cajaDe(cajaFecha);x.inicial=$('#cj_ini').value;x.contado=$('#cj_cont').value;x.nota=$('#cj_nota').value.trim();
+  if(x.contado===''){avisar('Escribe cuánto efectivo contaste antes de cerrar');return;}
+  x.cerradoEl=new Date().toISOString();guardarCaja(cajaFecha,x);verCaja();avisar('Caja cerrada');
+}
+function reabrirCaja(){if(!confirm('¿Reabrir la caja de este día para corregirla?'))return;const x=cajaDe(cajaFecha);delete x.cerradoEl;guardarCaja(cajaFecha,x);verCaja();}
+function imprimirCaja(){
+  const d=datosCaja(cajaFecha),g=datos.config||{};
+  $('#impresion').innerHTML=`<div class="hoja">
+    <img src="${logoActual()}" style="height:40px;display:block;margin:0 auto 4px">
+    <h1>${esc(g.establecimiento||'CONSULTORIO ODONTOLÓGICO')}</h1>
+    <div class="est">CIERRE DE CAJA — ${esc(rangoRep('dia',cajaFecha).titulo.toUpperCase())}</div>
+    <section><h4>COBRADO POR FORMA DE PAGO</h4><table>${['Efectivo','Transferencia','Tarjeta','Otro'].map(m=>`<tr><td>${m}</td><td style="text-align:right">${usd(d.porM[m])}</td></tr>`).join('')}<tr><td><b>Total cobrado</b></td><td style="text-align:right"><b>${usd(d.total)}</b></td></tr></table></section>
+    <section><h4>EFECTIVO EN CAJA</h4><table><tr><td>Caja inicial</td><td style="text-align:right">${usd(d.inicial)}</td></tr><tr><td>+ Cobrado en efectivo</td><td style="text-align:right">${usd(d.porM.Efectivo)}</td></tr>
+      <tr><td>− Salidas de efectivo</td><td style="text-align:right">${usd(d.salidas)}</td></tr><tr><td><b>Debe haber en caja</b></td><td style="text-align:right"><b>${usd(d.esperado)}</b></td></tr>
+      <tr><td>Contado</td><td style="text-align:right">${d.contado===null?'—':usd(d.contado)}</td></tr>${d.dif!==null?`<tr><td><b>${d.dif===0?'Cuadra':d.dif>0?'Sobra':'Falta'}</b></td><td style="text-align:right"><b>${usd(Math.abs(d.dif))}</b></td></tr>`:''}</table>
+      ${d.c.nota?`<p style="font-size:10px">Nota: ${esc(d.c.nota)}</p>`:''}</section>
+    ${(d.c.salidas||[]).length?`<section><h4>SALIDAS DE EFECTIVO</h4><table>${d.c.salidas.map(x=>`<tr><td>${esc(x.concepto)}</td><td style="text-align:right">${usd(x.monto)}</td></tr>`).join('')}</table></section>`:''}
+    <section><h4>COBROS DEL DÍA</h4><table><tr><th>Paciente</th><th>Forma</th><th style="text-align:right">Monto</th></tr>${d.R.pagos.map(x=>`<tr><td>${esc(x.paciente)}</td><td>${esc(x.metodo||'—')}</td><td style="text-align:right">${usd(x.monto)}</td></tr>`).join('')||'<tr><td colspan="3">Sin cobros</td></tr>'}</table></section>
+    <div style="display:flex;justify-content:space-around;margin-top:40px;font-size:10px"><div style="border-top:1px solid #333;width:40%;text-align:center;padding-top:4px">Entrega</div><div style="border-top:1px solid #333;width:40%;text-align:center;padding-top:4px">Recibe</div></div></div>`;
+  lanzarImpresion();
+}
+
 /* ---------- 8. instalable en el iPad / sin conexión ---------- */
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
@@ -8628,6 +8722,7 @@ document.addEventListener('click',()=>$('#gestionLista').classList.remove('abier
 $('#btnProfesionales').onclick=()=>verProfesionales();
 $('#btnGastos').onclick=()=>verGastos();
 $('#btnReporte').onclick=()=>verReporte();
+$('#btnCaja').onclick=()=>verCaja();
 $('#btnInventario').onclick=()=>verInventario();
 $('#btnNube').onclick=()=>abrirNube();
 $('#btnResumen').onclick=()=>{ocultarPanel();verResumen();};
