@@ -3660,6 +3660,15 @@ function estadoFila(q){
   const m=Number(q.monto)||0,pg=pagadoFila(q);
   if(m<=0)return pg>0?{k:'pagado',t:'Pagado'}:{k:'',t:''};
   if(pg>=m-0.004)return {k:'pagado',t:'Pagado'};
+  // un control se cobra cuando se hace: mientras no se registre (o su fecha sea futura) queda «Pendiente», nunca «Vencida».
+  // Si ya se hizo y no se pagó, queda «Por cobrar». Las cuotas (entradas) y procedimientos siguen con su fecha de vencimiento.
+  if(!q.esEntrada&&!esProcOrto(q)){
+    const pt=typeof pac==='function'&&typeof selId!=='undefined'?pac(selId):null;
+    const ctl=q.controlId&&pt&&pt.orto?(pt.orto.controles||[]).find(c=>c.id===q.controlId):null;
+    const hecho=!!(ctl&&ctl.fecha&&ctl.fecha<=hoy());
+    if(pg>0)return {k:hecho?'vencido':'parcial',t:hecho?'Parcial · por cobrar':'Parcial'};
+    return hecho?{k:'vencido',t:'Por cobrar'}:{k:'pend',t:'Pendiente'};
+  }
   const venc=!!(q.fechaVenc&&q.fechaVenc<hoy());
   if(pg>0)return {k:venc?'vencido':'parcial',t:venc?'Parcial · vencida':'Parcial'};
   return venc?{k:'vencido',t:'Vencida'}:{k:'pend',t:'Pendiente'};
