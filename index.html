@@ -8674,7 +8674,7 @@ function verCitasLinea(){
     </div>
     <div class="bloque"><h3 style="margin-top:0">Horario que verán los pacientes</h3>
       <div class="grid">
-        <label class="campo"><span>WhatsApp del consultorio (donde llegan las solicitudes)</span><input type="tel" id="cl_w" value="${esc(c.w)}" placeholder="0991234567"></label>
+        <label class="campo"><span>WhatsApp del consultorio (donde llegan las solicitudes)</span><input type="tel" id="cl_w" value="${esc(c.w)}" placeholder="0991234567"><button class="btn chico" type="button" style="margin-top:6px" onclick="const w=telWhatsapp($('#cl_w').value);if(w)window.open('https://wa.me/'+w,'_blank')">Probar este número en WhatsApp</button></label>
         <label class="campo"><span>Duración de cada cita</span><select id="cl_m">${[15,20,30,45,60].map(m=>`<option value="${m}" ${c.m===m?'selected':''}>${m} min</option>`).join('')}</select></label></div>
       <div class="campo" style="margin-bottom:14px"><span>Días de atención</span><div style="display:flex;gap:6px;flex-wrap:wrap">
         ${orden.map(d=>`<label class="chk" style="border:1px solid var(--linea);border-radius:8px;padding:4px 10px;margin:0"><input type="checkbox" class="cl_d" value="${d}" ${c.d.includes(d)?'checked':''}> ${L[d]}</label>`).join('')}</div></div>
@@ -8696,6 +8696,8 @@ function verCitasLinea(){
 function guardarCitasLinea(){
   const w=telWhatsapp($('#cl_w').value);
   if(!w||w.length<11){avisar('Escribe el número de WhatsApp del consultorio');return;}
+  if(/^5939/.test(w)&&w.length!==12){const n=w.length-3+1;
+    avisar(`Ese número tiene ${n} dígitos y un celular de Ecuador tiene 10 (ej. 0991234567). Revísalo.`);$('#cl_w').focus();return;}
   const d=[...document.querySelectorAll('.cl_d:checked')].map(x=>Number(x.value));
   if(!d.length){avisar('Elige al menos un día de atención');return;}
   const man=[$('#cl_m1').value,$('#cl_m2').value],tar=[$('#cl_t1').value,$('#cl_t2').value];
