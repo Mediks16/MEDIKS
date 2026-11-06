@@ -5000,6 +5000,8 @@ const PLANTILLAS_WSP=[
   {id:'saludo',titulo:'Saludo sencillo',texto:'¡Hola {nombre}! 😊 Te saludamos de {consultorio}. ¿En qué podemos ayudarte?'},
   {id:'recordatorio',titulo:'Recordatorio de cita',texto:'¡Hola {nombre}! 😊 Te recordamos tu cita en {consultorio} el {fecha} a las {hora}. Si necesitas cambiarla, respóndenos por aquí y la reprogramamos sin problema. ¡Te esperamos con gusto! 🦷'},
   {id:'confirmar',titulo:'Confirmar asistencia',texto:'¡Hola {nombre}! 🦷 ¿Nos confirmas si podrás asistir a tu cita del {fecha} a las {hora}? Con un «Sí» por aquí queda todo listo. ¡Gracias!'},
+  {id:'cita_confirmada',titulo:'Cita confirmada',texto:'¡Hola {nombre}! ✅ Tu cita en {consultorio} quedó confirmada para el {fecha} a las {hora}. Si necesitas cambiarla, respóndenos por aquí. ¡Te esperamos! 🦷'},
+  {id:'cita_no_disponible',titulo:'Horario no disponible',texto:'Hola {nombre} 😊 Gracias por escribirnos. Lamentablemente el {fecha} a las {hora} no tenemos disponibilidad. ¿Te queda bien otro día u horario? Respóndenos por aquí y te ayudamos a agendar.'},
   {id:'gracias',titulo:'Gracias por tu visita',texto:'Hola {nombre} 💙 Gracias por visitarnos hoy en {consultorio}. Fue un gusto atenderte. Si tienes cualquier duda o molestia, escríbenos con toda confianza.'},
   {id:'extraccion',titulo:'Cuidados después de una extracción',texto:'Hola {nombre} 😊 Gracias por confiar en nosotros. Para que tu recuperación sea rápida:\n\n• Muerde la gasa con suavidad unos 30 minutos.\n• Hoy no te enjuagues con fuerza, no escupas ni uses pitillo.\n• No fumes ni tomes alcohol por unos días.\n• Come alimentos blandos y fríos o tibios.\n• Puedes poner hielo por fuera de la mejilla, en ratos de 10 minutos.\n• Toma los medicamentos tal como te indicamos.\n\nSi el sangrado no para, el dolor aumenta mucho o te da fiebre, escríbenos o llámanos de inmediato. ¡Cuídate mucho! 💙'},
   {id:'endodoncia',titulo:'Cuidados después de una endodoncia',texto:'Hola {nombre} 😊 Tu tratamiento de conducto salió muy bien. Algunas recomendaciones:\n\n• Es normal sentir una molestia leve unos días; toma la medicación como te indicamos.\n• Evita masticar cosas duras del lado tratado hasta que te coloquemos la restauración definitiva.\n• No dejes pasar mucho tiempo sin volver a terminar el tratamiento.\n\nSi aparece dolor fuerte, hinchazón o fiebre, avísanos enseguida. ¡Estamos para ayudarte! 💙'},
@@ -7173,6 +7175,7 @@ function tituloSemana(fechas){const a=new Date(fechas[0]+'T00:00:00'),b=new Date
 
 /* Si la cita se editó desde la pestaña «Citas» del paciente, se queda ahí; si no, vuelve a la agenda. */
 function refrescarTrasCita(){
+  try{limpiarSolicitudesAceptadas(true);publicarAgendaPublica();}catch(e){}
   if(pestana==='citas'&&selId&&document.getElementById('panelTab')){pintarVista();pintarLista();}else renderAgenda();
 }
 function renderAgenda(){
@@ -7332,7 +7335,7 @@ function enlaceWhatsapp(tel,nombre,fecha,hora){
 
 function abrirCita(id,prefill){
   const existente=id?(datos.citas||[]).find(x=>x.id===id):null;
-  const c=existente||{fecha:(prefill&&prefill.fecha)||agendaFecha,hora:(prefill&&prefill.hora)||'09:00',duracion:(prefill&&prefill.duracion)||30,estado:'Agendada',
+  const c=existente||{fecha:(prefill&&prefill.fecha)||agendaFecha,hora:(prefill&&prefill.hora)||'09:00',duracion:(prefill&&prefill.duracion)||30,estado:(prefill&&prefill.estado)||'Agendada',
     origen:(prefill&&prefill.origen)||null,nota:(prefill&&prefill.nota)||'',
     nombre:(prefill&&prefill.nombre)||'',telefono:(prefill&&prefill.telefono)||'',pacienteId:(prefill&&prefill.pacienteId)||null,motivo:(prefill&&prefill.motivo)||''};
   const listaPac=datos.pacientes.map(p=>`<option value="${esc(p.nombre)}">`).join('');
@@ -8654,15 +8657,19 @@ function enlaceCitasLinea(){
   if(!c.w)return '';
   const h=[c.man,c.tar].filter(x=>x&&x[0]&&x[1]&&x[0]<x[1]);
   if(!h.length||!c.d.length)return '';
-  return new URL('reservar.html',location.href).href.split('#')[0].split('?')[0]+
-    '?c='+b64url(JSON.stringify({n:g.establecimiento||'',w:c.w,d:c.d,h,m:c.m}));
+  const base=new URL('reservar.html',location.href).href.split('#')[0].split('?')[0];
+  if(pubOk&&nubeUid&&g.citasLinea)return base+'?u='+encodeURIComponent(nubeUid);
+  return base+'?c='+b64url(JSON.stringify({n:g.establecimiento||'',w:c.w,d:c.d,h,m:c.m}));
 }
 function verCitasLinea(){
   selId=null;ocultarPanel();pintarLista();
   const c=cfgCitasLinea(),L=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],orden=[1,2,3,4,5,6,0];
   const url=enlaceCitasLinea();
   $('#vista').innerHTML=`<div class="cabecera"><div><h2>Citas en línea</h2>
-      <div class="sub">Tus pacientes piden su cita desde un enlace y te llega por WhatsApp, lista para agregarla a la agenda.</div></div></div>
+      <div class="sub">Tus pacientes piden su cita desde un enlace${pubOk?' y la solicitud te llega aquí, a Mediks':' y te llega por WhatsApp, lista para agregarla a la agenda'}.</div></div></div>
+    ${pubOk?`<div class="bloque" style="margin-top:16px;border-left:4px solid var(--clinico)"><b>✅ Las solicitudes llegan directo aquí.</b>
+      <p class="mini" style="margin:4px 0 0">El paciente ve tus horas libres y las ocupadas marcadas como «Ocupado». Cuando alguien pide una cita, te aparece el botón <b>📅 Solicitudes</b> para aceptarla o rechazarla.</p>
+      ${solicitudesPend.length?`<button class="btn primario chico" style="margin-top:8px" onclick="verSolicitudes()">Ver ${solicitudesPend.length} solicitud${solicitudesPend.length===1?'':'es'}</button>`:''}</div>`:''}
     <div class="bloque" style="margin-top:16px"><h3 style="margin-top:0">Tu enlace para pacientes</h3>
       ${url?`<p class="mini" style="margin-top:0">Ponlo en tu Instagram, Facebook, Google o en tu estado de WhatsApp.</p>
         <input type="text" readonly id="cl_url" value="${esc(url)}" onclick="this.select()" style="width:100%;font-size:13px">
@@ -8685,13 +8692,17 @@ function verCitasLinea(){
         <label class="campo"><span>Tarde hasta</span><input type="time" id="cl_t2" value="${esc((c.tar||[])[1]||'')}"></label></div>
       <p class="mini" style="margin-top:0">Si no atiendes en la tarde, deja vacías las horas de la tarde. Las horas ocupadas no se ocultan: tú confirmas cada solicitud.</p>
       <button class="btn primario" type="button" onclick="guardarCitasLinea()">Guardar horario</button>
-      <p class="mini">Si cambias el horario, vuelve a copiar el enlace y reemplázalo donde lo hayas publicado.</p></div>
+      <p class="mini">${pubOk?'Si cambias el horario, el enlace sigue siendo el mismo: los pacientes ven el horario nuevo al instante.':'Si cambias el horario, vuelve a copiar el enlace y reemplázalo donde lo hayas publicado.'}</p></div>
     <div class="bloque"><h3 style="margin-top:0">¿Cómo funciona?</h3>
-      <ol class="mini" style="margin:0;padding-left:18px;line-height:1.7">
+      ${pubOk?`<ol class="mini" style="margin:0;padding-left:18px;line-height:1.7">
+        <li>El paciente abre tu enlace, escribe su nombre y elige motivo, día y una hora libre.</li>
+        <li>Toca «Pedir cita» y la solicitud te llega aquí al instante.</li>
+        <li>Tocas <b>📅 Solicitudes</b> → <b>Aceptar</b>: la cita queda en tu agenda y se abre WhatsApp con la confirmación lista para el paciente.</li>
+        <li>Si no puedes, tocas <b>Rechazar</b> y le ofreces otro horario por WhatsApp.</li></ol>`:`<ol class="mini" style="margin:0;padding-left:18px;line-height:1.7">
         <li>El paciente abre tu enlace, escribe su nombre y elige motivo, día y hora.</li>
         <li>Se abre su WhatsApp con la solicitud lista y te la envía a ti.</li>
         <li>En el mensaje viene un enlace «agregar a la agenda». Tócalo y se abre la cita ya llena aquí; revisa y toca «Guardar».</li>
-        <li>Confírmale al paciente por WhatsApp.</li></ol></div>`;
+        <li>Confírmale al paciente por WhatsApp.</li></ol>`}</div>`;
 }
 function guardarCitasLinea(){
   const w=telWhatsapp($('#cl_w').value);
@@ -8707,7 +8718,7 @@ function guardarCitasLinea(){
   if(!ok(man)&&!ok(tar)){avisar('Escribe al menos un horario');return;}
   datos.config=datos.config||{};
   datos.config.citasLinea={w,d,m:Number($('#cl_m').value)||30,man:ok(man)?man:['',''],tar:ok(tar)?tar:['','']};
-  guardar();avisar('Horario guardado');verCitasLinea();
+  guardar();avisar('Horario guardado');pubUltimo='';publicarAgendaPublica().then(()=>verCitasLinea());verCitasLinea();
 }
 async function copiarEnlaceCitas(){
   const u=enlaceCitasLinea();
@@ -8734,6 +8745,110 @@ function revisarCitaEnlace(intentos){
   const inp=document.getElementById('ci_pac');if(inp&&inp.oninput)inp.oninput();
 }
 window.addEventListener('hashchange',()=>revisarCitaEnlace());
+/* ---------- agenda pública y solicitudes de cita ----------
+   agendaPublica/{uid}: lo que ve el paciente en reservar.html?u=… (nombre, horario y horas ocupadas, sin nombres de pacientes).
+   solicitudes/{uid}/items: lo que deja el paciente; solo el consultorio puede leerlas, aceptarlas o borrarlas. */
+let pubOk=false,pubUltimo='',solicitudesPend=[],solUid=null,solCancelar=null;
+try{pubOk=localStorage.getItem('pubOk')==='1';}catch(e){}
+const aMinCl=h=>{const [a,b]=String(h||'').split(':').map(Number);return (a||0)*60+(b||0);};
+const aHoraCl=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+function rangosCl(c){return [c.man,c.tar].filter(x=>x&&x[0]&&x[1]&&x[0]<x[1]);}
+function horasOcupadasCl(){
+  const c=cfgCitasLinea(),dur=Number(c.m)||30,ini=hoy(),fin=addDias(ini,62),out={},R=rangosCl(c);
+  const marcar=(f,h,d)=>{if(!f||!h||f<ini||f>fin)return;const a=aMinCl(h),b=a+(Number(d)||dur);
+    R.forEach(([x,y])=>{for(let t=aMinCl(x);t+dur<=aMinCl(y);t+=dur)if(t<b&&t+dur>a){const k=aHoraCl(t);(out[f]=out[f]||[]);if(!out[f].includes(k))out[f].push(k);}});};
+  (datos.citas||[]).filter(x=>x.estado!=='Cancelada').forEach(x=>marcar(x.fecha,x.hora,x.duracion));
+  solicitudesPend.forEach(x=>marcar(x.f,x.h,dur));
+  Object.values(out).forEach(a=>a.sort());
+  return out;
+}
+async function publicarAgendaPublica(){
+  try{
+    const g=datos.config||{};
+    if(!(nubeActiva&&nubeUid&&nubeDb&&g.citasLinea))return;
+    const c=cfgCitasLinea();
+    const doc={n:g.establecimiento||'',w:c.w||'',d:c.d,h:rangosCl(c).map(x=>x.join('-')),m:Number(c.m)||30,ocupadas:horasOcupadasCl()};
+    const j=JSON.stringify(doc);if(j===pubUltimo)return;
+    await nubeDb.collection('agendaPublica').doc(nubeUid).set(Object.assign(doc,{act:new Date().toISOString()}));
+    pubUltimo=j;
+    if(!pubOk){pubOk=true;try{localStorage.setItem('pubOk','1');}catch(e){}}
+  }catch(e){
+    if(e&&e.code==='permission-denied'&&pubOk){pubOk=false;try{localStorage.removeItem('pubOk');}catch(_){}}
+  }
+}
+function vigilarSolicitudes(){
+  const uid=(nubeActiva&&nubeUid&&nubeDb)?nubeUid:null;
+  if(uid===solUid)return;
+  if(solCancelar){try{solCancelar();}catch(e){}solCancelar=null;}
+  solUid=uid;solicitudesPend=[];pintarBotonSolicitudes();
+  if(!uid)return;
+  try{
+    solCancelar=nubeDb.collection('solicitudes').doc(uid).collection('items').onSnapshot(snap=>{
+      const antes=new Set(solicitudesPend.map(x=>x.id));
+      solicitudesPend=snap.docs.map(d=>Object.assign({id:d.id},d.data())).sort((a,b)=>(a.f+a.h).localeCompare(b.f+b.h));
+      const nuevas=solicitudesPend.filter(x=>!antes.has(x.id));
+      limpiarSolicitudesAceptadas();
+      pintarBotonSolicitudes();
+      if(nuevas.length&&antes.size+nuevas.length>0&&snap.metadata&&!snap.metadata.fromCache)avisar('📅 Nueva solicitud de cita: '+(nuevas[0].n||''));
+      publicarAgendaPublica();
+    },()=>{});
+  }catch(e){}
+}
+function pintarBotonSolicitudes(){
+  let b=document.getElementById('btnSolicitudes');
+  if(!solicitudesPend.length){if(b)b.remove();return;}
+  if(!b){b=document.createElement('button');b.id='btnSolicitudes';b.type='button';b.onclick=()=>verSolicitudes();
+    b.style.cssText='position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;border:0;border-radius:999px;padding:12px 18px;font:600 15px system-ui;background:var(--clinico);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer';
+    document.body.appendChild(b);}
+  b.textContent=`📅 ${solicitudesPend.length} solicitud${solicitudesPend.length===1?'':'es'} de cita`;
+}
+function choqueSolicitud(x){
+  const dur=Number(cfgCitasLinea().m)||30,a=aMinCl(x.h),b=a+dur;
+  return (datos.citas||[]).find(c=>c.fecha===x.f&&c.estado!=='Cancelada'&&c.hora&&aMinCl(c.hora)<b&&aMinCl(c.hora)+(Number(c.duracion)||30)>a);
+}
+function verSolicitudes(){
+  if(!solicitudesPend.length){avisar('No hay solicitudes pendientes');return;}
+  abrirModal('Solicitudes de cita',`<p class="mini" style="margin-top:0">Pedidas por tus pacientes desde tu enlace de citas en línea.</p>
+    ${solicitudesPend.map(x=>{const ch=choqueSolicitud(x);return `<div class="bloque" style="margin:0 0 10px;padding:12px">
+      <b>${esc(x.n)}</b> · <span class="mini">${esc(x.t)}</span><br>
+      <span>📅 ${esc(rpCap(nombreDiaFecha(x.f)))} · 🕐 ${esc(x.h)}</span><br>
+      <span class="mini">🦷 ${esc(x.m||'')}${x.c?' · 💬 '+esc(x.c):''}</span>
+      ${ch?`<p class="mini" style="color:var(--alerta);margin:6px 0 0">⚠ Ya tienes una cita a esa hora (${esc(ch.nombre||'')} ${esc(ch.hora)}).</p>`:''}
+      ${x.f<hoy()?`<p class="mini" style="color:var(--alerta);margin:6px 0 0">⚠ Esta fecha ya pasó.</p>`:''}
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn primario chico" type="button" onclick="aceptarSolicitud('${esc(x.id)}')">Aceptar</button>
+        <button class="btn chico" type="button" onclick="rechazarSolicitud('${esc(x.id)}')">Rechazar</button></div></div>`;}).join('')}`,null);
+}
+function aceptarSolicitud(id){
+  const x=solicitudesPend.find(s=>s.id===id);if(!x)return;
+  const dig=telWhatsapp(x.t||'');
+  const ptc=datos.pacientes.find(p=>dig&&telWhatsapp(p.telefono||'')===dig)||
+    datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===String(x.n||'').trim().toLowerCase());
+  $('#modal').close();agendaFecha=x.f;verAgenda();
+  abrirCita(null,{fecha:x.f,hora:x.h,duracion:Number(cfgCitasLinea().m)||30,estado:'Confirmada',
+    nombre:ptc?ptc.nombre:String(x.n||''),telefono:x.t||(ptc&&ptc.telefono)||'',pacienteId:ptc?ptc.id:null,
+    motivo:String(x.m||''),nota:String(x.c||''),origen:{tipo:'enLinea',id:x.id}});
+  const inp=document.getElementById('ci_pac');if(inp&&inp.oninput)inp.oninput();
+}
+async function rechazarSolicitud(id){
+  const x=solicitudesPend.find(s=>s.id===id);if(!x)return;
+  if(!confirm('¿Rechazar la solicitud de '+(x.n||'este paciente')+'? Luego podrás escribirle por WhatsApp para ofrecerle otro horario.'))return;
+  try{await nubeDb.collection('solicitudes').doc(nubeUid).collection('items').doc(id).delete();}catch(e){avisar('No se pudo borrar la solicitud. Revisa tu conexión.');return;}
+  $('#modal').close();
+  abrirMensajeCita({nombre:x.n,telefono:x.t,fecha:x.f,hora:x.h},'cita_no_disponible');
+}
+/* Cuando una solicitud ya quedó guardada como cita, se borra de la lista y se abre la confirmación para el paciente. */
+function limpiarSolicitudesAceptadas(conMensaje){
+  if(!solUid)return;
+  solicitudesPend.filter(x=>(datos.citas||[]).some(c=>c.origen&&c.origen.tipo==='enLinea'&&c.origen.id===x.id)).forEach(x=>{
+    solicitudesPend=solicitudesPend.filter(s=>s.id!==x.id);
+    nubeDb.collection('solicitudes').doc(solUid).collection('items').doc(x.id).delete().catch(()=>{});
+    if(conMensaje){const c=(datos.citas||[]).find(c=>c.origen&&c.origen.id===x.id);
+      if(c)setTimeout(()=>abrirMensajeCita(c,'cita_confirmada'),350);}
+  });
+  pintarBotonSolicitudes();
+}
+setInterval(()=>{vigilarSolicitudes();publicarAgendaPublica();},5000);
 /* ---------- 8. instalable en el iPad / sin conexión ---------- */
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
