@@ -86,8 +86,9 @@ async function enviarSolicitud(x){
   if(!r.ok)throw new Error('solicitud '+r.status);
 }
 function horasDe(iso){
-  const dur=Math.max(10,Number(cfg.m)||30),ahora=ahoraEc(),out=[];
-  (cfg.h||[]).forEach(([a,b])=>{for(let t=aMin(a);t+dur<=aMin(b);t+=dur)out.push(t);});
+  /* Horas cada 30 minutos (o cada lo que dure la cita, si es más corta), hasta la hora de cierre. */
+  const paso=Math.min(Math.max(10,Number(cfg.m)||30),30),ahora=ahoraEc(),out=[];
+  (cfg.h||[]).forEach(([a,b])=>{for(let t=aMin(a);t+paso<=aMin(b);t+=paso)out.push(t);});
   return out.filter(t=>iso!==ahora.fecha||t>=ahora.min+60).sort((x,y)=>x-y).map(aHora);
 }
 const ocupada=(f,h)=>(ocupadas[f]||[]).includes(h);

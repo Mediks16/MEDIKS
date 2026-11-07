@@ -8754,9 +8754,9 @@ const aMinCl=h=>{const [a,b]=String(h||'').split(':').map(Number);return (a||0)*
 const aHoraCl=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
 function rangosCl(c){return [c.man,c.tar].filter(x=>x&&x[0]&&x[1]&&x[0]<x[1]);}
 function horasOcupadasCl(){
-  const c=cfgCitasLinea(),dur=Number(c.m)||30,ini=hoy(),fin=addDias(ini,62),out={},R=rangosCl(c);
+  const c=cfgCitasLinea(),dur=Number(c.m)||30,paso=Math.min(dur,30),ini=hoy(),fin=addDias(ini,62),out={},R=rangosCl(c);
   const marcar=(f,h,d)=>{if(!f||!h||f<ini||f>fin)return;const a=aMinCl(h),b=a+(Number(d)||dur);
-    R.forEach(([x,y])=>{for(let t=aMinCl(x);t+dur<=aMinCl(y);t+=dur)if(t<b&&t+dur>a){const k=aHoraCl(t);(out[f]=out[f]||[]);if(!out[f].includes(k))out[f].push(k);}});};
+    R.forEach(([x,y])=>{for(let t=aMinCl(x);t+paso<=aMinCl(y);t+=paso)if(t<b&&t+paso>a){const k=aHoraCl(t);(out[f]=out[f]||[]);if(!out[f].includes(k))out[f].push(k);}});};
   (datos.citas||[]).filter(x=>x.estado!=='Cancelada').forEach(x=>marcar(x.fecha,x.hora,x.duracion));
   solicitudesPend.forEach(x=>marcar(x.f,x.h,dur));
   Object.values(out).forEach(a=>a.sort());
