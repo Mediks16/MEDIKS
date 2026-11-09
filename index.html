@@ -1178,6 +1178,16 @@ async function migrarOCargarNube(){
   }
   errorNube='';
   marcarUsaNube();
+  /* Si en la nube faltaban fichas que este dispositivo sí tiene, se recuperan desde aquí (y se vuelven a subir) en vez de darlas por eliminadas. */
+  let recuperadas=0;
+  if(nubeFaltan&&nubeFaltan.length){
+    try{
+      const n=JSON.parse(rawNube);n.pacientes=n.pacientes||[];
+      const hay=new Set(n.pacientes.map(q=>String(q&&q.id)));
+      (datos.pacientes||[]).forEach(q=>{if(q&&q.id!==undefined&&!hay.has(String(q.id))&&nubeFaltan.includes('pac_'+nubeIdSeguro(q.id))){n.pacientes.push(JSON.parse(JSON.stringify(q)));recuperadas++;}});
+      if(recuperadas)rawNube=JSON.stringify(n);
+    }catch(e){}
+  }
   /* ¿Hay cambios de este dispositivo que no llegaron a la nube aunque no estén marcados? (p. ej. se cerró la sesión o se trabajó
      sin sesión). Se compara lo guardado aquí con la última versión sincronizada. */
   let sincTxt='';
@@ -1210,6 +1220,7 @@ async function migrarOCargarNube(){
   }
   await cargar(rawNube);   // ya se bajó arriba: no se vuelve a leer la nube
   ultimoSync=rawNube;
+  if(recuperadas){guardar();setTimeout(()=>avisar(`Se recuperaron ${recuperadas} ficha${recuperadas===1?'':'s'} que faltaban en la nube`),1200);}
   if(typeof nubeLegacyNuevo!=='undefined'&&nubeLegacyNuevo)guardar();   // se sube lo que se juntó del equipo con la versión anterior
   // copia en este dispositivo: así, sin internet, siguen viéndose los pacientes de la última vez que abriste con conexión
   try{const j=JSON.stringify(datos);await almacenLocal.set(CLAVE,j);guardarSinc(j);}catch(e){}
