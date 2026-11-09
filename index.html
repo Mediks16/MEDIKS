@@ -3901,7 +3901,7 @@ function sincronizarCronogramaOrto(o){
     const claves=new Set(desead.map(x=>x.clave));
     desead.forEach(x=>{const q=o.cuotas.find(c=>c.etapaId===e.id&&c.clave===x.clave);
       if(!q)o.cuotas.push({id:uid(),etapaId:e.id,pagada:false,pagos:[],...x});
-      else if(!tienePagosOrto(q)&&!q.editada&&!q.anulada)Object.assign(q,{monto:x.monto,fechaVenc:x.fechaVenc,numero:x.numero});});
+      else if(!tienePagosOrto(q)&&!q.editada&&!q.anulada)Object.assign(q,{monto:x.monto,numero:x.numero},q.fechaManual?{}:{fechaVenc:x.fechaVenc});});
     o.cuotas=o.cuotas.filter(c=>!(c.etapaId===e.id&&c.clave&&!claves.has(c.clave)&&!tienePagosOrto(c)&&!c.controlId));
     if(i===0&&conPrecio&&!e.planAnterior)absorberCuotasAnterioresOrto(o,e);
   });
@@ -4201,7 +4201,7 @@ function editarControlOrto(id,cuotaId){
     d.etapaId=x.etapaId||(qElegida&&qElegida.etapaId)||et.id;
     registrarPagoControlOrto(o,d,$('#o_pago').checked,Number($('#o_monto').value)||0,$('#o_metodo').value,qElegida);
     guardar();
-    sincronizarCuotaConControl(p,d.proxima);
+    if(reprogramarDesdeControlOrto(o,d))guardar();else sincronizarCuotaConControl(p,d.proxima);
     pintarVista();avisar('Control guardado');
     sincronizarProximaCita(p.id,'ortoControl',d.id,d.proxima,'Control de ortodoncia',d.proximaHora,d.profesionalId);
   });
@@ -4279,6 +4279,21 @@ function registrarPagoControlOrto(o,d,pago,monto,metodo,preferida){
   if(!q){q={id:uid(),numero:numeroControlNuevoOrto(o,d.etapaId),fechaVenc:d.fecha||hoy(),extra:true,monto:0,etapaId:d.etapaId,pagos:[]};o.cuotas.push(q);}
   if(!q.controlId)q.controlId=d.id;
   if(pago&&monto>0){prepararFilaParaPagoOrto(q,monto);aplicarPagoOrto(o,R2(monto),{fecha:d.fecha||hoy(),metodo,nota:''},q);}
+}
+/* Al poner «Próximo control» en el último control hecho, la fila siguiente (cuota o control) toma esa fecha y las que siguen
+   se corren un mes cada una desde ahí. Las filas ya hechas no se tocan. */
+function reprogramarDesdeControlOrto(o,d){
+  if(!o||!d||!d.proxima)return false;
+  const r=(o.cuotas||[]).find(q=>q.controlId===d.id);if(!r)return false;
+  const orden=(a,b)=>(a.esEntrada?0:1)-(b.esEntrada?0:1)
+    ||(a.esEntrada?((a.fechaVenc||'9').localeCompare(b.fechaVenc||'9')||(a.entradaNum||99)-(b.entradaNum||99))
+                  :((a.numero||0)-(b.numero||0)||(a.fechaVenc||'').localeCompare(b.fechaVenc||'')));
+  const filas=(o.cuotas||[]).filter(q=>(q.etapaId||null)===(r.etapaId||null)&&!esExtraOrto(q)&&!esProcOrto(q)&&!q.anulada).sort(orden);
+  const i=filas.indexOf(r);if(i<0)return false;
+  const despues=filas.slice(i+1);
+  if(despues.some(q=>q.controlId))return false;   // no es el último control hecho: no se mueve nada
+  despues.forEach((q,k)=>{q.fechaVenc=k===0?d.proxima:sumarMeses(d.proxima,k);q.fechaManual=true;});
+  return despues.length>0;
 }
 function sincronizarCuotaConControl(p,fechaProximoControl){
   const o=p.orto;
