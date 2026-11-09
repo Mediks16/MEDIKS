@@ -1151,6 +1151,7 @@ function traducirErrorAuth(code){
   // si es un caso no previsto se muestra el código, para poder saber qué pasó
   return mapa[code]||('No se pudo completar. Intenta de nuevo.'+(code?' (código: '+code+')':''));
 }
+let errorNube='';   // por qué no se pudo leer la nube la última vez (se muestra al tocar el botón de la nube)
 async function migrarOCargarNube(){
   let rawNube;
   try{rawNube=(await conTiempo(almacenNube.get(CLAVE),25000)).value;}
@@ -1163,8 +1164,10 @@ async function migrarOCargarNube(){
       }catch(e2){pasarAModoLocal();}
       return;
     }
+    errorNube=(e&&(e.code||e.message))||'desconocido';
     pasarAModoLocal();return;   // sin conexión u otro fallo: se sigue con la copia de este dispositivo
   }
+  errorNube='';
   marcarUsaNube();
   /* ¿Hay cambios de este dispositivo que no llegaron a la nube aunque no estén marcados? (p. ej. se cerró la sesión o se trabajó
      sin sesión). Se compara lo guardado aquí con la última versión sincronizada. */
@@ -1244,9 +1247,16 @@ function abrirNube(){
   if(nubeActiva&&nubeAuth&&nubeAuth.currentUser){
     abrirModal('Sincronización en la nube',`
       <p>Conectado como <b>${esc(nubeAuth.currentUser.email)}</b>. Tus datos se guardan y actualizan automáticamente en todos los dispositivos donde inicies sesión con esta misma cuenta.</p>
+      ${almacen===almacenLocal?`<div class="bloque" style="margin:10px 0;border-left:4px solid var(--alerta);padding:10px 12px">
+        <b>Ahora estás sin conexión con la nube.</b>
+        <p class="mini" style="margin:4px 0 0">${hayPendiente()?'Lo que anotaste en este dispositivo está guardado aquí y se subirá solo cuando vuelva la conexión. <b>No cierres sesión</b> mientras tanto.':'Se trabaja con la copia de este dispositivo.'}</p>
+        <p class="mini" style="margin:4px 0 0">Motivo: <code>${esc(errorNube||(navigator.onLine===false?'sin internet':'no se pudo leer la nube'))}</code> · ${navigator.onLine===false?'el equipo dice que no hay internet':'el equipo dice que sí hay internet'}</p>
+        <button class="btn primario chico" type="button" id="nb_reint" style="margin-top:8px">Reintentar ahora</button></div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button class="btn chico" type="button" id="nb_salir">Cerrar sesión en este dispositivo</button>
       </div>`,null);
+    const br=document.getElementById('nb_reint');
+    if(br)br.onclick=async()=>{br.disabled=true;br.textContent='Conectando…';$('#modal').close();almacen=almacenNube;await migrarOCargarNube();actualizarBotonNube();if(almacen===almacenLocal)abrirNube();};
     $('#nb_salir').onclick=async()=>{
       if(hayPendiente()&&!confirm('Tienes cambios hechos sin conexión que todavía no se subieron a la nube. Si cierras sesión ahora se quedarán solo en este dispositivo. ¿Cerrar sesión de todas formas?'))return;
       try{localStorage.removeItem(LS_USA);localStorage.removeItem(LS_PEND);}catch(e){}borrarBase();
