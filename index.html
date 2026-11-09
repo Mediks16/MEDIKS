@@ -818,6 +818,16 @@ async function leerBase(){
   if(typeof v==='string'&&v)return v;
   try{return localStorage.getItem('odonto-base-nube')||'';}catch(e){return '';}
 }
+/* La última versión que este dispositivo y la nube tuvieron iguales (por cuenta). Si al abrir la app lo de este dispositivo es
+   distinto, hubo cambios que no llegaron a subir (aunque no quedaran marcados como pendientes): se juntan, no se pisan. */
+function guardarSinc(txt){
+  const u=nubeUid;if(!u||typeof txt!=='string')return;
+  baseCola=baseCola.then(async()=>{try{await idbLocalOp('readwrite',st=>st.put(JSON.stringify({uid:u,json:txt}),'__sinc'));}catch(e){}});
+}
+async function leerSinc(){
+  await baseCola;let v;try{v=await idbLocalOp('readonly',st=>st.get('__sinc'));}catch(e){}
+  try{const o=JSON.parse(v||'null');return o&&o.uid===nubeUid&&typeof o.json==='string'?o.json:'';}catch(e){return '';}
+}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});}catch(e){}
 
 /* Guardado en la nube (Firestore): así se sincroniza entre el computador y el teléfono. */
@@ -1084,7 +1094,7 @@ function guardar(){try{reubicarCarasDerechas();sincronizarInicialAuto();vincular
   try{await almacenLocal.set(CLAVE,json);}
   catch(e){localOk=false;console.error(e);if(!viaNube)avisar('No se pudo guardar. Descarga un respaldo.');}
   if(viaNube){
-    try{await almacen.set(CLAVE,json);if(miSeq===seqGuardado)limpiarPendiente(json);}
+    try{await almacen.set(CLAVE,json);if(miSeq===seqGuardado){limpiarPendiente(json);if(localOk)guardarSinc(json);}}
     catch(e){
       console.error(e);
       try{if(usaNube()){localStorage.setItem(LS_PEND,'1');if(!tieneBase())ponerBase(baseCand);}}catch(_){}
@@ -1149,13 +1159,25 @@ async function migrarOCargarNube(){
       try{
         const json=JSON.stringify(datos);
         await conTiempo(almacenNube.set(CLAVE,json),8000);
-        marcarUsaNube();limpiarPendiente(json);pintar();avisar('Tus datos de este dispositivo se subieron a la nube');
+        marcarUsaNube();limpiarPendiente(json);try{await almacenLocal.set(CLAVE,json);guardarSinc(json);}catch(e){}pintar();avisar('Tus datos de este dispositivo se subieron a la nube');
       }catch(e2){pasarAModoLocal();}
       return;
     }
     pasarAModoLocal();return;   // sin conexión u otro fallo: se sigue con la copia de este dispositivo
   }
   marcarUsaNube();
+  /* ¿Hay cambios de este dispositivo que no llegaron a la nube aunque no estén marcados? (p. ej. se cerró la sesión o se trabajó
+     sin sesión). Se compara lo guardado aquí con la última versión sincronizada. */
+  let sincTxt='';
+  try{
+    const locTxt=JSON.stringify(datos);
+    if(locTxt!==rawNube&&datos.pacientes&&datos.pacientes.length){
+      sincTxt=await leerSinc();
+      const cambiosAqui=!sincTxt||(ultimoLocal!==null&&ultimoLocal!==sincTxt);
+      if(cambiosAqui)try{await snapPoner({clave:'antes:'+Date.now(),tipo:'antes',motivo:'nube',fecha:new Date().toISOString(),json:locTxt,pacientes:datos.pacientes.length});}catch(e){}
+      if(sincTxt&&cambiosAqui&&!hayPendiente()){try{localStorage.setItem(LS_PEND,'1');}catch(e){}await ponerBase(sincTxt);}
+    }
+  }catch(e){}
   if(hayPendiente()){
     // hay cosas anotadas sin conexión: se juntan con lo que haya en la nube (de este u otro dispositivo)
     let base={},nube={};
@@ -1169,8 +1191,8 @@ async function migrarOCargarNube(){
     if(versionDatos!==v0)return;   // anotaste algo mientras se juntaba: se junta de nuevo en la próxima vuelta
     datos=unido;
     await cargar(json);
-    try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}
     limpiarPendiente(json);
+    try{const j=JSON.stringify(datos);await almacenLocal.set(CLAVE,j);guardarSinc(j);}catch(e){}
     pintar();avisar('Se juntaron los cambios hechos sin conexión con los de la nube');
     return;
   }
@@ -1178,7 +1200,7 @@ async function migrarOCargarNube(){
   ultimoSync=rawNube;
   if(typeof nubeLegacyNuevo!=='undefined'&&nubeLegacyNuevo)guardar();   // se sube lo que se juntó del equipo con la versión anterior
   // copia en este dispositivo: así, sin internet, siguen viéndose los pacientes de la última vez que abriste con conexión
-  try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}
+  try{const j=JSON.stringify(datos);await almacenLocal.set(CLAVE,j);guardarSinc(j);}catch(e){}
   try{await subirImagenesPendientes();}catch(e){}
   pintar();avisar('Datos sincronizados desde la nube');
 }
@@ -7970,6 +7992,38 @@ async function restaurarCopia(clave){
   const m=$('#modal');if(m.open)m.close();
   pintar();avisar('Copia restaurada');
 }
+/* Compara una copia automática con lo actual, paciente por paciente, para recuperar solo lo que se perdió. */
+function resumenPaciente(q){
+  if(!q)return 'no está';
+  const od=Object.keys(q.odontograma||{}).filter(k=>{const d=q.odontograma[k];return d&&(d.general||d.tratamientoPlan||Object.keys(d.caras||{}).length);}).length;
+  const partes=[`${(q.tratamientos||[]).length} sesiones`,`${(q.abonos||[]).length} pagos`,`${od} piezas marcadas`];
+  if(q.orto)partes.push(`orto: ${(q.orto.controles||[]).length} controles`);
+  if((q.consentimientos||[]).length)partes.push(`${q.consentimientos.length} consentimientos`);
+  return partes.join(' · ');
+}
+async function verCambiosCopia(clave){
+  let r;try{r=(await snapListar()).find(x=>x.clave===clave);}catch(e){}
+  if(!r){avisar('No se encontró esa copia');return;}
+  let C;try{C=JSON.parse(r.json);}catch(e){avisar('La copia está dañada');return;}
+  const dif=(C.pacientes||[]).filter(q=>q&&q.id!==undefined).map(q=>({q,a:pac(q.id)})).filter(x=>!x.a||JSON.stringify(x.a)!==JSON.stringify(x.q));
+  window.__copiaVista={clave,C};
+  abrirModal('Cambios en la copia del '+new Date(r.fecha).toLocaleString('es-EC',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
+    dif.length?`<p class="mini" style="margin-top:0">Estos pacientes están distintos en la copia que en lo que tienes ahora. Revisa cuál tiene lo que se perdió y recupera solo ese paciente.</p>
+    ${dif.map(x=>`<div class="bloque" style="margin:0 0 10px;padding:12px"><b>${esc(x.q.nombre||'Sin nombre')}</b>
+      <p class="mini" style="margin:6px 0 0"><b>En la copia:</b> ${esc(resumenPaciente(x.q))}</p>
+      <p class="mini" style="margin:2px 0 0"><b>Ahora:</b> ${esc(resumenPaciente(x.a))}</p>
+      <button class="btn chico primario" style="margin-top:8px" type="button" onclick="recuperarPacienteDeCopia('${esc(String(x.q.id))}')">Recuperar este paciente como estaba en la copia</button></div>`).join('')}`
+    :'<p>En esta copia todos los pacientes están igual que ahora.</p>',null);
+}
+async function recuperarPacienteDeCopia(id){
+  const v=window.__copiaVista;if(!v)return;
+  const q=(v.C.pacientes||[]).find(x=>String(x.id)===String(id));if(!q)return;
+  if(!confirm(`Se pondrá la ficha de ${q.nombre||'este paciente'} como estaba en la copia. Antes se guarda una copia de lo que tienes ahora. ¿Continuar?`))return;
+  try{await snapPoner({clave:'antes:'+Date.now(),tipo:'antes',motivo:'paciente',fecha:new Date().toISOString(),json:JSON.stringify(datos),pacientes:datos.pacientes.length});}catch(e){}
+  const i=datos.pacientes.findIndex(x=>String(x.id)===String(id)),copia=JSON.parse(JSON.stringify(q));
+  if(i>=0)datos.pacientes[i]=copia;else datos.pacientes.push(copia);
+  guardar();$('#modal').close();selId=copia.id;pestana='ficha';pintar();avisar('Se recuperó la ficha de '+(q.nombre||''));
+}
 function tamanoDatosKB(){try{return Math.max(1,Math.round(new Blob([JSON.stringify(datos)]).size/1024));}catch(e){return 0;}}
 function diasDesdeRespaldo(){
   const u=datos.config&&datos.config.ultimoRespaldo;
@@ -8001,7 +8055,7 @@ async function pintarExtraRespaldo(){
   const el=document.getElementById('bk_extra');if(!el)return;
   const kb=tamanoDatosKB(),pct=Math.min(100,Math.round(kb/1000*100)),d=diasDesdeRespaldo();
   let copias=[];try{copias=(await snapListar()).sort((a,b)=>b.fecha.localeCompare(a.fecha));}catch(e){}
-  const nombre=r=>r.tipo==='ultima'?'Última copia automática':r.tipo==='dia'?'Al abrir el '+fechaCorta(r.clave.slice(4)):(r.motivo==='fusion'?'Antes de fusionar fichas':r.motivo==='espejo'?'Antes de reubicar caras':'Antes de una restauración');
+  const nombre=r=>r.tipo==='ultima'?'Última copia automática':r.tipo==='dia'?'Al abrir el '+fechaCorta(r.clave.slice(4)):(r.motivo==='fusion'?'Antes de fusionar fichas':r.motivo==='espejo'?'Antes de reubicar caras':r.motivo==='nube'?'Antes de sincronizar con la nube':r.motivo==='paciente'?'Antes de recuperar un paciente':'Antes de una restauración');
   el.innerHTML=`<div style="margin-top:16px;border-top:1px solid var(--linea);padding-top:12px">
     <p class="mini" style="margin:0 0 4px"><b>Último respaldo descargado:</b> ${d===null?'ninguno todavía':(d===0?'hoy':`hace ${d} día${d===1?'':'s'}`)}</p>
     <p class="mini" style="margin:0 0 4px"><b>Tamaño de tus datos:</b> ${kb} KB de ~1000 KB que admite la nube (las fotos y radiografías van aparte y no cuentan).</p>
@@ -8010,8 +8064,9 @@ async function pintarExtraRespaldo(){
     <p class="mini" style="margin:14px 0 4px"><b>Copias automáticas en este dispositivo</b> (por si borras o cambias algo sin querer):</p>
     ${copias.length?copias.map(r=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--linea)">
       <span>${esc(nombre(r))} <span class="mini">· ${new Date(r.fecha).toLocaleString('es-EC',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${r.pacientes} pacientes</span></span>
-      <button class="btn chico" data-restcopia="${esc(r.clave)}">Restaurar</button></div>`).join(''):'<p class="mini">Aún no hay copias; se crean solas al usar la app.</p>'}</div>`;
+      <span style="display:flex;gap:6px"><button class="btn chico primario" data-vercopia="${esc(r.clave)}">Ver cambios</button><button class="btn chico" data-restcopia="${esc(r.clave)}">Restaurar todo</button></span></div>`).join(''):'<p class="mini">Aún no hay copias; se crean solas al usar la app.</p>'}</div>`;
   el.querySelectorAll('[data-restcopia]').forEach(b=>b.onclick=()=>restaurarCopia(b.dataset.restcopia));
+  el.querySelectorAll('[data-vercopia]').forEach(b=>b.onclick=()=>verCambiosCopia(b.dataset.vercopia));
   /* pacientes que estaban en una copia y ya no están (fusionados o eliminados) */
   const faltan=[],vistos=new Set();
   for(const r of copias){
