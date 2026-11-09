@@ -2780,6 +2780,7 @@ function precioPresupuestado(p,l){
 }
 function editarTrat(id,pre){
   const p=pac(selId),t=p.tratamientos.find(x=>x.id===id)||Object.assign({fecha:hoy(),sesion:'N.º '+(p.tratamientos.length+1)},pre||{});
+  if(!id&&!t.profesionalId){const pd=profHabitual(p,t.fecha);if(pd)t.profesionalId=pd;}
   let lineas=JSON.parse(JSON.stringify(t.lineas||[]));
   let procManual=!!(t.proc&&!(t.lineas&&t.lineas.length));
   const resumenLab=t.labCosto?`${t.labNombre||'Laboratorio'} — ${usd(t.labCosto)}`:'opcional';
@@ -2926,7 +2927,7 @@ function editarTrat(id,pre){
       delete p.odontograma[pre._limpiarPlan].tratamientoPlan;delete p.odontograma[pre._limpiarPlan].fechaPendiente;
     }
     guardar();pintar();avisar('Sesión guardada'+avisoOdonto);
-    sincronizarProximaCita(p.id,'tratamiento',d.id,d.prox,nombreSesion(d)||'Control de tratamiento',d.proxHora);
+    sincronizarProximaCita(p.id,'tratamiento',d.id,d.prox,nombreSesion(d)||'Control de tratamiento',d.proxHora,d.profesionalId);
     // lo que sigue solo para sesiones nuevas: primero el aviso de consentimiento y luego el cobro
     if(!id){
       if(d.costo>0)encolarModal(()=>ofrecerCobroSesion(p.id,d.id));
@@ -4123,7 +4124,7 @@ function tabOrto(p,c){
   if(campoEntrada2)campoEntrada2.onchange=()=>{plan.montoInicial2=campoEntrada2.value;guardar();};
 }
 function editarControlOrto(id,cuotaId){
-  const p=pac(selId),o=p.orto,x=(o.controles||[]).find(k=>k.id===id)||{fecha:hoy()};
+  const p=pac(selId),o=p.orto,x=(o.controles||[]).find(k=>k.id===id)||{fecha:hoy(),profesionalId:profOrto(o)||profHabitual(p)};
   const et=etapaActualOrto(o),qPrev=(o.cuotas||[]).find(q=>q.controlId===x.id&&x.id);
   const qElegida=cuotaId&&(o.cuotas||[]).find(q=>q.id===cuotaId&&!q.controlId),sig=qElegida||(id?null:siguienteFilaControlOrto(o));
   const qFila=qPrev||sig,valorFila=qFila&&Number(qFila.monto)>0?Number(qFila.monto):Number(et.cuota)||0;
@@ -4180,12 +4181,12 @@ function editarControlOrto(id,cuotaId){
     guardar();
     sincronizarCuotaConControl(p,d.proxima);
     pintarVista();avisar('Control guardado');
-    sincronizarProximaCita(p.id,'ortoControl',d.id,d.proxima,'Control de ortodoncia',d.proximaHora);
+    sincronizarProximaCita(p.id,'ortoControl',d.id,d.proxima,'Control de ortodoncia',d.proximaHora,d.profesionalId);
   });
 }
 function editarProcOrto(id){
   const p=pac(selId),o=p.orto;o.procedimientos=o.procedimientos||[];
-  const x=o.procedimientos.find(k=>k.id===id)||{realizado:false};
+  const x=o.procedimientos.find(k=>k.id===id)||{realizado:false,profesionalId:profOrto(o)||profHabitual(p)};
   abrirModal(`${id?'Editar':'Agregar'} procedimiento`,`
     <label class="campo"><span>Procedimiento</span><input type="text" id="po_nom" list="po_lista" value="${esc(x.nombre||'')}" placeholder="Elige o escribe"></label>
     <datalist id="po_lista">${PROCS_ORTO.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
@@ -6396,6 +6397,19 @@ function imprimirProdProfesional(){
     </tbody></table></section></div>`;
   lanzarImpresion();
 }
+/* El profesional que normalmente atiende a este paciente: el de su cita de ese día; si no, el de su última sesión. */
+function profActivo(id){return id&&(datos.profesionales||[]).some(x=>x.id===id&&x.activo!==false)?id:null;}
+function profHabitual(p,fecha){
+  if(!p)return null;const f=fecha||hoy();
+  const c=(datos.citas||[]).find(c=>c.pacienteId===p.id&&c.fecha===f&&c.estado!=='Cancelada'&&profActivo(c.profesionalId));
+  if(c)return c.profesionalId;
+  const t=[...(p.tratamientos||[])].filter(t=>profActivo(t.profesionalId)).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
+  return t?t.profesionalId:null;
+}
+function profOrto(o){
+  const x=[...((o&&o.controles)||[])].filter(k=>profActivo(k.profesionalId)).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
+  return x?x.profesionalId:null;
+}
 function opcionesProfesionales(seleccionadoId){
   const activos=(datos.profesionales||[]).filter(x=>x.activo!==false);
   return `<option value="">— Sin asignar —</option>` +
@@ -7241,7 +7255,7 @@ async function sincronizarDesdeGoogle(forzar){
 }
 
 /* ---------- enlazar "próxima cita" de cualquier parte con la Agenda ---------- */
-function sincronizarProximaCita(pacienteId,origenTipo,origenId,fecha,motivo,hora){
+function sincronizarProximaCita(pacienteId,origenTipo,origenId,fecha,motivo,hora,profId){
   datos.citas=datos.citas||[];
   const idx=datos.citas.findIndex(c=>c.origen&&c.origen.tipo===origenTipo&&c.origen.id===origenId);
   if(!fecha){
@@ -7259,6 +7273,10 @@ function sincronizarProximaCita(pacienteId,origenTipo,origenId,fecha,motivo,hora
     nota:idx>=0?datos.citas[idx].nota:'',
     origen:{tipo:origenTipo,id:origenId}
   };
+  {const pid=profId!==undefined&&profId!==null&&profId!==''?profId:(idx>=0?datos.citas[idx].profesionalId:null);
+   const inf=pid?(datos.profesionales||[]).find(x=>x.id===pid):null;
+   d.profesionalId=pid||null;d.profesionalNombre=inf?inf.nombre:(idx>=0?datos.citas[idx].profesionalNombre||'':'');
+   if(idx>=0&&datos.citas[idx].googleEventId)d.googleEventId=datos.citas[idx].googleEventId;}
   if(idx>=0)datos.citas[idx]=d;else datos.citas.push(d);
   guardar();avisar('Cita programada en la agenda para '+fechaCorta(fecha)+' a las '+d.hora);
 }
@@ -7434,6 +7452,7 @@ function abrirCita(id,prefill){
   const existente=id?(datos.citas||[]).find(x=>x.id===id):null;
   const c=existente||{fecha:(prefill&&prefill.fecha)||agendaFecha,hora:(prefill&&prefill.hora)||'09:00',duracion:(prefill&&prefill.duracion)||30,estado:(prefill&&prefill.estado)||'Agendada',
     origen:(prefill&&prefill.origen)||null,nota:(prefill&&prefill.nota)||'',
+    profesionalId:(prefill&&prefill.profesionalId)||(prefill&&prefill.pacienteId?profHabitual(pac(prefill.pacienteId),prefill.fecha):null),
     nombre:(prefill&&prefill.nombre)||'',telefono:(prefill&&prefill.telefono)||'',pacienteId:(prefill&&prefill.pacienteId)||null,motivo:(prefill&&prefill.motivo)||''};
   const listaPac=datos.pacientes.map(p=>`<option value="${esc(p.nombre)}">`).join('');
   const origenTxt={
@@ -7498,6 +7517,9 @@ function abrirCita(id,prefill){
     sincronizarCitaGoogle(d);
   });
   $('#ci_pac').oninput=()=>{
+    {const ps=document.getElementById('ci_prof'),nm=$('#ci_pac').value.trim().toLowerCase();
+     const pe=nm?datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nm):null;
+     if(ps&&!ps.value&&pe){const pd=profHabitual(pe,$('#ci_fecha').value);if(pd)ps.value=pd;}}
     const nombre=$('#ci_pac').value.trim();
     const encontrado=nombre?datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nombre.toLowerCase()):null;
     if(encontrado&&encontrado.telefono&&!$('#ci_tel').value.trim())$('#ci_tel').value=encontrado.telefono;
@@ -7515,8 +7537,9 @@ function abrirCita(id,prefill){
     abrirMensajeCita(cx,'recordatorio',id?()=>{const real=(datos.citas||[]).find(x=>x.id===id);if(real){real.recordatorioEnviado=new Date().toISOString();guardar();}}:null);
   };
   if(c.pacienteId&&id){const b2=document.getElementById('ci_sesion');if(b2)b2.onclick=()=>{
+    const ps=document.getElementById('ci_prof'),prof=(ps&&ps.value)||c.profesionalId||null;
     $('#modal').close();selId=c.pacienteId;pestana='trat';ocultarPanel();pintar();
-    editarTrat(null,{fecha:c.fecha,dx:c.motivo||''});};}
+    editarTrat(null,{fecha:c.fecha,dx:c.motivo||'',profesionalId:prof});};}
   if(c.pacienteId){const btn=document.getElementById('ci_ir');if(btn)btn.onclick=()=>{
     $('#modal').close();selId=c.pacienteId;pestana='ficha';ocultarPanel();pintar();};}
   if(id){const btn=document.getElementById('ci_borrar');if(btn)btn.onclick=()=>{
