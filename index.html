@@ -891,6 +891,7 @@ function nubeReiniciarSiOtraCuenta(){
   if(nubeEstadoUid!==nubeUid){nubeFmt=null;nubeLegacy=null;nubeHash={};nubeSellos={};nubeVersOk=false;nubeEstadoUid=nubeUid;}
 }
 let nubeLecturas=0,nubeCargas=0;   // documentos bajados desde que se abrió la app (sirve para las pruebas)
+let nubeFaltan=[];   // documentos que la lista nombraba pero ya no existían (se quitan de la lista al guardar)
 async function nubeLeerDatos(){
   nubeReiniciarSiOtraCuenta();
   const u=nubeUid;
@@ -913,11 +914,15 @@ async function nubeLeerDatos(){
     aBajar.push(i);
   });
   nubeLecturas+=aBajar.length;nubeCargas++;
+  const faltan=[];
   for(let k=0;k<aBajar.length;k+=20){
     await Promise.all(aBajar.slice(k,k+20).map(async i=>{
       const id=ids[i];
       const s=await nubeKv().doc(id).get();
-      if(!s.exists)throw new Error('falta '+id);   // no se arma una versión incompleta: se sigue con la copia local
+      /* Si la lista nombra un documento que ya no existe es porque otro equipo lo eliminó (p. ej. al fusionar o borrar un
+         paciente) mientras este todavía lo tenía. Antes eso dejaba TODOS los equipos «sin conexión». Ahora se toma como
+         eliminado; si este equipo tenía cambios en ese paciente, al juntar se conservan y se vuelve a subir. */
+      if(!s.exists){faltan.push(id);return;}
       const dd=s.data(),txt=dd.v;
       hash[id]=txt;partes[i]=[id,JSON.parse(txt)];
       if(dd.s){sellos[id]=dd.s;guardarCache[id]={s:dd.s,v:txt};}
@@ -925,7 +930,11 @@ async function nubeLeerDatos(){
   }
   const out=JSON.parse(d.v||'{}');
   out.pacientes=[];out.citas=[];
-  partes.forEach(([id,val])=>{
+  nubeFaltan=faltan;
+  if(faltan.length)console.warn('Documentos de la lista que ya no están en la nube:',faltan);
+  partes.forEach(par=>{
+    if(!par)return;
+    const [id,val]=par;
     if(id.indexOf('pac_')===0)out.pacientes.push(val);
     else if(id.indexOf('cit_')===0&&Array.isArray(val))out.citas.push(...val);
   });
@@ -991,7 +1000,7 @@ async function nubeEscribirDatos(json){
     cambiar.slice(i,i+10).forEach(id=>{nubeHash[id]=nuevos[id];nubeSellos[id]=selloNuevo[id];paraCache[id]={s:selloNuevo[id],v:nuevos[id]};});
   }
   const resto={...obj};delete resto.pacientes;delete resto.citas;
-  const sobran=Object.keys(nubeHash).filter(id=>!(id in nuevos));
+  const sobran=[...new Set([...Object.keys(nubeHash),...(nubeFaltan||[])])].filter(id=>!(id in nuevos));
   const principal={fmt:2,v:JSON.stringify(resto),docs:ids,t:Date.now(),...(marcaLegacy||{})};
   if(nubeVersOk){
     // solo se tocan los sellos propios: si otro equipo subió algo a la vez, sus sellos no se pisan
@@ -1017,7 +1026,7 @@ async function nubeEscribirDatos(json){
         sobran.slice(i,i+40).forEach(id=>b.delete(nubeKv().doc(id)));
         await b.commit();
       }
-      sobran.forEach(id=>{delete nubeHash[id];delete nubeSellos[id];});
+      sobran.forEach(id=>{delete nubeHash[id];delete nubeSellos[id];});nubeFaltan=[];
       nubeCache.poner(u,null,sobran);
     }catch(e){console.error(e);}
   }
