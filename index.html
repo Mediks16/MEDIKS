@@ -7452,7 +7452,7 @@ function abrirCita(id,prefill){
   const existente=id?(datos.citas||[]).find(x=>x.id===id):null;
   const c=existente||{fecha:(prefill&&prefill.fecha)||agendaFecha,hora:(prefill&&prefill.hora)||'09:00',duracion:(prefill&&prefill.duracion)||30,estado:(prefill&&prefill.estado)||'Agendada',
     origen:(prefill&&prefill.origen)||null,nota:(prefill&&prefill.nota)||'',
-    profesionalId:(prefill&&prefill.profesionalId)||(prefill&&prefill.pacienteId?profHabitual(pac(prefill.pacienteId),prefill.fecha):null),
+    profesionalId:(prefill&&prefill.profesionalId)||null,
     nombre:(prefill&&prefill.nombre)||'',telefono:(prefill&&prefill.telefono)||'',pacienteId:(prefill&&prefill.pacienteId)||null,motivo:(prefill&&prefill.motivo)||''};
   const listaPac=datos.pacientes.map(p=>`<option value="${esc(p.nombre)}">`).join('');
   const origenTxt={
@@ -7517,9 +7517,6 @@ function abrirCita(id,prefill){
     sincronizarCitaGoogle(d);
   });
   $('#ci_pac').oninput=()=>{
-    {const ps=document.getElementById('ci_prof'),nm=$('#ci_pac').value.trim().toLowerCase();
-     const pe=nm?datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nm):null;
-     if(ps&&!ps.value&&pe){const pd=profHabitual(pe,$('#ci_fecha').value);if(pd)ps.value=pd;}}
     const nombre=$('#ci_pac').value.trim();
     const encontrado=nombre?datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nombre.toLowerCase()):null;
     if(encontrado&&encontrado.telefono&&!$('#ci_tel').value.trim())$('#ci_tel').value=encontrado.telefono;
