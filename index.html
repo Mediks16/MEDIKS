@@ -745,15 +745,80 @@ let googleTokenClient=null,googleConectado=false,googleListoParaUsar=false;
 
 /* Guardado local: funciona sin internet, sirve como respaldo temporal y como modo
    de emergencia si por algún motivo no se puede llegar a la nube. */
+/* Antes todo iba en localStorage, que en Safari solo admite ~5 MB: con muchas firmas o fotos se llenaba, y lo anotado sin
+   internet no se guardaba. Ahora va en IndexedDB (cientos de MB). Lo que estaba en localStorage se pasa solo la primera vez
+   que se lee, y se borra de allí solo cuando ya quedó guardado en IndexedDB. Si IndexedDB no funciona, se sigue usando localStorage. */
+function idbLimite(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('tiempo')),ms))]);}
+let idbLocalP=null,idbLocalMalo=false;
+function idbLocalAbrir(){
+  if(idbLocalMalo)return Promise.reject(new Error('sin indexeddb'));
+  if(!idbLocalP)idbLocalP=new Promise((res,rej)=>{
+    try{const rq=indexedDB.open('mediks-local',1);
+      rq.onupgradeneeded=()=>{try{rq.result.createObjectStore('kv');}catch(e){}};
+      rq.onsuccess=()=>{const db=rq.result;db.onversionchange=()=>{try{db.close();}catch(e){}idbLocalP=null;};res(db);};
+      rq.onerror=()=>rej(rq.error||new Error('indexeddb'));rq.onblocked=()=>rej(new Error('bloqueado'));
+    }catch(e){rej(e);}
+  }).catch(e=>{idbLocalP=null;throw e;});
+  return idbLocalP;
+}
+function idbLocalOp(modo,fn){
+  return idbLimite(idbLocalAbrir().then(db=>new Promise((res,rej)=>{
+    let t;try{t=db.transaction('kv',modo);}catch(e){idbLocalP=null;rej(e);return;}
+    const rq=fn(t.objectStore('kv'));t.oncomplete=()=>res(rq?rq.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('abortado'));
+  })),15000);
+}
+let ultimoLocal=null;   // lo último que quedó guardado en este dispositivo (sirve de «base» al trabajar sin conexión)
 const almacenLocal={
   async get(key){
-    const v=localStorage.getItem(key);
-    if(v===null){const err=new Error('no existe');err.code='NOT_FOUND';throw err;}
+    let v;
+    try{v=await idbLocalOp('readonly',st=>st.get(key));}catch(e){v=undefined;}
+    if(v===undefined||v===null){
+      const l=localStorage.getItem(key);
+      if(l===null){const err=new Error('no existe');err.code='NOT_FOUND';throw err;}
+      try{await idbLocalOp('readwrite',st=>st.put(l,key));localStorage.removeItem(key);}catch(e){}   // se pasa a IndexedDB
+      v=l;
+    }
+    if(key===CLAVE)ultimoLocal=v;
     return {key,value:v};
   },
-  async set(key,value){localStorage.setItem(key,value);return {key,value};},
-  async delete(key){localStorage.removeItem(key);return {key,deleted:true};}
+  async set(key,value){
+    let ok=false;
+    try{await idbLocalOp('readwrite',st=>st.put(value,key));ok=true;}catch(e){}
+    if(ok){try{localStorage.removeItem(key);}catch(e){}}
+    else localStorage.setItem(key,value);   // si tampoco cabe aquí, avisa quien llamó
+    if(key===CLAVE)ultimoLocal=value;
+    return {key,value};
+  },
+  async delete(key){
+    try{await idbLocalOp('readwrite',st=>st.delete(key));}catch(e){}
+    try{localStorage.removeItem(key);}catch(e){}
+    return {key,deleted:true};
+  }
 };
+/* La «base» (última versión que este dispositivo y la nube compartían) también va en IndexedDB, en orden. */
+let baseCola=Promise.resolve();
+const LS_BASE_OK='odonto-base-ok';
+const tieneBase=()=>{try{return localStorage.getItem(LS_BASE_OK)==='1'||!!localStorage.getItem('odonto-base-nube');}catch(e){return false;}};
+function ponerBase(txt){
+  baseCola=baseCola.then(async()=>{
+    try{await idbLocalOp('readwrite',st=>st.put(txt,'__base'));try{localStorage.removeItem('odonto-base-nube');}catch(e){}}
+    catch(e){try{localStorage.setItem('odonto-base-nube',txt);}catch(_){}}
+    try{localStorage.setItem(LS_BASE_OK,'1');}catch(e){}
+  });
+  return baseCola;
+}
+function borrarBase(){
+  try{localStorage.removeItem(LS_BASE_OK);localStorage.removeItem('odonto-base-nube');}catch(e){}
+  baseCola=baseCola.then(async()=>{try{await idbLocalOp('readwrite',st=>st.delete('__base'));}catch(e){}});
+  return baseCola;
+}
+async function leerBase(){
+  await baseCola;
+  let v;try{v=await idbLocalOp('readonly',st=>st.get('__base'));}catch(e){}
+  if(typeof v==='string'&&v)return v;
+  try{return localStorage.getItem('odonto-base-nube')||'';}catch(e){return '';}
+}
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});}catch(e){}
 
 /* Guardado en la nube (Firestore): así se sincroniza entre el computador y el teléfono. */
 let nubeApp=null,nubeAuth=null,nubeDb=null,nubeUid=null,nubeActiva=false;
@@ -1007,12 +1072,12 @@ function guardar(){try{reubicarCarasDerechas();sincronizarInicialAuto();vincular
   /* Lo que no se confirma en la nube queda marcado como «pendiente» y se junta con la nube al volver la conexión.
      La «base» es la última versión que este dispositivo y la nube compartían. */
   let baseCand='';
-  try{baseCand=ultimoSync!==null?ultimoSync:(localStorage.getItem(CLAVE)||'');}catch(e){}
+  try{baseCand=ultimoSync!==null?ultimoSync:(ultimoLocal!==null?ultimoLocal:(localStorage.getItem(CLAVE)||''));}catch(e){}
   if(usaNube()&&!hayPendiente()){
     try{
       localStorage.setItem(LS_PEND,'1');
-      if(!viaNube)localStorage.setItem(LS_BASE,baseCand);
-      else setTimeout(()=>{try{if(hayPendiente()&&!localStorage.getItem(LS_BASE))localStorage.setItem(LS_BASE,baseCand);}catch(e){}},2500);
+      if(!viaNube)ponerBase(baseCand);
+      else setTimeout(()=>{try{if(hayPendiente()&&!tieneBase())ponerBase(baseCand);}catch(e){}},2500);
     }catch(e){}
   }
   let localOk=true;
@@ -1022,7 +1087,7 @@ function guardar(){try{reubicarCarasDerechas();sincronizarInicialAuto();vincular
     try{await almacen.set(CLAVE,json);if(miSeq===seqGuardado)limpiarPendiente(json);}
     catch(e){
       console.error(e);
-      try{if(usaNube()){localStorage.setItem(LS_PEND,'1');if(!localStorage.getItem(LS_BASE))localStorage.setItem(LS_BASE,baseCand);}}catch(_){}
+      try{if(usaNube()){localStorage.setItem(LS_PEND,'1');if(!tieneBase())ponerBase(baseCand);}}catch(_){}
       avisar(localOk?'Sin conexión con la nube: se guardó en este dispositivo y se subirá al volver el internet':'No se pudo guardar. Descarga un respaldo.');
     }
   }
@@ -1078,7 +1143,7 @@ function traducirErrorAuth(code){
 }
 async function migrarOCargarNube(){
   let rawNube;
-  try{rawNube=(await conTiempo(almacenNube.get(CLAVE),8000)).value;}
+  try{rawNube=(await conTiempo(almacenNube.get(CLAVE),25000)).value;}
   catch(e){
     if(e&&e.code==='NOT_FOUND'){   // la nube está vacía: se suben los datos de este dispositivo
       try{
@@ -1094,7 +1159,7 @@ async function migrarOCargarNube(){
   if(hayPendiente()){
     // hay cosas anotadas sin conexión: se juntan con lo que haya en la nube (de este u otro dispositivo)
     let base={},nube={};
-    try{base=JSON.parse(localStorage.getItem(LS_BASE)||'{}')||{};}catch(e){}
+    try{base=JSON.parse((await leerBase())||'{}')||{};}catch(e){}
     try{nube=JSON.parse(rawNube)||{};}catch(e){}
     const v0=versionDatos;
     const unido=unir3(base,JSON.parse(JSON.stringify(datos)),nube);
@@ -1162,7 +1227,7 @@ function abrirNube(){
       </div>`,null);
     $('#nb_salir').onclick=async()=>{
       if(hayPendiente()&&!confirm('Tienes cambios hechos sin conexión que todavía no se subieron a la nube. Si cierras sesión ahora se quedarán solo en este dispositivo. ¿Cerrar sesión de todas formas?'))return;
-      try{localStorage.removeItem(LS_USA);localStorage.removeItem(LS_PEND);localStorage.removeItem(LS_BASE);}catch(e){}
+      try{localStorage.removeItem(LS_USA);localStorage.removeItem(LS_PEND);}catch(e){}borrarBase();
       await nubeAuth.signOut();nubeActiva=false;almacen=almacenLocal;
       $('#modal').close();actualizarBotonNube();avisar('Sesión cerrada. Volviste al modo local en este dispositivo.');
       await cargar();pintar();
@@ -8864,7 +8929,7 @@ const marcarUsaNube=()=>{try{localStorage.setItem(LS_USA,'1');}catch(e){}};
 let seqGuardado=0,versionDatos=0,ultimoSync=null;
 const conTiempo=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('tiempo')),ms))]);
 function limpiarPendiente(json){
-  try{localStorage.removeItem(LS_PEND);localStorage.removeItem(LS_BASE);}catch(e){}
+  try{localStorage.removeItem(LS_PEND);}catch(e){}borrarBase();
   if(json!==undefined)ultimoSync=json;
 }
 /* ---- juntar dos versiones (la de este dispositivo y la de la nube) usando la última versión que ambas compartían ---- */
@@ -8914,10 +8979,10 @@ async function subirImagenesPendientes(){
   const quedan=[];
   for(const k of l){
     try{
-      const v=localStorage.getItem(k);
-      if(v===null)continue;
+      let v=null;try{v=(await almacenLocal.get(k)).value;}catch(e){}
+      if(v===null||v===undefined)continue;
       await conTiempo(almacenNube.set(k,v),20000);
-      localStorage.removeItem(k);
+      await almacenLocal.delete(k);
     }catch(e){quedan.push(k);}
   }
   try{quedan.length?localStorage.setItem(LS_IMGS,JSON.stringify(quedan)):localStorage.removeItem(LS_IMGS);}catch(e){}
