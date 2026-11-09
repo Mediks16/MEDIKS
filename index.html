@@ -1185,6 +1185,8 @@ async function migrarOCargarNube(){
       const n=JSON.parse(rawNube);n.pacientes=n.pacientes||[];
       const hay=new Set(n.pacientes.map(q=>String(q&&q.id)));
       (datos.pacientes||[]).forEach(q=>{if(q&&q.id!==undefined&&!hay.has(String(q.id))&&nubeFaltan.includes('pac_'+nubeIdSeguro(q.id))){n.pacientes.push(JSON.parse(JSON.stringify(q)));recuperadas++;}});
+      n.citas=n.citas||[];const hayC=new Set(n.citas.map(c=>String(c&&c.id)));
+      (datos.citas||[]).forEach(c=>{if(c&&c.id!==undefined&&!hayC.has(String(c.id))&&nubeFaltan.includes('cit_'+nubeIdSeguro(((c.fecha)||'').slice(0,7)||'sin-fecha'))){n.citas.push(JSON.parse(JSON.stringify(c)));recuperadas++;}});
       if(recuperadas)rawNube=JSON.stringify(n);
     }catch(e){}
   }
@@ -8131,6 +8133,31 @@ async function pintarExtraRespaldo(){
         <button class="btn chico primario" data-recpac="${i}">Recuperar</button></div>`).join('');
     el.appendChild(d2);
     d2.querySelectorAll('[data-recpac]').forEach(b=>b.onclick=()=>{const x=faltan[b.dataset.recpac];recuperarPaciente(x.clave,x.q.id);});
+  }
+  /* citas que estaban en una copia y ya no están en la agenda */
+  const citFaltan=[],vistasC=new Set((datos.citas||[]).map(c=>String(c.id)));
+  for(const r of copias){
+    let S;try{S=JSON.parse(r.json);}catch(e){continue;}
+    (S.citas||[]).forEach(c=>{if(!c||c.id===undefined||vistasC.has(String(c.id)))return;vistasC.add(String(c.id));citFaltan.push(c);});
+  }
+  if(citFaltan.length){
+    citFaltan.sort((a,b)=>((b.fecha||'')+(b.hora||'')).localeCompare((a.fecha||'')+(a.hora||'')));
+    window.__citFaltan=citFaltan;
+    const d3=document.createElement('div');d3.style.cssText='margin-top:16px;border-top:1px solid var(--linea);padding-top:12px';
+    d3.innerHTML=`<p class="mini" style="margin:0 0 4px"><b>Citas que ya no están en tu agenda</b> (${citFaltan.length}). Estaban en las copias de este dispositivo. Si alguna la eliminaste a propósito, no la recuperes.</p>
+      <button class="btn chico primario" type="button" id="recCitTodas" style="margin:4px 0 8px">Recuperar todas las de hoy en adelante</button>`+
+      citFaltan.slice(0,80).map((c,i)=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--linea)">
+        <span>${esc(fechaCorta(c.fecha))} ${esc(c.hora||'')} · <b>${esc(c.nombre||'')}</b>${c.motivo?` <span class="mini">· ${esc(c.motivo)}</span>`:''}${c.estado?` <span class="mini">· ${esc(c.estado)}</span>`:''}</span>
+        <button class="btn chico" data-reccit="${i}">Recuperar</button></div>`).join('')+(citFaltan.length>80?`<p class="mini">… y ${citFaltan.length-80} más antiguas.</p>`:'');
+    el.appendChild(d3);
+    const recuperar=lista=>{if(!lista.length){avisar('No hay citas para recuperar');return;}
+      datos.citas=datos.citas||[];const ya=new Set(datos.citas.map(c=>String(c.id)));let n=0;
+      lista.forEach(c=>{if(!ya.has(String(c.id))){datos.citas.push(JSON.parse(JSON.stringify(c)));n++;}});
+      guardar();avisar(n===1?'Se recuperó 1 cita':`Se recuperaron ${n} citas`);pintarExtraRespaldo();};
+    d3.querySelectorAll('[data-reccit]').forEach(b=>b.onclick=()=>recuperar([citFaltan[+b.dataset.reccit]]));
+    d3.querySelector('#recCitTodas').onclick=()=>{const fut=citFaltan.filter(c=>(c.fecha||'')>=hoy()&&c.estado!=='Cancelada');
+      if(!fut.length){avisar('No hay citas de hoy en adelante para recuperar');return;}
+      if(confirm(`Se recuperarán ${fut.length} cita${fut.length===1?'':'s'} de hoy en adelante.`))recuperar(fut);};
   }
 }
 /* Devuelve un paciente fusionado o eliminado desde una copia. Si se había fusionado con otra ficha, esa ficha vuelve a como estaba en la copia
