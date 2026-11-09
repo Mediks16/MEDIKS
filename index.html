@@ -4145,6 +4145,20 @@ function tabOrto(p,c){
   if(campoEntrada)campoEntrada.onchange=()=>{plan.montoInicial=campoEntrada.value;guardar();};
   if(campoEntrada2)campoEntrada2.onchange=()=>{plan.montoInicial2=campoEntrada2.value;guardar();};
 }
+/* Laboratorio de ortodoncia (aparatos, retenedores, placas…): en cada control o procedimiento. Va a Gastos → Laboratorio. */
+function campoLabOrtoHTML(x){
+  const res=Number(x.labCosto)>0?`${x.labNombre||'Laboratorio'} — ${usd(x.labCosto)}`:'opcional';
+  return `<details class="opcional" style="margin-top:10px"><summary>Laboratorio — <span class="mini" style="margin-left:4px">${esc(res)}</span></summary>
+      <div class="cont grid">
+        <label class="campo"><span>Nombre del laboratorio</span><input type="text" id="ol_nombre" value="${esc(x.labNombre||'')}"></label>
+        <label class="campo"><span>Costo de laboratorio (USD)</span><input type="number" step="0.01" min="0" id="ol_costo" value="${Number(x.labCosto)>0?x.labCosto:''}"></label>
+        <label class="campo"><span>Abonado al laboratorio (USD)</span><input type="number" step="0.01" min="0" id="ol_abonado" value="${Number(x.labAbonado)>0?x.labAbonado:''}"></label>
+      </div></details>`;
+}
+function leerLabOrto(d){
+  const n=document.getElementById('ol_nombre');if(!n)return;
+  d.labNombre=n.value.trim();d.labCosto=Number($('#ol_costo').value)||0;d.labAbonado=Number($('#ol_abonado').value)||0;
+}
 function editarControlOrto(id,cuotaId){
   const p=pac(selId),o=p.orto,x=(o.controles||[]).find(k=>k.id===id)||{fecha:hoy(),profesionalId:profOrto(o)||profHabitual(p)};
   const et=etapaActualOrto(o),qPrev=(o.cuotas||[]).find(q=>q.controlId===x.id&&x.id);
@@ -4176,6 +4190,7 @@ function editarControlOrto(id,cuotaId){
         <label class="campo"><span>Forma de pago</span><select id="o_metodo">${METODOS_PAGO.map(m=>`<option>${m}</option>`).join('')}</select></label>
       </div></div>
     ${id?`<button class="btn peligro chico" type="button" style="margin-top:10px" onclick="borrarControlOrto('${id}')">Eliminar control</button>`:''}
+    ${campoLabOrtoHTML(x)}
     <details class="opcional"><summary>Honorario a la especialista — <span class="mini" style="margin-left:4px">${x.honorarioMonto?('Acordado '+usd(x.honorarioMonto)):'opcional'}</span></summary>
       <div class="cont">
         <p class="mini" style="margin-top:0">No se muestra al paciente, solo en «Gastos».</p>
@@ -4192,6 +4207,7 @@ function editarControlOrto(id,cuotaId){
       procedimiento:$('#o_proc').value.trim(),arco:$('#o_arco').value.trim(),
       elastico:$('#o_elastico').value.trim(),nota:$('#o_nota').value.trim(),
       honorarioMonto:Number($('#o_honMonto').value)||0,honorarioPagado:Number($('#o_honPagado').value)||0};
+    leerLabOrto(d);
     const profSel=document.getElementById('o_prof');
     if(profSel){const info=profSel.value?datos.profesionales.find(k=>k.id===profSel.value):null;
       d.profesionalId=profSel.value||null;d.profesionalNombre=info?info.nombre:'';}
@@ -4219,10 +4235,12 @@ function editarProcOrto(id){
       ${(datos.profesionales&&datos.profesionales.length)?`<label class="campo"><span>Lo realiza</span><select id="po_prof">${opcionesProfesionales(x.profesionalId)}</select></label>`:''}
     </div>
     <label class="campo"><span>Costo aparte (USD)</span><input type="number" step="0.01" min="0" id="po_costo" value="${Number(x.costo)>0?x.costo:''}" placeholder="Déjalo vacío si va incluido en el plan"></label>
-    <p class="mini" style="margin-top:-4px">Si tiene costo aparte, se cobra en Ortodoncia → Controles, junto a los demás pagos del tratamiento.</p>`,
+    <p class="mini" style="margin-top:-4px">Si tiene costo aparte, se cobra en Ortodoncia → Controles, junto a los demás pagos del tratamiento.</p>
+    ${campoLabOrtoHTML(x)}`,
   ()=>{const nombre=$('#po_nom').value.trim();if(!nombre){avisar('Escribe el procedimiento');return false;}
     const d={...x,id:x.id||uid(),nombre,pieza:$('#po_pieza').value.trim(),fecha:$('#po_fecha').value,
       realizado:$('#po_est').value==='1',costo:Number($('#po_costo').value)||0};
+    leerLabOrto(d);
     const profSel=document.getElementById('po_prof');
     if(profSel){const info=profSel.value?datos.profesionales.find(k=>k.id===profSel.value):null;d.profesionalId=profSel.value||null;d.profesionalNombre=info?info.nombre:'';}
     if(d.realizado&&!d.fecha)d.fecha=hoy();
@@ -6346,8 +6364,10 @@ function datosProdProfesional(pr,P){
       if(!esDelProfesional(x,pr)||!enP(x.fecha))return;
       const n='Control de ortodoncia'+(x.procedimiento?' — '+x.procedimiento:'');
       const hx=Number(x.honorarioMonto)||0;
-      R.sesiones.push({fecha:x.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs:[n],costo:0,cobrado:0,lab:0,honFinal:hx,acordado:hx>0,pct:null,
+      const lx=Number(x.labCosto)||0;
+      R.sesiones.push({fecha:x.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs:[n],costo:0,cobrado:0,lab:lx,honFinal:hx,acordado:hx>0,pct:null,
         hon:hx,honPag:Number(x.honorarioPagado)||0,orto:true});
+      R.lab+=lx;
       R.honFinal+=hx;R.honAcordado+=hx;R.honPagado+=Number(x.honorarioPagado)||0;R.pacientes.add(p.id);
       R.porProc['Control de ortodoncia']=(R.porProc['Control de ortodoncia']||0)+1;
     });
@@ -6494,6 +6514,12 @@ function listaLabPendientes(){
         fecha:t.fecha,costo,abonado:Number(t.labAbonado)||0,saldo,proc:nombreSesion(t)||t.sesion||''});
     }
   }));
+  datos.pacientes.forEach(p=>{const o=p.orto;if(!o)return;
+    [...(o.controles||[]).map(x=>({x,n:'Control de ortodoncia'+(x.procedimiento?' — '+x.procedimiento:'')})),
+     ...(o.procedimientos||[]).map(x=>({x,n:'Ortodoncia — '+(x.nombre||'procedimiento')}))].forEach(({x,n})=>{
+      const costo=Number(x.labCosto)||0;if(costo<=0)return;
+      filas.push({pacienteId:p.id,pacienteNombre:p.nombre,tratamientoId:x.id,labNombre:x.labNombre||'Laboratorio',
+        fecha:x.fecha,costo,abonado:Number(x.labAbonado)||0,saldo:costo-(Number(x.labAbonado)||0),proc:n});});});
   return filas.sort((a,b)=>(b.saldo>0.004)-(a.saldo>0.004)||(b.fecha||'').localeCompare(a.fecha||''));
 }
 function listaHonorariosPendientes(){
@@ -6578,7 +6604,8 @@ function abonarHonorario(pacienteId,tipo,origenId){
   ()=>{t.honorarioPagado=Number($('#hn_pagado').value)||0;guardar();renderGastos();avisar('Actualizado');});
 }
 function abonarLab(pacienteId,tratamientoId){
-  const p=pac(pacienteId),t=(p.tratamientos||[]).find(x=>x.id===tratamientoId);
+  const p=pac(pacienteId),o=p&&p.orto;
+  const t=(p.tratamientos||[]).find(x=>x.id===tratamientoId)||(o&&(o.controles||[]).find(x=>x.id===tratamientoId))||(o&&(o.procedimientos||[]).find(x=>x.id===tratamientoId));
   if(!t)return;
   abrirModal(`Abono a ${t.labNombre||'laboratorio'}`,`
     <p class="mini" style="margin-top:0">Paciente: ${esc(p.nombre)} — Costo total: ${usd(t.labCosto)}</p>
@@ -8657,9 +8684,10 @@ function datosReporte(m){   // m: 'AAAA-MM' o un período {desde,hasta}
     });
     ((p.orto&&p.orto.controles)||[]).forEach(x=>{
       if(!enMes(x.fecha))return;
-      R.sesiones++;R.atendidos.add(p.id);R.hon+=Number(x.honorarioPagado)||0;
+      R.sesiones++;R.atendidos.add(p.id);R.hon+=Number(x.honorarioPagado)||0;R.lab+=Number(x.labCosto)||0;
       sumar(R.porTrat,'Control de ortodoncia',1);sumar(R.porCat,'Ortodoncia',1);
     });
+    ((p.orto&&p.orto.procedimientos)||[]).forEach(x=>{if(enMes(x.fecha))R.lab+=Number(x.labCosto)||0;});
     (p.presupuestos||[]).forEach(x=>{if(enMes(x.fecha))R.presupuestos++;});
   });
   (datos.gastosProfesionales||[]).forEach(g=>{if(enMes(g.fecha))R.hon+=Number(g.monto)||0;});
