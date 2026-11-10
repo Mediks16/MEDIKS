@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-10a">
+<meta name="app-version" content="2026-11-10b">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -339,8 +339,11 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .ag-cita.estrecha{padding:3px 5px}
 .ag-cita.estrecha .hn{display:block}
 .ag-cita.estrecha .hora{display:block;font-size:10px}
-.ag-cita.estrecha .nom{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;white-space:normal;font-size:11px;line-height:1.2;overflow-wrap:anywhere}
-.ag-cita.estrecha .mot{display:none}
+.ag-cita.estrecha .nom{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;font-size:11px;line-height:1.2;overflow-wrap:anywhere}
+.ag-cita.estrecha .mot{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;font-size:10px;line-height:1.2}
+.ag-cita.corta{padding:2px 8px}
+.ag-cita.corta .mot{line-height:1.2}
+.ag-cita .mot.junta{white-space:normal;overflow-wrap:anywhere}
 .ag-cita.agendada{background:#DCEEE9;border-color:#BFE1D7;color:#0b4a40}
 .ag-cita.confirmada{background:var(--clinico);border-color:#0b6759;color:#fff}
 .ag-cita.confirmada .hora,.ag-cita.confirmada .mot{opacity:.88}
@@ -7494,7 +7497,7 @@ function renderAgenda(){
 function pintarGridAgenda(fechas){
   const cfg=datos.config||{};
   const iniMin=minutos(cfg.horaInicio||'08:00'), finMin=minutos(cfg.horaFin||'19:00');
-  const intervalo=Number(cfg.intervalo)||30, px=0.85;
+  const intervalo=Number(cfg.intervalo)||30, px=1.15;
   const alto=Math.max(60,(finMin-iniMin)*px);
   const horasLineas=[];
   for(let hh=Math.ceil(iniMin/60);hh<=Math.floor(finMin/60);hh++) horasLineas.push(hh*60);
@@ -7509,14 +7512,15 @@ function pintarGridAgenda(fechas){
     const citasHTML=citasDia.map(c=>{
       const top=(minutos(c.hora)-iniMin)*px, h=Math.max(20,(Number(c.duracion)||30)*px-2);
       const cls=CLASE_ESTADO[c.estado]||'agendada';
-      const cabe3=h>=44, cabe2=h>=30;
       const cc=cols.get(c)||{col:0,n:1};
+      /* duración, profesional y motivo siempre: en líneas separadas si caben; si no, juntos en una línea */
+      const extra=[c.duracion?esc(c.duracion)+' min':'',c.profesionalNombre?esc(c.profesionalNombre):'',c.motivo?esc(c.motivo):''].filter(Boolean);
+      const separadas=cc.n===1&&h>=24+extra.length*14;
+      const detalle=!extra.length?'':separadas?extra.map(x=>`<span class="mot">${x}</span>`).join(''):`<span class="mot junta">${extra.join(' · ')}</span>`;
+      const tip=[c.hora,c.nombre,c.duracion?c.duracion+' min':'',c.profesionalNombre,c.motivo].filter(Boolean).join(' · ');
       const lado=cc.n>1?`left:calc(4px + (100% - 8px) * ${cc.col} / ${cc.n});width:calc((100% - 8px) / ${cc.n} - 2px);right:auto;`:'';
-      return `<div class="ag-cita ${cls}${cc.n>1?' estrecha':''}" style="top:${top}px;height:${h}px;${lado}" data-cita="${c.id}" title="${esc((c.hora||'')+' '+(c.nombre||''))}">
-        <span class="hn"><span class="hora">${esc(c.hora)}</span><span class="nom">${esc(c.nombre)}</span></span>
-        ${cabe2&&c.duracion?`<span class="mot">${esc(c.duracion)} min</span>`:''}
-        ${cabe3&&c.motivo?`<span class="mot">${esc(c.motivo)}</span>`:''}
-        ${cabe3&&c.profesionalNombre?`<span class="mot">${esc(c.profesionalNombre)}</span>`:''}</div>`;
+      return `<div class="ag-cita ${cls}${cc.n>1?' estrecha':''}${h<34?' corta':''}" style="top:${top}px;height:${h}px;${lado}" data-cita="${c.id}" title="${esc(tip)}">
+        <span class="hn"><span class="hora">${esc(c.hora)}</span><span class="nom">${esc(c.nombre)}</span></span>${detalle}</div>`;
     }).join('');
     const lineasHTML=horasLineas.map(m=>`<div class="ag-linea" style="top:${(m-iniMin)*px}px"></div>`).join('');
     const lineaHoy=(f===hoy()&&minAhora>=iniMin&&minAhora<=finMin)?`<div class="ag-linea-hoy" style="top:${(minAhora-iniMin)*px}px"></div>`:'';
