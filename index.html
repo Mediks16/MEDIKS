@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-10c">
+<meta name="app-version" content="2026-11-10d">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -251,7 +251,7 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .odonto-tabs button{border:1px solid transparent;background:transparent;border-radius:8px;padding:7px 14px;
   font-size:13px;font-weight:500;cursor:pointer;color:var(--tinta-suave);display:inline-flex;align-items:center}
 .odonto-tabs button[aria-pressed="true"]{background:var(--tinta);color:#fff;box-shadow:var(--sombra-sm)}
-.odonto2{display:flex;gap:18px;align-items:flex-start}
+.odonto2{display:flex;flex-direction:column;gap:16px;align-items:stretch}
 .odonto2-arcos{flex:1;min-width:0}
 .arco-titulo{text-align:center;font-size:11px;letter-spacing:.12em;color:var(--tinta-suave);font-weight:700;margin-bottom:12px}
 .pieza-card{width:52px;text-align:center;font-size:11px;color:var(--tinta-suave);cursor:pointer;
@@ -272,8 +272,11 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .estado-dot{display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;
   padding:0 3px;border-radius:7px;margin:4px auto 0;border:1.6px solid var(--linea);background:#fff;
   font-size:8.5px;font-weight:700;line-height:1;white-space:nowrap;font-family:Figtree,sans-serif}
-.panel-pieza{width:280px;flex:none;border:1px solid var(--linea);border-radius:var(--r-lg);background:var(--papel);
-  padding:16px;box-shadow:var(--sombra-sm);position:sticky;top:12px;max-height:85vh;overflow-y:auto}
+.panel-pieza{width:100%;border:1px solid var(--linea);border-radius:var(--r-lg);background:var(--papel);
+  padding:16px;box-shadow:var(--sombra-sm)}
+.pp-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px 22px;margin-top:6px}
+.pp-cols>div{min-width:0}
+.pp-hist{border-top:1px solid var(--linea);margin-top:6px;padding-top:4px}
 .panel-pieza h4{font-size:24px;font-family:Newsreader,serif;margin:0 0 1px}
 .pieza-avatar{width:44px;height:44px;border-radius:50%;background:var(--porcelana);border:1px solid var(--linea);
   flex:none;display:flex;align-items:center;justify-content:center;overflow:visible;position:relative}
@@ -307,7 +310,7 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .hist-pieza-item i{width:7px;height:7px;border-radius:50%;background:var(--acento);flex:none;margin-top:5px}
 .hist-pieza-item b{display:block;color:var(--tinta)}
 .hist-pieza-item .chev{margin-left:auto;color:var(--tinta-suave)}
-@media (max-width:900px){.odonto2{flex-direction:column;align-items:stretch}.odonto2-arcos{width:100%}.panel-pieza{width:100%;position:static;max-height:none}}
+@media (max-width:900px){.odonto2-arcos{width:100%}}
 /* agenda */
 .ag-topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .ag-topbar input[type=date]{width:auto}
@@ -2089,6 +2092,7 @@ function panelPiezaHTML(p,n,verInicial){
       </div>
       <button class="btn chico" data-cerrarpieza title="Cerrar" style="padding:3px 7px">✕</button>
     </div>
+    <div class="pp-cols"><div>
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Estado</p>
     <p class="mini" style="margin:0 0 6px">Elige primero si va a quedar <b>pendiente</b> o ya está <b>realizado</b>, y luego toca la condición. Puedes marcar <b>varias</b> (ej. endodoncia + corona); toca de nuevo una para quitarla.</p>
     <div class="modo-pendiente">
@@ -2099,6 +2103,7 @@ function panelPiezaHTML(p,n,verInicial){
       <button data-estgen2="" aria-pressed="${!codigosEstado(d).length}"><i style="background:#fff;border-color:var(--linea)"></i>Sano</button>
       ${ESTADO_GRUPOS.map(g=>`<button data-estgen2="${g.clave}" aria-pressed="${codigosEstado(d).some(c=>c===g.ind||c===g.real)}"><i style="background:${(modoPendienteActual(d)==='pendiente'?g.colorInd:g.colorReal)||g.color}"></i>${esc(etiquetaGrupo(g,modoPendienteActual(d)))}</button>`).join('')}
     </div>
+    </div><div>
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Superficie</p>
     <p class="mini" style="margin:0 0 6px">Toca una o <b>varias</b> caras (quedan marcadas) y luego elige Caries u Obturado: se pintan todas las que elegiste.</p>
     <div class="cara-grid">
@@ -2116,6 +2121,7 @@ function panelPiezaHTML(p,n,verInicial){
       <label class="campo"><span>Movilidad</span><select id="pz_mov">${['','1','2','3'].map(x=>`<option ${String(d.mov||'')===x?'selected':''}>${x}</option>`).join('')}</select></label>
       <label class="campo"><span>Recesión</span><select id="pz_rec">${['','1','2','3','4'].map(x=>`<option ${String(d.rec||'')===x?'selected':''}>${x}</option>`).join('')}</select></label>
     </div>`:''}
+    </div><div style="padding-top:10px">
     <label class="campo" style="margin-bottom:10px"><span>Diagnóstico</span>
       <input id="pz_diag" list="dl_diag" value="${esc(d.diagnostico||'')}" placeholder="Ej. Caries oclusal">
       <datalist id="dl_diag">${['Caries oclusal','Caries interproximal','Pulpitis','Fractura coronaria','Enfermedad periodontal','Diente erupcionado sano','Agenesia'].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
@@ -2137,9 +2143,12 @@ function panelPiezaHTML(p,n,verInicial){
     </div>
     ${(!verInicial&&((d.caras&&Object.values(d.caras).includes('obturado'))||codigosEstado(d).some(c=>{const g=grupoDeEstado(c);return g&&g.real!==g.ind&&c===g.real;})))?`<button class="btn chico" data-volverpend style="width:100%;margin:-6px 0 8px" title="Lo realizado en esta pieza pasa a «por hacer» (caries / indicada) y aparece como pendiente al agregar una sesión">⟲ Volver a «tratamiento por hacer»</button>`:''}
     ${verInicial?'':`<button class="btn chico" data-resetpieza style="width:100%;margin:-6px 0 14px" title="Deja esta pieza como estaba en el odontograma inicial (o sana, si no tenía nada)">↺ Restablecer pieza al estado inicial</button>`}
-    <p class="mini" style="font-weight:600;color:var(--tinta);border-top:1px solid var(--linea);padding-top:10px;margin-bottom:4px">Historial de la pieza</p>
+    </div></div>
+    <div class="pp-hist">
+    <p class="mini" style="font-weight:600;color:var(--tinta);padding-top:10px;margin-bottom:4px">Historial de la pieza</p>
     ${historial.length?historial.map(t=>`<div class="hist-pieza-item"><i></i><div><b>${fechaCorta(t.fecha)} — ${esc(nombreSesion(t)||'Tratamiento')}</b>${t.profesionalNombre?esc(t.profesionalNombre):''}</div><span class="chev">›</span></div>`).join(''):'<p class="mini" style="margin:0">Sin tratamientos registrados en esta pieza.</p>'}
     ${linkImagenesPieza(p,n)}
+    </div>
   </div>`;
 }
 
@@ -2207,15 +2216,7 @@ function tabOdonto(p,c){
         <div class="odonto"><div class="arcada">${filaGeneral([set[0],set[1]],true)}</div></div>
         <div class="arco-titulo" style="margin-top:20px">INFERIOR</div>
         <div class="odonto"><div class="arcada">${filaGeneral([set[2],set[3]],false)}</div></div>
-        <div class="acciones-rapidas">
-          <span class="mini ${piezaSeleccionada?'':'hint-pieza'}" style="width:100%;margin-bottom:2px">Acciones rápidas${piezaSeleccionada?' · pieza '+esc(piezaSeleccionada):' · 👆 Elige una pieza del odontograma para activar estos botones'}</span>
-          ${piezaSeleccionada?`<div class="modo-pendiente" style="width:100%">
-            <button data-modopieza="pendiente" aria-pressed="${modoPendienteActual(datosOdonto[piezaSeleccionada]||{})==='pendiente'}">○ Marcar como pendiente</button>
-            <button data-modopieza="realizado" aria-pressed="${modoPendienteActual(datosOdonto[piezaSeleccionada]||{})==='realizado'}">● Marcar como realizado</button>
-          </div>`:''}
-          ${ACCIONES_RAPIDAS.map(a=>`<button class="accion-rapida" data-accrapida="${a.clave}" ${piezaSeleccionada?'':'disabled'}>
-            <span style="background:${a.color}">${a.simbolo}</span>${esc(a.nombre)}</button>`).join('')}
-        </div>
+        ${piezaSeleccionada?'':'<p class="mini hint-pieza" style="margin:16px 0 0">👆 Toca una pieza del odontograma para ver y marcar su estado</p>'}
       </div>
       ${piezaSeleccionada?panelPiezaHTML(p,piezaSeleccionada,verInicial):''}
     </div>`;
