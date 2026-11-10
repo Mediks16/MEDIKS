@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-10b">
+<meta name="app-version" content="2026-11-10c">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -344,8 +344,8 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .ag-cita.corta{padding:2px 8px}
 .ag-cita.corta .mot{line-height:1.2}
 .ag-cita .mot.junta{white-space:normal;overflow-wrap:anywhere}
-.ag-cita.agendada{background:#DCEEE9;border-color:#BFE1D7;color:#0b4a40}
-.ag-cita.confirmada{background:var(--clinico);border-color:#0b6759;color:#fff}
+.ag-cita.agendada{background:#E0F2FB;border-color:#BEE3F5;color:#0B4A6B}
+.ag-cita.confirmada{background:#0284C7;border-color:#0369A1;color:#fff}
 .ag-cita.confirmada .hora,.ag-cita.confirmada .mot{opacity:.88}
 .ag-cita.atendida{background:#E9ECEB;border-color:#DADFDD;color:var(--tinta-suave)}
 .ag-cita.no_asistio{background:#F7E4DE;border-color:#F0CCC0;color:#8a3323}
@@ -7263,7 +7263,7 @@ function abrirOrto(id){selId=id;pestana='orto';recetaEditando=null;vistaOdontoIn
 /* ---------- agenda de citas ---------- */
 const ESTADOS_CITA=['Agendada','Confirmada','Atendida','No asistió','Cancelada'];
 const CLASE_ESTADO={Agendada:'agendada',Confirmada:'confirmada',Atendida:'atendida','No asistió':'no_asistio',Cancelada:'cancelada'};
-const COLOR_ESTADO={Agendada:'#0E7C6B',Confirmada:'#0b6759',Atendida:'#5A706A','No asistió':'#B24A35',Cancelada:'#9aa6a3'};
+const COLOR_ESTADO={Agendada:'#5DB3DE',Confirmada:'#0284C7',Atendida:'#5A706A','No asistió':'#B24A35',Cancelada:'#9aa6a3'};
 const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 let agendaFecha=hoy(), agendaVista='semana';
