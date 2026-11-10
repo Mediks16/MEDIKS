@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="app-version" content="2026-11-10a">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -1178,7 +1179,7 @@ function edadTexto(f){
 }
 function avisar(t){const a=$('#aviso');a.textContent=t;a.classList.add('ver');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('ver'),2200);}
 let tGuarda;
-function guardar(){try{reubicarCarasDerechas();sincronizarInicialAuto();vincularCitasPacientes();completarProcedimientosVacios();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
+function guardar(){ultimaEdicion=Date.now();try{reubicarCarasDerechas();sincronizarInicialAuto();vincularCitasPacientes();completarProcedimientosVacios();}catch(e){}versionDatos++;clearTimeout(tGuarda);tGuarda=setTimeout(async()=>{
   const miSeq=++seqGuardado,json=JSON.stringify(datos),viaNube=almacen!==almacenLocal;
   /* Lo que no se confirma en la nube queda marcado como «pendiente» y se junta con la nube al volver la conexión.
      La «base» es la última versión que este dispositivo y la nube compartían. */
@@ -9256,6 +9257,30 @@ async function traerCopiasNube(){
   }catch(e){console.error(e);avisar('No se pudieron traer las copias de la nube');}
 }
 setTimeout(()=>{copiaNubeDelDia();setInterval(copiaNubeDelDia,30*60*1000);},20000);
+/* ---------- actualización automática ----------
+   Cada equipo revisa si hay una versión nueva de la app (la marca «app-version» de la página). Si la hay, se recarga solo,
+   pero nunca mientras escribes, con una ventana abierta o justo después de anotar algo (lo anotado ya quedó guardado). */
+var ultimaEdicion=0,versionNueva=false;
+async function revisarVersionApp(){
+  try{
+    if(navigator.onLine===false)return;
+    const actual=(document.querySelector('meta[name="app-version"]')||{}).content;if(!actual)return;
+    const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});if(!r.ok)return;
+    const m=/name="app-version" content="([^"]+)"/.exec(await r.text());
+    if(m&&m[1]!==actual){versionNueva=true;intentarActualizar();}
+  }catch(e){}
+}
+function intentarActualizar(){
+  if(!versionNueva)return;
+  const modal=document.getElementById('modal'),ae=document.activeElement;
+  const ocupado=(modal&&modal.open)||(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))||Date.now()-ultimaEdicion<20000;
+  if(ocupado){setTimeout(intentarActualizar,15000);return;}
+  try{avisar('Actualizando a la versión nueva…');}catch(e){}
+  setTimeout(()=>location.reload(),1200);
+}
+setTimeout(revisarVersionApp,30000);
+setInterval(revisarVersionApp,10*60*1000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')revisarVersionApp();});
 /* ---------- 8. instalable en el iPad / sin conexión ---------- */
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
