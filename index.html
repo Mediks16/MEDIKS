@@ -888,10 +888,13 @@ function nubeSerie(fn){
   return r;
 }
 function nubeReiniciarSiOtraCuenta(){
-  if(nubeEstadoUid!==nubeUid){nubeFmt=null;nubeLegacy=null;nubeHash={};nubeSellos={};nubeVersOk=false;nubeEstadoUid=nubeUid;}
+  if(nubeEstadoUid!==nubeUid){nubePrincipalV=null;nubeFmt=null;nubeLegacy=null;nubeHash={};nubeSellos={};nubeVersOk=false;nubeEstadoUid=nubeUid;}
 }
 let nubeLecturas=0,nubeCargas=0;   // documentos bajados desde que se abrió la app (sirve para las pruebas)
-let nubeFaltan=[];   // documentos que la lista nombraba pero ya no existían (se quitan de la lista al guardar)
+/* Lo eliminado a propósito queda anotado, para que ningún otro equipo lo vuelva a subir ni se confunda con algo perdido. */
+function anotarEliminado(id){datos.eliminados=datos.eliminados||[];if(!datos.eliminados.some(x=>x.id===id))datos.eliminados.push({id,fecha:new Date().toISOString()});
+  if(datos.eliminados.length>3000)datos.eliminados=datos.eliminados.slice(-3000);}
+let nubeFaltan=[],nubePrincipalV=null;   // nubePrincipalV: la parte general (configuración, etc.) tal como se leyó la última vez   // documentos que la lista nombraba pero ya no existían (se quitan de la lista al guardar)
 async function nubeLeerDatos(){
   nubeReiniciarSiOtraCuenta();
   const u=nubeUid;
@@ -929,14 +932,16 @@ async function nubeLeerDatos(){
     }));
   }
   const out=JSON.parse(d.v||'{}');
+  nubePrincipalV=typeof d.v==='string'?d.v:'{}';
+  const tumbasL=new Set((out.eliminados||[]).map(x=>String(x&&x.id)));
   out.pacientes=[];out.citas=[];
   nubeFaltan=faltan;
   if(faltan.length)console.warn('Documentos de la lista que ya no están en la nube:',faltan);
   partes.forEach(par=>{
     if(!par)return;
     const [id,val]=par;
-    if(id.indexOf('pac_')===0)out.pacientes.push(val);
-    else if(id.indexOf('cit_')===0&&Array.isArray(val))out.citas.push(...val);
+    if(id.indexOf('pac_')===0){if(!tumbasL.has(id))out.pacientes.push(val);}
+    else if(id.indexOf('cit_')===0&&Array.isArray(val))out.citas.push(...val.filter(c=>!tumbasL.has('cita:'+(c&&c.id))));
   });
   nubeFmt=2;nubeLegacy=null;nubeHash=hash;nubeSellos=sellos;nubeVersOk=!!vers;
   const sobranCache=Object.keys(cache).filter(id=>!ids.includes(id));
@@ -989,9 +994,63 @@ async function nubeEscribirDatos(json){
     (meses[id]=meses[id]||[]).push(c);
   });
   Object.keys(meses).sort().forEach(id=>{nuevos[id]=JSON.stringify(meses[id]);});
-  const ids=Object.keys(nuevos);
+  /* Antes de subir se mira lo que hay ahora en la nube. Si otro equipo cambió algo desde la última vez que este lo leyó,
+     se JUNTA en vez de pisarlo. Una ficha o un mes de citas solo se quita de la nube si alguien lo eliminó a propósito
+     (queda anotado en «eliminados»); si a este equipo simplemente le falta, se conserva y vuelve a aparecer aquí. */
+  let man=null;
+  if(nubeFmt===2){const m=await nubeKv().doc(CLAVE2).get();man=m.exists?m.data():null;}
+  const versN=(man&&man.vers&&typeof man.vers==='object')?man.vers:{};
+  const idsN=man&&Array.isArray(man.docs)?man.docs:[];
+  let resto={...obj};delete resto.pacientes;delete resto.citas;
+  let restoAjeno=false;
+  if(man&&typeof man.v==='string'&&nubePrincipalV!==null&&man.v!==nubePrincipalV){
+    try{resto=unir3(JSON.parse(nubePrincipalV||'{}'),resto,JSON.parse(man.v||'{}'));restoAjeno=true;}catch(e){}
+  }
+  const tumbas=new Set((resto.eliminados||[]).map(x=>String(x&&x.id)));
+  // lo que otro equipo eliminó a propósito no se vuelve a subir
+  let quitarAqui=false;
+  Object.keys(nuevos).forEach(id=>{
+    if(id.indexOf('pac_')===0&&tumbas.has(id)){delete nuevos[id];quitarAqui=true;}
+    else if(id.indexOf('cit_')===0){const arr=JSON.parse(nuevos[id]);const f=arr.filter(c=>!tumbas.has('cita:'+(c&&c.id)));
+      if(f.length!==arr.length){quitarAqui=true;if(f.length)nuevos[id]=JSON.stringify(f);else delete nuevos[id];}}
+  });
+  const ajenos={},txtNube={};
+  const todasMias=new Set((obj.citas||[]).map(c=>String(c&&c.id)));
+  for(const id of Object.keys(nuevos)){
+    if(versN[id]&&versN[id]!==nubeSellos[id]){   // otro equipo lo creó o lo cambió después de la última lectura
+      const sn=await nubeKv().doc(id).get();const dd=sn.exists?sn.data():null;
+      if(dd&&typeof dd.v==='string')txtNube[id]=dd.v;
+      if(dd&&typeof dd.v==='string'&&dd.v!==nuevos[id]){
+        let base;try{base=nubeHash[id]!==undefined?JSON.parse(nubeHash[id]):undefined;}catch(e){}
+        let j=unir3(base,JSON.parse(nuevos[id]),JSON.parse(dd.v));
+        if(id.indexOf('cit_')===0&&Array.isArray(j))j=j.filter(c=>!tumbas.has('cita:'+(c&&c.id)));
+        nuevos[id]=JSON.stringify(j);ajenos[id]=j;
+      }
+    }
+  }
+  // una cita solo sale de la nube si se eliminó a propósito: si a este equipo le falta, se conserva
+  Object.keys(nuevos).filter(id=>id.indexOf('cit_')===0).forEach(id=>{
+    const t=txtNube[id]!==undefined?txtNube[id]:nubeHash[id];if(t===undefined)return;
+    let arr=[];try{arr=JSON.parse(t)||[];}catch(e){}
+    const mias=JSON.parse(nuevos[id]),ya=new Set(mias.map(c=>String(c&&c.id)));
+    const faltan=(Array.isArray(arr)?arr:[]).filter(c=>c&&!ya.has(String(c.id))&&!todasMias.has(String(c.id))&&!tumbas.has('cita:'+c.id));
+    if(faltan.length){const j=mias.concat(faltan);nuevos[id]=JSON.stringify(j);ajenos[id]=j;}
+  });
+  const conservar=[];
+  idsN.forEach(id=>{
+    if(id in nuevos)return;
+    if(id.indexOf('pac_')===0){if(!tumbas.has(id))conservar.push(id);return;}
+    if(id.indexOf('cit_')===0){
+      if(nubeHash[id]===undefined||versN[id]!==nubeSellos[id]){conservar.push(id);return;}
+      let arr=[];try{arr=JSON.parse(nubeHash[id])||[];}catch(e){}
+      if(Array.isArray(arr)&&arr.some(c=>c&&!tumbas.has('cita:'+c.id)&&!todasMias.has(String(c.id))))conservar.push(id);
+      return;
+    }
+    if(nubeHash[id]===undefined)conservar.push(id);
+  });
+  const ids=[...Object.keys(nuevos),...conservar];
   // se sube lo que cambió y, una sola vez, lo que todavía no tiene sello (datos de versiones anteriores)
-  const cambiar=ids.filter(id=>nubeHash[id]!==nuevos[id]||!nubeSellos[id]);
+  const cambiar=Object.keys(nuevos).filter(id=>nubeHash[id]!==nuevos[id]||!nubeSellos[id]||ajenos[id]);
   const selloNuevo={},paraCache={};
   for(let i=0;i<cambiar.length;i+=10){
     const b=nubeDb.batch();
@@ -999,9 +1058,9 @@ async function nubeEscribirDatos(json){
     await b.commit();
     cambiar.slice(i,i+10).forEach(id=>{nubeHash[id]=nuevos[id];nubeSellos[id]=selloNuevo[id];paraCache[id]={s:selloNuevo[id],v:nuevos[id]};});
   }
-  const resto={...obj};delete resto.pacientes;delete resto.citas;
-  const sobran=[...new Set([...Object.keys(nubeHash),...(nubeFaltan||[])])].filter(id=>!(id in nuevos));
-  const principal={fmt:2,v:JSON.stringify(resto),docs:ids,t:Date.now(),...(marcaLegacy||{})};
+  const sobran=[...new Set([...Object.keys(nubeHash),...(nubeFaltan||[])])].filter(id=>!ids.includes(id));
+  const restoTxt=JSON.stringify(resto);
+  const principal={fmt:2,v:restoTxt,docs:ids,t:Date.now(),...(marcaLegacy||{})};
   if(nubeVersOk){
     // solo se tocan los sellos propios: si otro equipo subió algo a la vez, sus sellos no se pisan
     const vers={};
@@ -1010,14 +1069,17 @@ async function nubeEscribirDatos(json){
     principal.vers=vers;
     await nubeKv().doc(CLAVE2).set(principal,{merge:true});
   }else{
-    const vers={};ids.forEach(id=>{if(nubeSellos[id])vers[id]=nubeSellos[id];});
+    const vers={};ids.forEach(id=>{if(nubeSellos[id])vers[id]=nubeSellos[id];else if(versN[id])vers[id]=versN[id];});
     principal.vers=vers;
     await nubeKv().doc(CLAVE2).set(principal);
     nubeVersOk=true;
   }
+  nubePrincipalV=restoTxt;
   nubeFmt=2;
   nubeCache.poner(u,paraCache,null);
-  // documentos que ya no forman parte de los datos (paciente o mes de citas eliminado): se retiran al final
+  // lo que otro equipo había hecho entra también aquí, para que el próximo guardado no lo pise
+  try{await traerAjenosAlLocal(ajenos,conservar,(restoAjeno||quitarAqui)?resto:null,tumbas);}catch(e){console.error(e);}
+  // documentos eliminados a propósito: se retiran al final
   const habiaPac=sobran.some(id=>id.indexOf('pac_')===0),hayPac=ids.some(id=>id.indexOf('pac_')===0);
   if(sobran.length&&!(habiaPac&&!hayPac)){   // si de golpe no queda ningún paciente, no se borra nada (por seguridad)
     try{
@@ -1030,6 +1092,31 @@ async function nubeEscribirDatos(json){
       nubeCache.poner(u,null,sobran);
     }catch(e){console.error(e);}
   }
+}
+/* Pone en los datos de este equipo lo que se juntó con la nube (fichas o meses de citas cambiados en otro equipo,
+   fichas que aquí faltaban y la configuración). No borra nada de lo de aquí. */
+async function traerAjenosAlLocal(ajenos,conservar,resto,tumbas){
+  let cambio=false;
+  if(tumbas&&tumbas.size){
+    const np=datos.pacientes.filter(q=>!tumbas.has('pac_'+nubeIdSeguro(q.id))),nc=(datos.citas||[]).filter(c=>!tumbas.has('cita:'+(c&&c.id)));
+    if(np.length!==datos.pacientes.length||nc.length!==(datos.citas||[]).length){datos.pacientes=np;datos.citas=nc;cambio=true;}
+  }
+  const ponerPac=q=>{if(!q||q.id===undefined)return;const i=datos.pacientes.findIndex(x=>String(x.id)===String(q.id));if(i>=0)datos.pacientes[i]=q;else datos.pacientes.push(q);cambio=true;};
+  const ponerMes=(id,arr)=>{if(!Array.isArray(arr))return;const ya=new Set(arr.map(c=>String(c&&c.id)));
+    datos.citas=(datos.citas||[]).map(c=>{const n=ya.has(String(c&&c.id))?arr.find(x=>x&&String(x.id)===String(c.id)):null;return n||c;});
+    arr.forEach(c=>{if(c&&!datos.citas.some(x=>String(x.id)===String(c.id)))datos.citas.push(c);});cambio=true;};
+  Object.keys(ajenos).forEach(id=>{if(id.indexOf('pac_')===0)ponerPac(ajenos[id]);else if(id.indexOf('cit_')===0)ponerMes(id,ajenos[id]);});
+  for(const id of conservar){
+    try{const sn=await nubeKv().doc(id).get();if(!sn.exists)continue;const dd=sn.data();const v=JSON.parse(dd.v);
+      nubeHash[id]=dd.v;if(dd.s)nubeSellos[id]=dd.s;
+      if(id.indexOf('pac_')===0)ponerPac(v);else if(id.indexOf('cit_')===0)ponerMes(id,v);}catch(e){}
+  }
+  if(resto){Object.keys(resto).forEach(k=>{if(k!=='pacientes'&&k!=='citas'){datos[k]=resto[k];}});cambio=true;}
+  if(!cambio)return;
+  try{await almacenLocal.set(CLAVE,JSON.stringify(datos));}catch(e){}
+  const m=document.getElementById('modal');
+  if(selId&&!pac(selId))selId=null;
+  if(!(m&&m.open)){try{pintar();}catch(e){}}
 }
 const almacenNube={
   async get(key){
@@ -6299,7 +6386,7 @@ async function borrarPaciente(){const p=pac(selId);
   if(!confirm(`Se eliminará a ${p.nombre} con su historia, consentimientos, fotografías, radiografías y pagos. ¿Continuar?`))return;
   for(const r of (p.radiografias||[])){ try{ await almacen.delete(claveRx(p.id,r.id)); }catch(e){} }
   for(const r of (p.fotografias||[])){ try{ await almacen.delete(claveFoto(p.id,r.id)); }catch(e){} }
-  datos.pacientes=datos.pacientes.filter(x=>x.id!==selId);selId=null;guardar();pintar();}
+  anotarEliminado('pac_'+nubeIdSeguro(selId));datos.pacientes=datos.pacientes.filter(x=>x.id!==selId);selId=null;guardar();pintar();}
 
 /* ---------- profesionales ---------- */
 function verProfesionales(){
@@ -7323,7 +7410,7 @@ function sincronizarProximaCita(pacienteId,origenTipo,origenId,fecha,motivo,hora
   datos.citas=datos.citas||[];
   const idx=datos.citas.findIndex(c=>c.origen&&c.origen.tipo===origenTipo&&c.origen.id===origenId);
   if(!fecha){
-    if(idx>=0){datos.citas.splice(idx,1);guardar();avisar('Se quitó la cita programada');}
+    if(idx>=0){anotarEliminado('cita:'+datos.citas[idx].id);datos.citas.splice(idx,1);guardar();avisar('Se quitó la cita programada');}
     return;
   }
   const paciente=pac(pacienteId);
@@ -7606,7 +7693,7 @@ function abrirCita(id,prefill){
   if(id){const btn=document.getElementById('ci_borrar');if(btn)btn.onclick=()=>{
     if(!confirm('¿Eliminar esta cita?'))return;
     eliminarCitaGoogle(c);
-    datos.citas=datos.citas.filter(x=>x.id!==id);guardar();$('#modal').close();refrescarTrasCita();avisar('Cita eliminada');};}
+    anotarEliminado('cita:'+id);datos.citas=datos.citas.filter(x=>x.id!==id);guardar();$('#modal').close();refrescarTrasCita();avisar('Cita eliminada');};}
 }
 
 /* ---------- personalización: color, logo, orden de pestañas ---------- */
