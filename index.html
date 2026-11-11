@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-11a">
+<meta name="app-version" content="2026-11-11b">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -2535,7 +2535,7 @@ function renderPresupuestos(p,c){
 }
 function totalPresupuesto(x){
   const subtotal=(x.items||[]).reduce((s,it)=>s+(Number(it.precio)||0),0);
-  const descuento=subtotal*((Number(x.descuentoPct)||0)/100);
+  const descuento=subtotal*(Math.min(100,Math.max(0,Number(x.descuentoPct)||0))/100);
   return {subtotal,descuento,total:subtotal-descuento};
 }
 function abrirSelectorDiente(onElegir){
@@ -2977,6 +2977,7 @@ function editarTrat(id,pre){
       labNombre:$('#t_labNombre').value.trim(),labCosto:Number($('#t_labCosto').value)||0,labAbonado:Number($('#t_labAbonado').value)||0,
       honorarioMonto:Number($('#t_honMonto').value)||0,honorarioPagado:Number($('#t_honPagado').value)||0,
       tipoOdonto:tipoCat||t.tipoOdonto||null};
+    d.honorarioPagos=logPagosHonorario(t,d.honorarioPagado,t.id?hoy():(d.fecha||hoy()));
     // honorario por porcentaje: se calcula sobre (costo − laboratorio) y se guarda también como monto, así Gastos y reportes lo usan igual
     if($('#t_honTipo').value==='pct'&&$('#t_honPct').value!==''){
       const pc=Math.min(100,Math.max(0,Number($('#t_honPct').value)||0));
@@ -4305,6 +4306,7 @@ function editarControlOrto(id,cuotaId){
       procedimiento:$('#o_proc').value.trim(),arco:$('#o_arco').value.trim(),
       elastico:$('#o_elastico').value.trim(),nota:$('#o_nota').value.trim(),
       honorarioMonto:Number($('#o_honMonto').value)||0,honorarioPagado:Number($('#o_honPagado').value)||0};
+    d.honorarioPagos=logPagosHonorario(x,d.honorarioPagado,x.id?hoy():(d.fecha||hoy()));
     leerLabOrto(d);
     const profSel=document.getElementById('o_prof');
     if(profSel){const info=profSel.value?datos.profesionales.find(k=>k.id===profSel.value):null;
@@ -4408,8 +4410,10 @@ function reprogramarDesdeControlOrto(o,d){
   const i=filas.indexOf(r);if(i<0)return false;
   const despues=filas.slice(i+1);
   if(despues.some(q=>q.controlId))return false;   // no es el último control hecho: no se mueve nada
-  despues.forEach((q,k)=>{q.fechaVenc=k===0?d.proxima:sumarMeses(d.proxima,k);q.fechaManual=true;});
-  return despues.length>0;
+  // las filas ya pagadas por completo (ej. la cuota 2 de la entrada pagada el mismo día) se quedan con su fecha
+  const mover=despues.filter(q=>!(Number(q.monto)>0&&saldoFila(q)<=0.004));
+  mover.forEach((q,k)=>{q.fechaVenc=k===0?d.proxima:sumarMeses(d.proxima,k);q.fechaManual=true;});
+  return mover.length>0;
 }
 function sincronizarCuotaConControl(p,fechaProximoControl){
   const o=p.orto;
@@ -6316,6 +6320,21 @@ function editarAbono(id,tratamientoId){
       metodo:$('#a_metodo').value,nota:$('#a_nota').value.trim(),tratamientoId:($('#a_trat').value==='__huerfano'?a.tratamientoId:($('#a_trat').value||null))};
     if(!d.tratamientoId&&$('#a_trat').value===''&&a.aFavor)d.aFavor=true;
     if(d.monto<=0){avisar('Ingresa un monto mayor a cero');return false;}
+    ['grupo','total'].forEach(k=>{if(a[k]!==undefined)d[k]=a[k];});
+    if(d.tratamientoId&&$('#a_trat').value!=='__huerfano'){
+      const tt=(p.tratamientos||[]).find(t=>t.id===d.tratamientoId);
+      if(tt){const otros=(p.abonos||[]).filter(x=>x.id!==d.id&&x.tratamientoId===tt.id).reduce((s,x)=>s+(Number(x.monto)||0),0);
+        const tope=Math.max(0,Math.round(((Number(tt.costo)||0)-otros)*100)/100);
+        if(d.monto>tope+0.004){
+          if(!confirm(`Este pago (${usd(d.monto)}) es mayor que lo que falta de esa sesión (${usd(tope)}).\n\nSe aplicará ${usd(tope)} a la sesión y ${usd(d.monto-tope)} quedará como pago general (para las otras sesiones con saldo). ¿Continuar?`))return false;
+          const resto=Math.round((d.monto-tope)*100)/100;
+          d.monto=tope;
+          const g=d.grupo||uid();
+          if(!d.grupo){d.grupo=g;d.total=Math.round((tope+resto)*100)/100;}
+          p.abonos.push({id:uid(),fecha:d.fecha,monto:resto,metodo:d.metodo,nota:d.nota,tratamientoId:null,grupo:g,total:d.total});
+          if(!(d.monto>0)){const j=p.abonos.findIndex(x=>x.id===d.id);if(j>=0)p.abonos.splice(j,1);guardar();pintar();avisar('Pago registrado como pago general');return;}
+        }}
+    }
     const i=p.abonos.findIndex(x=>x.id===d.id);i>=0?p.abonos[i]=d:p.abonos.push(d);
     guardar();pintar();avisar('Pago registrado');});
 }
@@ -6437,6 +6456,20 @@ function renderProfesionales(){
    Producción = costo de sus sesiones; cobrado = lo que los pacientes ya abonaron a esas sesiones;
    honorarios = lo acordado en cada sesión, lo pagado, y los pagos registrados en «Gastos» para él. */
 let prodProfId=null,prodTipo='mes',prodRef=hoy();
+/* Parte del honorario que ya se ganó: va según lo que el paciente pagó de esa sesión (o de la cuota del control de ortodoncia). */
+function fracCobradaSesion(p,t,rp){const c=Number(t.costo)||0;if(!(c>0))return 1;rp=rp||repartoAbonos(p);return Math.min(1,Math.max(0,(rp.porSesion[t.id]||0)/c));}
+function filaCuotaDeControl(p,x){return (p.orto&&p.orto.cuotas||[]).find(q=>q.controlId===x.id&&!q.anulada)||null;}
+function fracCobradaControl(p,x){const q=filaCuotaDeControl(p,x),m=q?Number(q.monto)||0:0;if(!(m>0))return 1;return Math.min(1,Math.max(0,pagadoFila(q)/m));}
+/* Pagos al profesional con su fecha. Los registros de antes (sin detalle) cuentan en la fecha de la sesión. */
+function pagosHonorario(x){if(Array.isArray(x.honorarioPagos)&&x.honorarioPagos.length)return x.honorarioPagos;const v=Number(x.honorarioPagado)||0;return v>0.004?[{fecha:x.fecha,monto:v}]:[];}
+function logPagosHonorario(prev,nuevoTotal,fechaNueva){
+  const ant=Number(prev&&prev.honorarioPagado)||0;
+  const log=(prev&&Array.isArray(prev.honorarioPagos))?prev.honorarioPagos.slice():[];
+  if(!log.length&&ant>0.004)log.push({fecha:(prev&&prev.fecha)||hoy(),monto:ant});
+  const delta=Math.round(((Number(nuevoTotal)||0)-ant)*100)/100;
+  if(Math.abs(delta)>0.004)log.push({fecha:fechaNueva||hoy(),monto:delta});
+  return log;
+}
 function esDelProfesional(x,pr){return x.profesionalId?x.profesionalId===pr.id:(!!x.profesionalNombre&&x.profesionalNombre===pr.nombre);}
 function datosProdProfesional(pr,P){
   const enP=f=>{if(!f)return false;const d=String(f).slice(0,10);return d>=P.desde&&d<=P.hasta;};
@@ -6464,11 +6497,12 @@ function datosProdProfesional(pr,P){
     ((p.orto&&p.orto.controles)||[]).forEach(x=>{
       if(!esDelProfesional(x,pr)||!enP(x.fecha))return;
       const n='Control de ortodoncia'+(x.procedimiento?' — '+x.procedimiento:'');
-      const hx=Number(x.honorarioMonto)||0;
+      const qx=filaCuotaDeControl(p,x),cx=qx?Number(qx.monto)||0:0,cobx=qx?Math.min(cx,pagadoFila(qx)):0;
+      const hx=Math.round((Number(x.honorarioMonto)||0)*fracCobradaControl(p,x)*100)/100;
       const lx=Number(x.labCosto)||0;
-      R.sesiones.push({fecha:x.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs:[n],costo:0,cobrado:0,lab:lx,honFinal:hx,acordado:hx>0,pct:null,
+      R.sesiones.push({fecha:x.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs:[n],costo:cx,cobrado:cobx,lab:lx,honFinal:hx,acordado:hx>0,pct:null,
         hon:hx,honPag:Number(x.honorarioPagado)||0,orto:true});
-      R.lab+=lx;
+      R.produccion+=cx;R.cobrado+=cobx;R.lab+=lx;
       R.honFinal+=hx;R.honAcordado+=hx;R.honPagado+=Number(x.honorarioPagado)||0;R.pacientes.add(p.id);
       R.porProc['Control de ortodoncia']=(R.porProc['Control de ortodoncia']||0)+1;
     });
@@ -6626,22 +6660,26 @@ function listaLabPendientes(){
 function listaHonorariosPendientes(){
   const filas=[];
   datos.pacientes.forEach(p=>{
+    let rp=null;
     (p.tratamientos||[]).forEach(t=>{
-      const monto=Number(t.honorarioMonto)||0;
-      if(monto>0){
-        const saldo=monto-(Number(t.honorarioPagado)||0);
+      const acordado=Number(t.honorarioMonto)||0;
+      if(acordado>0){
+        rp=rp||repartoAbonos(p);
+        const monto=Math.round(acordado*fracCobradaSesion(p,t,rp)*100)/100;
+        const saldo=Math.max(0,monto-(Number(t.honorarioPagado)||0));
         filas.push({pacienteId:p.id,pacienteNombre:p.nombre,tipo:'tratamiento',origenId:t.id,
           profesionalNombre:t.profesionalNombre||'Sin asignar',
-          fecha:t.fecha,monto,pagado:Number(t.honorarioPagado)||0,saldo,proc:nombreSesion(t)||t.sesion||''});
+          fecha:t.fecha,monto,acordado,pagado:Number(t.honorarioPagado)||0,saldo,proc:nombreSesion(t)||t.sesion||''});
       }
     });
     ((p.orto&&p.orto.controles)||[]).forEach(x=>{
-      const monto=Number(x.honorarioMonto)||0;
-      if(monto>0){
-        const saldo=monto-(Number(x.honorarioPagado)||0);
+      const acordado=Number(x.honorarioMonto)||0;
+      if(acordado>0){
+        const monto=Math.round(acordado*fracCobradaControl(p,x)*100)/100;
+        const saldo=Math.max(0,monto-(Number(x.honorarioPagado)||0));
         filas.push({pacienteId:p.id,pacienteNombre:p.nombre,tipo:'ortoControl',origenId:x.id,
           profesionalNombre:x.profesionalNombre||'Sin asignar',
-          fecha:x.fecha,monto,pagado:Number(x.honorarioPagado)||0,saldo,proc:'Control de ortodoncia — '+(x.procedimiento||'')});
+          fecha:x.fecha,monto,acordado,pagado:Number(x.honorarioPagado)||0,saldo,proc:'Control de ortodoncia — '+(x.procedimiento||'')});
       }
     });
   });
@@ -6654,7 +6692,7 @@ function renderGastos(){
   const totalLabSaldo=totalLabCosto-totalLabAbonado;
   const honSesion=listaHonorariosPendientes();
   const totalHonMonto=honSesion.reduce((s,x)=>s+x.monto,0),totalHonPagado=honSesion.reduce((s,x)=>s+x.pagado,0);
-  const totalHonSaldo=totalHonMonto-totalHonPagado;
+  const totalHonSaldo=honSesion.reduce((s,x)=>s+x.saldo,0);
   const gp=[...(datos.gastosProfesionales||[])].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
   const totalProf=gp.reduce((s,x)=>s+(Number(x.monto)||0),0)+totalHonPagado;
   const porProfesional={};
@@ -6680,7 +6718,7 @@ function renderGastos(){
         ${honSesion.map(x=>`<tr><td><button class="btn chico" onclick="abrir('${x.pacienteId}')">${esc(x.pacienteNombre)}</button>
             <br><span class="mini">${esc(x.proc).slice(0,50)}</span></td>
           <td>${esc(x.profesionalNombre)}<br><span class="mini">${fechaCorta(x.fecha)}</span></td>
-          <td class="der">${usd(x.monto)}</td><td class="der">${usd(x.pagado)}</td>
+          <td class="der">${usd(x.monto)}${x.acordado-x.monto>0.004?`<br><span class="mini">de ${usd(x.acordado)} · según lo cobrado</span>`:''}</td><td class="der">${usd(x.pagado)}</td>
           <td class="der" style="color:${x.saldo>0.004?'var(--alerta)':'inherit'}">${usd(x.saldo)}</td>
           <td class="der"><button class="btn chico" onclick="abonarHonorario('${x.pacienteId}','${x.tipo}','${x.origenId}')">Abonar</button></td></tr>`).join('')}
         </tbody></table>`:'<p class="mini">No hay honorarios por sesión registrados todavía. Se agregan desde el formulario de cada sesión, en la pestaña Tratamientos de un paciente.</p>'}</div>
@@ -6702,7 +6740,7 @@ function abonarHonorario(pacienteId,tipo,origenId){
   abrirModal(`Pago a ${t.profesionalNombre||'profesional'}`,`
     <p class="mini" style="margin-top:0">Paciente: ${esc(p.nombre)} — Honorario acordado: ${usd(t.honorarioMonto)}</p>
     <label class="campo"><span>Total pagado hasta ahora (USD)</span><input type="number" step="0.01" min="0" id="hn_pagado" value="${t.honorarioPagado??0}"></label>`,
-  ()=>{t.honorarioPagado=Number($('#hn_pagado').value)||0;guardar();renderGastos();avisar('Actualizado');});
+  ()=>{const v=Number($('#hn_pagado').value)||0;t.honorarioPagos=logPagosHonorario(t,v);t.honorarioPagado=v;guardar();renderGastos();avisar('Actualizado');});
 }
 function abonarLab(pacienteId,tratamientoId){
   const p=pac(pacienteId),o=p&&p.orto;
@@ -8098,7 +8136,7 @@ function imprimirRecibo(aid){
   const pos=orden.findIndex(o=>o.x.id===aid),a=orden[pos].x;
   const ultimo=a.grupo?Math.max(...orden.map((o,k)=>o.x.grupo===a.grupo?k:-1)):pos;
   const acumulado=orden.slice(0,ultimo+1).reduce((s,o)=>s+(Number(o.x.monto)||0),0);
-  const saldoDespues=Math.max(0,totalTrat(p)-acumulado);
+  const saldoDespues=Math.max(0,(p.tratamientos||[]).filter(t=>!t.fecha||!a.fecha||t.fecha<=a.fecha).reduce((s,t)=>s+(Number(t.costo)||0),0)-acumulado);
   const trat=a.tratamientoId?(p.tratamientos||[]).find(t=>t.id===a.tratamientoId):null;
   const grupoR=a.grupo?lista.filter(x=>x.grupo===a.grupo):null;
   const montoR=grupoR?grupoR.reduce((x,y)=>x+(Number(y.monto)||0),0):Number(a.monto)||0;
@@ -8792,16 +8830,18 @@ function datosReporte(m){   // m: 'AAAA-MM' o un período {desde,hasta}
       const v=Number(x.monto)||0;R.cobrado+=v;R.cobradoOrto+=v;sumar(R.porMetodo,x.metodo||'Otro',v);sumar(R.pacCobro,nombre,v);
       R.pagos.push({fecha:x.fecha,paciente:nombre,metodo:x.metodo||'',nota:'Ortodoncia · '+x.fila,monto:v});
     });
+    (p.tratamientos||[]).forEach(t=>{pagosHonorario(t).forEach(h=>{if(enMes(h.fecha))R.hon+=Number(h.monto)||0;});});
+    ((p.orto&&p.orto.controles)||[]).forEach(x=>{pagosHonorario(x).forEach(h=>{if(enMes(h.fecha))R.hon+=Number(h.monto)||0;});});
     (p.tratamientos||[]).forEach(t=>{
       if(!enMes(t.fecha))return;
       R.sesiones++;R.atendidos.add(p.id);
       const c=Number(t.costo)||0;R.produccion+=c;sumar(R.porProf,t.profesionalNombre||'Sin asignar',c);
-      R.lab+=Number(t.labCosto)||0;R.hon+=Number(t.honorarioPagado)||0;
+      R.lab+=Number(t.labCosto)||0;
       nombresDeSesion(t).forEach(n=>{sumar(R.porTrat,n,1);sumar(R.porCat,categoriaDeTratamiento(n),1);});
     });
     ((p.orto&&p.orto.controles)||[]).forEach(x=>{
       if(!enMes(x.fecha))return;
-      R.sesiones++;R.atendidos.add(p.id);R.hon+=Number(x.honorarioPagado)||0;R.lab+=Number(x.labCosto)||0;
+      R.sesiones++;R.atendidos.add(p.id);R.lab+=Number(x.labCosto)||0;
       sumar(R.porTrat,'Control de ortodoncia',1);sumar(R.porCat,'Ortodoncia',1);
     });
     ((p.orto&&p.orto.procedimientos)||[]).forEach(x=>{if(enMes(x.fecha))R.lab+=Number(x.labCosto)||0;});
