@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-10d">
+<meta name="app-version" content="2026-11-11a">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -1486,7 +1486,7 @@ function tipoTratamiento(nombre){
 }
 const SIMB_CARA={
   caries:{s:'',c:'#E0564A',n:'Caries'},
-  obturado:{s:'',c:'#3E7BE0',n:'Obturado'},
+  obturado:{s:'',c:'#3E7BE0',n:'Restaurado'},
   provisional:{s:'P',c:'#C9962B',n:'Obturación provisional'}
 };
 const CARAS=[['V','Vestibular/Bucal'],['M','Mesial'],['O','Oclusal / Incisal'],['D','Distal'],['L','Lingual/Palatino']];
@@ -2105,7 +2105,7 @@ function panelPiezaHTML(p,n,verInicial){
     </div>
     </div><div>
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Superficie</p>
-    <p class="mini" style="margin:0 0 6px">Toca una o <b>varias</b> caras (quedan marcadas) y luego elige Caries u Obturado: se pintan todas las que elegiste.</p>
+    <p class="mini" style="margin:0 0 6px">Toca una o <b>varias</b> caras (quedan marcadas) y luego elige Caries o Restaurado: se pintan todas las que elegiste.</p>
     <div class="cara-grid">
       ${CARAS.map(([k,nombreLargo])=>{
         const col=d.caras&&d.caras[k]&&SIMB_CARA[d.caras[k]]?SIMB_CARA[d.caras[k]].c:null;
@@ -2200,7 +2200,7 @@ function tabOdonto(p,c){
   const nombreAccGrupo=clave=>etiquetaGrupo(ESTADO_GRUPOS.find(g=>g.clave===clave),modoAccRapidas);
   const ACCIONES_RAPIDAS=[
     {clave:'caries',nombre:'Caries',color:'#E0564A',simbolo:'●'},
-    {clave:'restauracion',nombre:'Obturado',color:'#3E7BE0',simbolo:'●'},
+    {clave:'restauracion',nombre:'Restaurado',color:'#3E7BE0',simbolo:'●'},
     {clave:'grupo:sellante',nombre:nombreAccGrupo('sellante'),color:modoAccRapidas==='pendiente'?'#E0564A':'#3E7BE0',simbolo:'✳'},
     {clave:'grupo:endodoncia',nombre:nombreAccGrupo('endodoncia'),color:'#D9B23C',simbolo:'▲'},
     {clave:'grupo:corona',nombre:nombreAccGrupo('corona'),color:'#8B6FC7',simbolo:'⌂'},
@@ -2223,7 +2223,7 @@ function tabOdonto(p,c){
   const bloqueLeyenda=`<div class="leyenda">
       <span class="leyenda-titulo">Estado de la pieza</span>
       <span><b style="color:#E0564A">●</b>Caries</span>
-      <span><b style="color:#3E7BE0">●</b>Obturado</span>
+      <span><b style="color:#3E7BE0">●</b>Restaurado</span>
       ${ESTADO_GRUPOS.map(g=>g.colorInd?`<span><b style="color:${g.colorInd}">●</b>${esc(g.nombreInd)}</span><span><b style="color:${g.colorReal}">●</b>${esc(g.nombreReal)}</span>`:`<span><b style="color:${g.color}">●</b>${esc(g.nombre)}</span>`).join('')}
       <span><b style="color:var(--tinta-suave);border:1.5px solid currentColor;border-radius:50%;width:9px;height:9px;display:inline-block;background:none">&nbsp;</b>Tratamiento pendiente</span>
     </div>
@@ -6448,9 +6448,12 @@ function datosProdProfesional(pr,P){
       rp=rp||repartoAbonos(p);
       const costo=Number(t.costo)||0,cob=Math.min(costo,rp.porSesion[t.id]||0);
       const procs=(nombreSesion(t)||'Sesión sin detalle').split('\n').map(x=>x.trim()).filter(Boolean);
-      // honorario «valor final»: el acordado (fijo o por porcentaje); si no hay acuerdo, lo que queda: costo − laboratorio
-      const lab=Number(t.labCosto)||0,hon=Number(t.honorarioMonto)||0,acordado=hon>0;
-      const honFinal=acordado?hon:Math.max(0,costo-lab);
+      // honorario «valor final»: el acordado (fijo o por porcentaje); si no hay acuerdo, lo que queda: costo − laboratorio.
+      // Se cuenta según lo cobrado: si el paciente pagó la mitad, cuenta la mitad del honorario (al pagar todo, cuenta completo).
+      const lab=Number(t.labCosto)||0,honTotal=Number(t.honorarioMonto)||0,acordado=honTotal>0;
+      const fracCob=costo>0?Math.min(1,cob/costo):1;
+      const hon=Math.round(honTotal*fracCob*100)/100;
+      const honFinal=Math.round((acordado?honTotal:Math.max(0,costo-lab))*fracCob*100)/100;
       R.sesiones.push({fecha:t.fecha,paciente:p.nombre||'Sin nombre',pid:p.id,procs,costo,cobrado:cob,lab,honFinal,acordado,
         pct:t.honorarioTipo==='pct'&&t.honorarioPct!==undefined&&t.honorarioPct!==''?Number(t.honorarioPct):null,
         hon,honPag:Number(t.honorarioPagado)||0});
@@ -6507,7 +6510,7 @@ function verProdProfesional(id){
       <div class="kpi-card ${honDebe>0.004?'kpi-rojo':'kpi-teal'}"><span>Le debes</span><b>${usd(honDebe)}</b></div>
       <div class="kpi-card kpi-rosa"><span>Otros pagos (en «Gastos»)</span><b>${usd(R.otrosTotal)}</b></div>
     </div>
-    <p class="mini" style="margin:-4px 0 12px">${varP!==null?`Producción ${varP>=0?'+':''}${varP}% frente ${T.prev} (${usd(A.produccion)}). `:''}Solo cuenta las sesiones donde se eligió a ${esc(pr.nombre)} como profesional. Honorario = el acordado (monto fijo o porcentaje sobre costo − laboratorio); si no hay acuerdo, el valor final (costo − laboratorio). «Le debes» cuenta solo los honorarios acordados.</p>
+    <p class="mini" style="margin:-4px 0 12px">${varP!==null?`Producción ${varP>=0?'+':''}${varP}% frente ${T.prev} (${usd(A.produccion)}). `:''}Solo cuenta las sesiones donde se eligió a ${esc(pr.nombre)} como profesional. Honorario = el acordado (monto fijo o porcentaje sobre costo − laboratorio); si no hay acuerdo, el valor final (costo − laboratorio). El honorario se cuenta según lo que el paciente ya pagó: si falta cobrar, falta esa parte del honorario. «Le debes» cuenta solo los honorarios acordados.</p>
     <div class="bloque"><div class="barra-tit"><h3>Sesiones y procedimientos realizados</h3><span class="mini der">${R.sesiones.length} ${R.sesiones.length===1?'sesión':'sesiones'}</span></div>
       ${R.sesiones.length?`<table style="width:100%"><thead><tr><th style="width:92px">Fecha</th><th>Paciente</th><th>Procedimiento</th><th class="der">Costo</th><th class="der">Laboratorio</th><th class="der">Cobrado</th><th class="der">Honorario</th></tr></thead><tbody>
         ${R.sesiones.map(x=>`<tr><td class="num">${fechaCorta(x.fecha)}</td><td><button class="btn chico" onclick="abrir('${x.pid}')">${esc(x.paciente)}</button></td>
