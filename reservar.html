@@ -72,7 +72,10 @@ details.mas{margin:0 0 14px}details.mas summary{cursor:pointer;color:var(--acent
    ?c=<...>  → modo WhatsApp: los datos del consultorio vienen en el enlace y se arma un mensaje para su WhatsApp. */
 const APP='./';                 // dónde está la app del consultorio (relativo a esta página)
 const PIE='';                   // texto al pie (vacío en Mediks)
-const LOGO='icon-192.png';      // logo por defecto (vacío = diente)
+const LOGO='icon-192.png';
+/* Aviso al celular del consultorio (app gratuita «ntfy», suscrita a este tema). Solo se envía el día y la hora,
+   nunca el nombre ni el teléfono del paciente: los temas de ntfy son públicos. Vacío = sin aviso. */
+const AVISO_NTFY='mediks-citas-247e898f5a5a';      // logo por defecto (vacío = diente)
 const FB={proyecto:'mediks-cd708',clave:'AIzaSyB7P5khWZfGYzUWHltPtMsNs8QQHnL6Nvw'};
 const RAIZ=`https://firestore.googleapis.com/v1/projects/${FB.proyecto}/databases/(default)/documents`;
 const $=s=>document.querySelector(s);
@@ -177,7 +180,7 @@ function pintar(){
     $('#bloqueDatos').hidden=false;$('#err').textContent='';
     $('#enviar').textContent=`${directo?'Pedir mi cita':'Enviar por WhatsApp'} · ${textoFecha(fecha).split(' ').slice(0,2).join(' ')}, ${h}`;
     $('#bloqueDatos').scrollIntoView({behavior:'smooth',block:'nearest'});
-    if(!$('#nombre').value)setTimeout(()=>$('#nombre').focus({preventScroll:true}),350);
+    if(!$('#nombre').value)setTimeout(()=>{const n=$('#nombre');if(n)n.focus({preventScroll:true});},350);
   };
   if(conLugar.length){$('#dias').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>elegirDia(b.dataset.f));elegirDia(conLugar[0]);}
   $('#f').onsubmit=async e=>{
@@ -198,6 +201,7 @@ function pintar(){
         if(ocupada(fecha,hora)){const f0=fecha;b.disabled=false;b.textContent=textoBtn;
           elegirDia(f0);$('#bloqueDatos').hidden=false;$('#err').textContent='Esa hora acaba de ocuparse. Elige otra, por favor.';return;}
         await enviarSolicitud({n:nombre,t:tel,f:fecha,h:hora,m:motivo,c:nota});
+        avisarConsultorio(fecha,hora);
         listo({nombre,fecha,hora,motivo});
       }catch(x){b.disabled=false;b.textContent=textoBtn;
         err.textContent='No se pudo enviar. Revisa tu conexión e inténtalo de nuevo'+(cfg.w?', o escríbenos por WhatsApp.':'.');
@@ -212,6 +216,12 @@ function pintar(){
       (nota?`\n💬 Comentario: ${nota}`:'')+`\n\n(Para el consultorio — agregar a la agenda: ${enlace} )`;
     location.href=`https://wa.me/${String(cfg.w).replace(/\D/g,'')}?text=${encodeURIComponent(txt)}`;
   };
+}
+function avisarConsultorio(fecha,hora){
+  if(!AVISO_NTFY)return;
+  try{fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify({topic:AVISO_NTFY,title:'Nueva cita pedida',
+    message:`Para el ${textoFecha(fecha)} a las ${hora}. Ábrela en Mediks para aceptarla.`,
+    tags:['calendar'],click:new URL(APP,location.href).href})}).catch(()=>{});}catch(e){}
 }
 function listo(x){
   const logo=cfg.logo||LOGO;
