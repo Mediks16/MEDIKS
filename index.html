@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-12b">
+<meta name="app-version" content="2026-11-12c">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -7704,7 +7704,7 @@ function abrirCita(id,prefill){
     ${origenTxt?`<p class="mini" style="margin-top:0">Esta cita se generó automáticamente desde ${origenTxt}. Si la editas o eliminas aquí, no se borra ese registro original.</p>`:''}
     <label class="campo"><span>Paciente</span><input type="text" id="ci_pac" list="dlPac" value="${esc(c.nombre||'')}" placeholder="Escribe para buscar o escribe uno nuevo"></label>
     <datalist id="dlPac">${listaPac}</datalist>
-    <label class="chk" id="ci_nuevoWrap" style="display:none;margin:-4px 0 10px"><input type="checkbox" id="ci_crearPac" checked> Es un paciente nuevo: crear su ficha con este nombre y teléfono</label>
+    <label class="chk" id="ci_nuevoWrap" style="display:none;margin:-4px 0 10px"><input type="checkbox" id="ci_crearPac"> Es un paciente nuevo: crear su ficha con este nombre y teléfono</label>
     <div class="grid">
       <label class="campo"><span>Teléfono</span><input type="tel" id="ci_tel" value="${esc(c.telefono||'')}"></label>
       <label class="campo"><span>Fecha</span><input type="date" id="ci_fecha" value="${esc(c.fecha)}"></label>
