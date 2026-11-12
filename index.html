@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-11b">
+<meta name="app-version" content="2026-11-12a">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -2425,7 +2425,11 @@ function completarProcedimientosVacios(){
   }));
 }
 function sincronizarInicialAuto(){
-  if(typeof vistaOdontoInicial!=='undefined'&&vistaOdontoInicial)return;
+  if(typeof vistaOdontoInicial!=='undefined'&&vistaOdontoInicial){
+    // se está corrigiendo el inicial a mano: desde ahora no se reemplaza con el actual (se perdería la corrección)
+    const pv=typeof selId!=='undefined'&&pac(selId);if(pv&&pv.odontogramaInicial&&pv.odontogramaInicial.auto)delete pv.odontogramaInicial.auto;
+    return;
+  }
   (datos.pacientes||[]).forEach(p=>{
     const ini=p.odontogramaInicial;
     if((p.tratamientos||[]).length){if(ini&&ini.auto)delete ini.auto;return;}
@@ -2803,6 +2807,17 @@ function revertirRegistroOdonto(p,reg){
 /* Sesiones guardadas antes de que existiera el registro: se deduce de las líneas (usa el odontograma inicial como referencia). */
 /* Después de eliminar una sesión: lo que esa sesión tocó y que ninguna otra sesión justifica (p. ej. una restauración marcada con el botón rápido
    del odontograma) vuelve a como estaba en el odontograma inicial, o queda sano si el inicial no tenía nada ahí. */
+/* Quita de la pieza solo el estado de la sesión (ej. endo_real) y repone el de ese mismo grupo que había en el inicial;
+   los demás estados de la pieza (ej. una corona marcada a mano) quedan como están. */
+function quitarEstadoDeSesion(act,estado,i0){
+  const g=grupoDeEstado(estado),lista=codigosEstado(act),pos=lista.indexOf(estado);
+  if(pos<0)return false;
+  const rep=codigosEstado(i0||{}).find(c=>c!==estado&&g&&grupoDeEstado(c)===g&&!lista.includes(c));
+  if(rep)lista.splice(pos,1,rep);else lista.splice(pos,1);
+  guardarCodigosEstado(act,lista);
+  return true;
+}
+function carasDeLinea(l,n){return (l.caras&&l.caras.length)?l.caras:[(tipoPieza(n)==='molar'||tipoPieza(n)==='premolar')?'O':'V'];}
 function limpiarHuerfanosOdonto(p,t){
   const od=p.odontograma=p.odontograma||{},ini=(p.odontogramaInicial&&p.odontogramaInicial.dientes)||{},tocadas=[];
   const reclamado=(n,estado,cara)=>(p.tratamientos||[]).some(r=>(r.lineas||[]).some(l=>{
@@ -2816,15 +2831,14 @@ function limpiarHuerfanosOdonto(p,t){
     piezasDeTexto(l.pieza).forEach(n=>{
       const act=od[n];if(!act)return;
       if(mapa.tipo==='cara'&&act.caras){
-        ['V','M','O','D','L'].forEach(c=>{
+        carasDeLinea(l,n).forEach(c=>{   // solo las caras de esta sesión (las demás pudieron marcarse a mano)
           if(act.caras[c]===mapa.estado&&!reclamado(n,mapa.estado,c)){
             const antes=ini[n]&&ini[n].caras&&ini[n].caras[c];
             if(antes)act.caras[c]=antes;else if(mapa.estado==='obturado')act.caras[c]='caries';else delete act.caras[c];tocadas.push(n);}
         });
         if(!Object.keys(act.caras).length)delete act.caras;
       }else if(mapa.tipo==='general'&&codigosEstado(act).includes(mapa.estado)&&!reclamado(n,mapa.estado,null)){
-        const i0=ini[n]||{};
-        ['general','adicionales'].forEach(c=>{if(i0[c]!==undefined)act[c]=JSON.parse(JSON.stringify(i0[c]));else delete act[c];});tocadas.push(n);
+        if(quitarEstadoDeSesion(act,mapa.estado,ini[n]))tocadas.push(n);
       }
       if(!Object.keys(act).length)delete od[n];
     });
@@ -2878,9 +2892,7 @@ function revertirSesionAntigua(p,t){
         if(act.caras&&!Object.keys(act.caras).length)delete act.caras;
         if(toco)piezas.push(n);
       }else if(codigosEstado(act).includes(mapa.estado)){
-        const i0=ini[n]||{};
-        ['general','adicionales'].forEach(c=>{if(i0[c]!==undefined)act[c]=JSON.parse(JSON.stringify(i0[c]));else delete act[c];});
-        piezas.push(n);
+        if(quitarEstadoDeSesion(act,mapa.estado,ini[n]))piezas.push(n);
       }
       if(!Object.keys(act).length)delete od[n];
     });
@@ -7412,10 +7424,16 @@ async function sincronizarDesdeGoogle(forzar){
   ultimaSincronizacionGoogle=ahora;sincronizandoGoogle=true;
   try{
     const desde=addDias(hoy(),-7),hasta=addDias(hoy(),60);
-    const r=await gapi.client.calendar.events.list({calendarId:'primary',
-      timeMin:new Date(desde+'T00:00:00').toISOString(),timeMax:new Date(hasta+'T23:59:59').toISOString(),
-      singleEvents:true,maxResults:250});
-    const eventos=(r.result.items||[]).filter(ev=>ev.start&&ev.start.dateTime&&ev.status!=='cancelled');
+    // Google entrega los eventos por páginas (máx. 250 cada una): se leen TODAS. Si una página falla, se sale sin borrar nada.
+    const todos=[];let pageToken=null,paginas=0;
+    do{
+      const r=await gapi.client.calendar.events.list({calendarId:'primary',
+        timeMin:new Date(desde+'T00:00:00').toISOString(),timeMax:new Date(hasta+'T23:59:59').toISOString(),
+        singleEvents:true,maxResults:250,...(pageToken?{pageToken}:{})});
+      todos.push(...(r.result.items||[]));pageToken=r.result.nextPageToken||null;
+      if(++paginas>40)throw new Error('demasiadas páginas de Google Calendar');
+    }while(pageToken);
+    const eventos=todos.filter(ev=>ev.start&&ev.start.dateTime&&ev.status!=='cancelled');
     const idsVistos=new Set(eventos.map(ev=>ev.id));
     const pad=n=>String(n).padStart(2,'0');
     let cambios=false;
@@ -7449,6 +7467,7 @@ async function sincronizarDesdeGoogle(forzar){
     const paraBorrar=(datos.citas||[]).filter(c=>c.googleEventId&&!idsVistos.has(c.googleEventId)&&c.fecha>=desde&&c.fecha<=hasta);
     if(paraBorrar.length){
       const idsBorrar=new Set(paraBorrar.map(c=>c.id));
+      paraBorrar.forEach(c=>anotarEliminado('cita:'+c.id));   // así la nube no la devuelve y los otros equipos también la quitan
       datos.citas=(datos.citas||[]).filter(c=>!idsBorrar.has(c.id));
       cambios=true;
     }
@@ -7549,7 +7568,7 @@ function pintarGridAgenda(fechas){
     const citasDia=(datos.citas||[]).filter(c=>c.fecha===f);
     const slots=[];
     for(let m=iniMin;m<finMin;m+=intervalo)
-      slots.push(`<div class="ag-slot" style="top:${(m-iniMin)*px}px;height:${intervalo*px}px" data-fecha="${f}" data-hora="${horaLabel(m)}"></div>`);
+      slots.push(`<div class="ag-slot" style="top:${(m-iniMin)*px}px;height:${intervalo*px}px" data-fecha="${f}" data-hora="${horaLabel(m).padStart(5,'0')}"></div>`);
     const cols=columnasCitas(citasDia);
     const citasHTML=citasDia.map(c=>{
       const top=(minutos(c.hora)-iniMin)*px, h=Math.max(20,(Number(c.duracion)||30)*px-2);
@@ -7709,7 +7728,9 @@ function abrirCita(id,prefill){
     const nombre=$('#ci_pac').value.trim();
     if(!nombre){avisar('Escribe el nombre del paciente');return false;}
     if(!$('#ci_fecha').value||!$('#ci_hora').value){avisar('Falta la fecha o la hora');return false;}
-    let encontrado=datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nombre.toLowerCase())||buscarPacientePorNombre(nombre);
+    const pacPrevio=c.pacienteId?pac(c.pacienteId):null;   // con dos pacientes del mismo nombre, la cita no debe cambiar de paciente
+    let encontrado=(pacPrevio&&(pacPrevio.nombre||'').trim().toLowerCase()===nombre.toLowerCase()?pacPrevio:null)
+      ||datos.pacientes.find(p=>(p.nombre||'').trim().toLowerCase()===nombre.toLowerCase())||buscarPacientePorNombre(nombre);
     const telEscrito=$('#ci_tel').value.trim();
     // paciente nuevo: se crea la ficha y la cita queda enlazada
     if(!encontrado&&$('#ci_nuevoWrap').style.display!=='none'&&$('#ci_crearPac').checked){
@@ -9213,8 +9234,11 @@ function verSolicitudes(){
       ${ch?`<p class="mini" style="color:var(--alerta);margin:6px 0 0">⚠ Ya tienes una cita a esa hora (${esc(ch.nombre||'')} ${esc(ch.hora)}).</p>`:''}
       ${x.f<hoy()?`<p class="mini" style="color:var(--alerta);margin:6px 0 0">⚠ Esta fecha ya pasó.</p>`:''}
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button class="btn primario chico" type="button" onclick="aceptarSolicitud('${esc(x.id)}')">Aceptar</button>
-        <button class="btn chico" type="button" onclick="rechazarSolicitud('${esc(x.id)}')">Rechazar</button></div></div>`;}).join('')}`,null);
+        <button class="btn primario chico" type="button" data-solacep="${esc(x.id)}">Aceptar</button>
+        <button class="btn chico" type="button" data-solrech="${esc(x.id)}">Rechazar</button></div></div>`;}).join('')}`,null);
+  // el id llega desde la página pública: se pasa por data-atributo, nunca dentro de código, para que no pueda ejecutar nada
+  document.querySelectorAll('#modalCont [data-solacep]').forEach(b=>b.onclick=()=>aceptarSolicitud(b.dataset.solacep));
+  document.querySelectorAll('#modalCont [data-solrech]').forEach(b=>b.onclick=()=>rechazarSolicitud(b.dataset.solrech));
 }
 function aceptarSolicitud(id){
   const x=solicitudesPend.find(s=>s.id===id);if(!x)return;
