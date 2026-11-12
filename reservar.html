@@ -7,7 +7,7 @@
 <title>Agenda tu cita</title>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <style>
-:root{--fondo:#f3f6f6;--papel:#fff;--tinta:#16302d;--suave:#5b6e6b;--linea:#d9e3e1;--acento:#0f7b6c;--acento2:#0b5f53;--wsp:#25d366;--alerta:#b3372b}
+:root{--fondo:#f1f8fc;--papel:#fff;--tinta:#0c2a3d;--suave:#557083;--linea:#d3e5f0;--acento:#0284c7;--acento2:#0369a1;--wsp:#38bdf8;--alerta:#b3372b}
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--tinta)}
 main{max-width:520px;margin:0 auto;padding:16px 16px 40px}
@@ -26,11 +26,11 @@ textarea{min-height:70px;resize:vertical}
 .horas{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;margin-bottom:6px}
 .horas button{-webkit-tap-highlight-color:transparent;font:inherit;font-size:16px;padding:12px 0;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta);cursor:pointer}
 .horas button[aria-pressed="true"]{background:var(--acento);border-color:var(--acento);color:#fff;font-weight:600}
-.horas button.ocup{background:#eef1f1;color:#9aa6a4;border-style:dashed;cursor:not-allowed;line-height:1.1}
+.horas button.ocup{background:#eef3f6;color:#9aabb6;border-style:dashed;cursor:not-allowed;line-height:1.1}
 .horas button.ocup small{display:block;font-size:11px}
 a.btn{text-decoration:none}
 .horas .vacio{grid-column:1/-1;color:var(--suave);font-size:14px;margin:0}
-.btn{width:100%;font:inherit;font-weight:700;font-size:17px;padding:14px;border:0;border-radius:12px;background:var(--wsp);color:#073b1d;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn{width:100%;font:inherit;font-weight:700;font-size:17px;padding:14px;border:0;border-radius:12px;background:var(--wsp);color:#062c44;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .err{color:var(--alerta);font-size:14px;margin:-4px 0 12px;min-height:0}
 .nota{font-size:13px;color:var(--suave);text-align:center;margin:14px 0 0}
@@ -45,7 +45,8 @@ a.btn{text-decoration:none}
 .dias button{-webkit-tap-highlight-color:transparent;flex:none;scroll-snap-align:start;min-width:64px;font:inherit;padding:8px 6px;border:1px solid var(--linea);border-radius:12px;background:#fff;color:var(--tinta);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
 .dias button b{font-size:15px}.dias button span{font-size:12px;color:var(--suave)}
 .dias button[aria-pressed="true"]{background:var(--acento);border-color:var(--acento);color:#fff}
-.dias button[aria-pressed="true"] span{color:#e6f4f1}
+.dias button[aria-pressed="true"] span{color:#e0f2fe}
+.dias button:disabled{background:#eef3f6;color:#9aabb6;border-style:dashed;cursor:not-allowed}.dias button:disabled span{color:#9aabb6}
 .vacio{color:var(--suave);font-size:14px;margin:0}
 details.mas{margin:0 0 14px}details.mas summary{cursor:pointer;color:var(--acento);font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){.horas button{transition:background .15s}}
@@ -127,7 +128,9 @@ function pintar(){
       <p class="sub">Toca el día y la hora. Te confirmamos por WhatsApp.</p></div>
     <form class="card" id="f" novalidate>
       <p class="paso"><i>1</i> Elige el día</p>
-      ${conLugar.length?`<div class="dias" id="dias" role="group" aria-label="Día">${conLugar.map(f=>`<button type="button" data-f="${f}" aria-pressed="false">${etiquetaDia(f)}</button>`).join('')}</div>`
+      ${conLugar.length?`<div class="dias" id="dias" role="group" aria-label="Día">${fechas.map(f=>libresDe(f).length
+          ?`<button type="button" data-f="${f}" aria-pressed="false">${etiquetaDia(f)}</button>`
+          :`<button type="button" disabled aria-label="${esc(textoFecha(f))}, completo">${etiquetaDia(f).replace(/<span>.*<\/span>/,'<span>Completo</span>')}</button>`).join('')}</div>`
         :'<p class="vacio">Por ahora no hay horarios libres. Escríbenos por WhatsApp.</p>'}
       <div id="bloqueHora" hidden><p class="paso"><i>2</i> Elige la hora · <span id="diaTxt"></span></p><div class="horas" id="horas" role="group" aria-label="Hora"></div></div>
       <div id="bloqueDatos" hidden>
@@ -149,8 +152,10 @@ function pintar(){
     fecha=f;hora='';
     $('#dias').querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===f));
     $('#diaTxt').textContent=textoFecha(f);
-    const hs=libresDe(f);
-    $('#horas').innerHTML=hs.map(h=>`<button type="button" aria-pressed="false" data-h="${h}">${h}</button>`).join('');
+    const hs=horasDe(f);   // se muestran todas: las ocupadas aparecen grises y no se pueden tocar
+    $('#horas').innerHTML=hs.map(h=>ocupada(f,h)
+      ?`<button type="button" class="ocup" disabled aria-label="${h} ocupado">${h}<small>Ocupado</small></button>`
+      :`<button type="button" aria-pressed="false" data-h="${h}">${h}</button>`).join('');
     $('#horas').querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>elegirHora(b.dataset.h));
     $('#bloqueHora').hidden=false;$('#bloqueDatos').hidden=true;
     $('#bloqueHora').scrollIntoView({behavior:'smooth',block:'nearest'});
