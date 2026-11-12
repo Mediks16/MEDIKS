@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Agenda tu cita</title>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <style>
 :root{--fondo:#f3f6f6;--papel:#fff;--tinta:#16302d;--suave:#5b6e6b;--linea:#d9e3e1;--acento:#0f7b6c;--acento2:#0b5f53;--wsp:#25d366;--alerta:#b3372b}
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--tinta)}
-main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
-.cab{text-align:center;margin:8px 0 18px}
-.cab .logo{width:96px;height:96px;border-radius:22px;object-fit:cover;display:block;margin:0 auto 10px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+main{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+.cab{text-align:center;margin:4px 0 14px}
+.cab .logo{width:72px;height:72px;border-radius:22px;object-fit:cover;display:block;margin:0 auto 10px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
 .cab .ico{width:56px;height:56px;border-radius:16px;background:var(--acento);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:8px}
-h1{font-size:22px;margin:0 0 4px}
+h1{font-size:21px;margin:0 0 4px}
 .sub{color:var(--suave);font-size:14px;margin:0}
 .card{background:var(--papel);border:1px solid var(--linea);border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
 label{display:block;margin:0 0 14px}
@@ -22,8 +23,8 @@ input,select,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid
 input:focus,select:focus,textarea:focus{outline:2px solid var(--acento);outline-offset:0;border-color:var(--acento)}
 textarea{min-height:70px;resize:vertical}
 .fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.horas{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-bottom:14px}
-.horas button{-webkit-tap-highlight-color:transparent;font:inherit;font-size:15px;padding:9px 0;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta);cursor:pointer}
+.horas{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;margin-bottom:6px}
+.horas button{-webkit-tap-highlight-color:transparent;font:inherit;font-size:16px;padding:12px 0;border:1px solid var(--linea);border-radius:10px;background:#fff;color:var(--tinta);cursor:pointer}
 .horas button[aria-pressed="true"]{background:var(--acento);border-color:var(--acento);color:#fff;font-weight:600}
 .horas button.ocup{background:#eef1f1;color:#9aa6a4;border-style:dashed;cursor:not-allowed;line-height:1.1}
 .horas button.ocup small{display:block;font-size:11px}
@@ -36,6 +37,17 @@ a.btn{text-decoration:none}
 .pie{font-size:12px;color:var(--suave);text-align:center;margin-top:24px}
 .pie a{color:var(--suave)}
 .malo{text-align:center;padding:40px 10px;color:var(--suave)}
+.paso{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin:2px 0 10px}
+.paso i{font-style:normal;width:24px;height:24px;border-radius:50%;background:var(--acento);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.paso span{font-weight:400;color:var(--suave)}
+#bloqueHora,#bloqueDatos{margin-top:18px}
+.dias{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;margin:0 -4px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.dias button{-webkit-tap-highlight-color:transparent;flex:none;scroll-snap-align:start;min-width:64px;font:inherit;padding:8px 6px;border:1px solid var(--linea);border-radius:12px;background:#fff;color:var(--tinta);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.dias button b{font-size:15px}.dias button span{font-size:12px;color:var(--suave)}
+.dias button[aria-pressed="true"]{background:var(--acento);border-color:var(--acento);color:#fff}
+.dias button[aria-pressed="true"] span{color:#e6f4f1}
+.vacio{color:var(--suave);font-size:14px;margin:0}
+details.mas{margin:0 0 14px}details.mas summary{cursor:pointer;color:var(--acento);font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){.horas button{transition:background .15s}}
 </style>
 </head>
@@ -48,7 +60,7 @@ a.btn{text-decoration:none}
    ?c=<...>  → modo WhatsApp: los datos del consultorio vienen en el enlace y se arma un mensaje para su WhatsApp. */
 const APP='./';                 // dónde está la app del consultorio (relativo a esta página)
 const PIE='';                   // texto al pie (vacío en Mediks)
-const LOGO='icon-512.png';      // logo por defecto (vacío = diente)
+const LOGO='icon-192.png';      // logo por defecto (vacío = diente)
 const FB={proyecto:'mediks-cd708',clave:'AIzaSyB7P5khWZfGYzUWHltPtMsNs8QQHnL6Nvw'};
 const RAIZ=`https://firestore.googleapis.com/v1/projects/${FB.proyecto}/databases/(default)/documents`;
 const $=s=>document.querySelector(s);
@@ -101,57 +113,77 @@ function invalido(){$('#app').innerHTML='<div class="malo"><h1>Enlace no válido
 function pintar(){
   if(!cfg||(!directo&&!cfg.w)||!Array.isArray(cfg.d)||!Array.isArray(cfg.h)){invalido();return;}
   document.title='Agenda tu cita · '+(cfg.n||'Consultorio');
-  const fechas=fechasDisponibles(),logo=cfg.logo||LOGO;
+  const fechas=fechasDisponibles(),logo=cfg.logo||LOGO,hoyEc=ahoraEc().fecha;
   const motivos=['Primera consulta / valoración','Limpieza dental','Dolor o urgencia','Control de ortodoncia','Blanqueamiento','Control','Otro'];
-  const libres=f=>horasDe(f).filter(h=>!ocupada(f,h)).length;
+  const libresDe=f=>horasDe(f).filter(h=>!ocupada(f,h));
+  const conLugar=fechas.filter(f=>libresDe(f).length);
+  /* Se recuerdan nombre y teléfono en este celular, así la próxima vez no hay que escribirlos. */
+  let guardado={};try{guardado=JSON.parse(localStorage.getItem('reserva-datos')||'{}')||{};}catch(e){}
+  const etiquetaDia=f=>{const d=new Date(f+'T12:00:00Z');
+    const arriba=f===hoyEc?'Hoy':f===sumarDias(hoyEc,1)?'Mañana':DIAS[d.getUTCDay()].slice(0,3).replace(/^./,c=>c.toUpperCase());
+    return `<b>${arriba}</b><span>${d.getUTCDate()} ${MESES[d.getUTCMonth()].slice(0,3)}</span>`;};
   $('#app').innerHTML=`
-    <div class="cab">${logo?`<img class="logo" src="${esc(logo)}" alt="${esc(cfg.n||'Logo del consultorio')}">`:'<div class="ico" aria-hidden="true">🦷</div>'}<h1>${esc(cfg.n||'Agenda tu cita')}</h1>
-      <p class="sub">Elige el día y la hora que prefieras. El consultorio te confirmará por WhatsApp.</p></div>
+    <div class="cab">${logo?`<img class="logo" src="${esc(logo)}" alt="${esc(cfg.n||'Logo del consultorio')}" width="72" height="72" decoding="async">`:'<div class="ico" aria-hidden="true">🦷</div>'}<h1>${esc(cfg.n||'Agenda tu cita')}</h1>
+      <p class="sub">Toca el día y la hora. Te confirmamos por WhatsApp.</p></div>
     <form class="card" id="f" novalidate>
-      <label><span>Tu nombre y apellido</span><input id="nombre" autocomplete="name" maxlength="120" required></label>
-      <label><span>Tu número de WhatsApp</span><input id="tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="Ej. 0991234567" required></label>
-      <label><span>Motivo de la cita</span><select id="motivo">${motivos.map(m=>`<option>${m}</option>`).join('')}</select></label>
-      <label><span>Día</span><select id="fecha">${fechas.length?fechas.map(f=>{const sinLugar=directo&&!libres(f);
-        return `<option value="${f}" ${sinLugar?'disabled':''}>${textoFecha(f).replace(/^./,c=>c.toUpperCase())}${sinLugar?' — completo':''}</option>`;}).join(''):'<option value="">No hay días disponibles</option>'}</select></label>
-      <span style="display:block;font-size:13px;font-weight:600;color:var(--suave);margin-bottom:5px">Hora</span>
-      <div class="horas" id="horas" role="group" aria-label="Hora"></div>
-      <label><span>Comentario (opcional)</span><textarea id="nota" maxlength="1000" placeholder="Algo que debamos saber"></textarea></label>
-      <p class="err" id="err" role="alert"></p>
-      <button class="btn" id="enviar" type="submit">${directo?'Pedir mi cita':'Enviar solicitud por WhatsApp'}</button>
-      <p class="nota">${directo?'Tu solicitud le llega al consultorio al instante y te confirmarán por WhatsApp.':'Se abrirá WhatsApp con tu solicitud lista. Solo tienes que tocar «Enviar».'}</p>
+      <p class="paso"><i>1</i> Elige el día</p>
+      ${conLugar.length?`<div class="dias" id="dias" role="group" aria-label="Día">${conLugar.map(f=>`<button type="button" data-f="${f}" aria-pressed="false">${etiquetaDia(f)}</button>`).join('')}</div>`
+        :'<p class="vacio">Por ahora no hay horarios libres. Escríbenos por WhatsApp.</p>'}
+      <div id="bloqueHora" hidden><p class="paso"><i>2</i> Elige la hora · <span id="diaTxt"></span></p><div class="horas" id="horas" role="group" aria-label="Hora"></div></div>
+      <div id="bloqueDatos" hidden>
+        <p class="paso"><i>3</i> Tus datos</p>
+        <label><span>Nombre y apellido</span><input id="nombre" autocomplete="name" maxlength="120" required value="${esc(guardado.n||'')}"></label>
+        <label><span>WhatsApp</span><input id="tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="0991234567" required value="${esc(guardado.t||'')}"></label>
+        <details class="mas"><summary>Agregar motivo o comentario (opcional)</summary>
+          <label style="margin-top:10px"><span>Motivo</span><select id="motivo"><option value="">Consulta</option>${motivos.map(m=>`<option>${m}</option>`).join('')}</select></label>
+          <label><span>Comentario</span><textarea id="nota" maxlength="1000" placeholder="Algo que debamos saber"></textarea></label>
+        </details>
+        <p class="err" id="err" role="alert"></p>
+        <button class="btn" id="enviar" type="submit">${directo?'Pedir mi cita':'Enviar por WhatsApp'}</button>
+        <p class="nota">${directo?'Te confirmaremos por WhatsApp.':'Se abrirá WhatsApp con tu pedido listo: solo toca «Enviar».'}</p>
+      </div>
     </form>
     ${PIE?`<p class="pie">${PIE}</p>`:''}`;
-  const selF=$('#fecha');if(selF.selectedOptions[0]&&selF.selectedOptions[0].disabled){const o=[...selF.options].find(o=>!o.disabled);if(o)selF.value=o.value;}
-  let hora='';
-  const pintarHoras=()=>{
-    const f=$('#fecha').value,hs=f?horasDe(f):[];hora='';
-    $('#horas').innerHTML=hs.length?hs.map(h=>ocupada(f,h)
-      ?`<button type="button" class="ocup" disabled aria-label="${h} ocupado">${h}<small>Ocupado</small></button>`
-      :`<button type="button" aria-pressed="false" data-h="${h}">${h}</button>`).join(''):'<p class="vacio">No hay horas disponibles este día.</p>';
-    $('#horas').querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{hora=b.dataset.h;
-      $('#horas').querySelectorAll('[data-h]').forEach(x=>x.setAttribute('aria-pressed',x===b));$('#err').textContent='';});
+  let fecha='',hora='';
+  const elegirDia=f=>{
+    fecha=f;hora='';
+    $('#dias').querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===f));
+    $('#diaTxt').textContent=textoFecha(f);
+    const hs=libresDe(f);
+    $('#horas').innerHTML=hs.map(h=>`<button type="button" aria-pressed="false" data-h="${h}">${h}</button>`).join('');
+    $('#horas').querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>elegirHora(b.dataset.h));
+    $('#bloqueHora').hidden=false;$('#bloqueDatos').hidden=true;
+    $('#bloqueHora').scrollIntoView({behavior:'smooth',block:'nearest'});
   };
-  $('#fecha').onchange=pintarHoras;pintarHoras();
+  const elegirHora=h=>{
+    hora=h;
+    $('#horas').querySelectorAll('[data-h]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.h===h));
+    $('#bloqueDatos').hidden=false;$('#err').textContent='';
+    $('#enviar').textContent=`${directo?'Pedir mi cita':'Enviar por WhatsApp'} · ${textoFecha(fecha).split(' ').slice(0,2).join(' ')}, ${h}`;
+    $('#bloqueDatos').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(!$('#nombre').value)setTimeout(()=>$('#nombre').focus({preventScroll:true}),350);
+  };
+  if(conLugar.length){$('#dias').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>elegirDia(b.dataset.f));elegirDia(conLugar[0]);}
   $('#f').onsubmit=async e=>{
     e.preventDefault();
-    const nombre=$('#nombre').value.trim(),tel=$('#tel').value.trim(),fecha=$('#fecha').value;
+    const nombre=$('#nombre').value.trim(),tel=$('#tel').value.trim();
     const err=$('#err');
-    if(nombre.length<2){err.textContent='Escribe tu nombre.';$('#nombre').focus();return;}
-    if(tel.replace(/\D/g,'').length<9){err.textContent='Escribe tu número de WhatsApp completo.';$('#tel').focus();return;}
     if(!fecha){err.textContent='Elige un día.';return;}
     if(!hora){err.textContent='Elige una hora.';return;}
+    if(nombre.length<2){err.textContent='Escribe tu nombre.';$('#nombre').focus();return;}
+    if(tel.replace(/\D/g,'').length<9){err.textContent='Escribe tu número de WhatsApp completo.';$('#tel').focus();return;}
     err.textContent='';
-    const motivo=$('#motivo').value,nota=$('#nota').value.trim();
+    try{localStorage.setItem('reserva-datos',JSON.stringify({n:nombre,t:tel}));}catch(e){}
+    const motivo=$('#motivo').value||'Consulta',nota=$('#nota').value.trim();
     if(directo){
-      const b=$('#enviar');b.disabled=true;b.textContent='Enviando…';
+      const b=$('#enviar'),textoBtn=b.textContent;b.disabled=true;b.textContent='Enviando…';
       try{
         const a=await leerAgenda();ocupadas=a.ocupadas||{};       // por si alguien tomó esa hora hace un momento
-        if(ocupada(fecha,hora)){const n=$('#nombre').value,t=$('#tel').value,mo=$('#motivo').value,no=$('#nota').value;
-          pintar();$('#nombre').value=n;$('#tel').value=t;$('#motivo').value=mo;$('#nota').value=no;$('#fecha').value=fecha;$('#fecha').onchange();
-          $('#err').textContent='Esa hora acaba de ocuparse. Elige otra, por favor.';return;}
+        if(ocupada(fecha,hora)){const f0=fecha;b.disabled=false;b.textContent=textoBtn;
+          elegirDia(f0);$('#bloqueDatos').hidden=false;$('#err').textContent='Esa hora acaba de ocuparse. Elige otra, por favor.';return;}
         await enviarSolicitud({n:nombre,t:tel,f:fecha,h:hora,m:motivo,c:nota});
         listo({nombre,fecha,hora,motivo});
-      }catch(x){b.disabled=false;b.textContent='Pedir mi cita';
+      }catch(x){b.disabled=false;b.textContent=textoBtn;
         err.textContent='No se pudo enviar. Revisa tu conexión e inténtalo de nuevo'+(cfg.w?', o escríbenos por WhatsApp.':'.');
         if(cfg.w&&!document.getElementById('wspAlt')){const a=document.createElement('a');a.id='wspAlt';a.className='btn';a.style.marginTop='10px';a.textContent='Pedir por WhatsApp';
           a.href=`https://wa.me/${String(cfg.w).replace(/\D/g,'')}?text=${encodeURIComponent(`Hola 👋 Quisiera agendar una cita.\n\n👤 Nombre: ${nombre}\n📱 Teléfono: ${tel}\n🦷 Motivo: ${motivo}\n📅 Día: ${textoFecha(fecha)}\n🕐 Hora: ${hora}`+(nota?`\n💬 Comentario: ${nota}`:''))}`;
