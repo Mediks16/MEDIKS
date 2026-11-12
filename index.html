@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-12a">
+<meta name="app-version" content="2026-11-12b">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -9094,7 +9094,7 @@ function verCitasLinea(){
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
           <button class="btn primario chico" type="button" onclick="copiarEnlaceCitas()">Copiar enlace</button>
           <button class="btn chico" type="button" onclick="window.open(enlaceCitasLinea(),'_blank')">Ver cómo lo ven los pacientes</button>
-          <button class="btn chico" type="button" onclick="window.open('https://wa.me/?text='+encodeURIComponent('Agenda tu cita aquí: '+enlaceCitasLinea()),'_blank')">Compartir por WhatsApp</button></div>`
+          <button class="btn chico" type="button" onclick="window.open('https://wa.me/?text='+encodeURIComponent('📅 Agenda tu cita aquí 👇'+String.fromCharCode(10)+enlaceCitasLinea()),'_blank')">Compartir por WhatsApp</button></div>`
       :'<p class="mini" style="margin-top:0;color:var(--alerta)">Completa abajo el número de WhatsApp del consultorio, los días y el horario para crear tu enlace.</p>'}
     </div>
     <div class="bloque"><h3 style="margin-top:0">Horario que verán los pacientes</h3>
