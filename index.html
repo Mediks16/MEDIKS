@@ -489,6 +489,18 @@ body.imprimiendo #impresion{display:block;padding:8px}
 dialog.ancho{max-width:1060px}
 .rx-previa{background:#eef2f5;border:1px solid var(--linea);border-radius:10px;padding:10px;overflow:hidden;margin-top:10px}
 .rx-previa-hoja{background:#fff;width:1000px;padding:14px;transform-origin:0 0;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.med-tarj{display:flex;gap:12px;align-items:center;border:1px solid var(--linea);border-left:4px solid var(--clinico);border-radius:9px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.med-num{width:28px;height:28px;border-radius:50%;background:var(--clinico);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+.med-res{flex:1;min-width:0}.med-res b{display:block}.med-res>span{display:block;font-size:13px;color:var(--tinta-suave)}
+.med-falta{color:var(--alerta);font-style:normal;font-weight:600}
+.med-acc{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.med-caja{border:1px solid var(--linea);border-radius:9px;padding:12px 14px;margin-bottom:10px;background:#fff}
+.med-caja.nuevo{border:2px dashed var(--clinico);background:var(--clinico-claro)}
+.med-caja.editando{border:2px solid var(--clinico)}
+.med-caja input::placeholder{color:#aab6bf;font-style:italic}
+.med-etq{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:#fff;color:var(--clinico);border:1px solid currentColor;margin-left:8px}
+.med-deshacer{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#FEF3C7;color:#78350F;border-radius:9px;padding:8px 12px;margin-bottom:10px;font-size:14px}
+@media (max-width:560px){.med-tarj{flex-wrap:wrap}.med-acc{width:100%;justify-content:flex-start;padding-left:40px}}
 .receta-barra{height:7px;background:linear-gradient(90deg,#0C1B33,#1F5FA8);margin-bottom:4px}
 @media (max-width:760px){
   aside{position:absolute;z-index:5;height:calc(100% - 56px);bottom:0;box-shadow:0 0 40px rgba(0,0,0,.12)}
@@ -5006,6 +5018,7 @@ function renderEditorReceta(p,c){
   const r=(p.recetas||[]).find(x=>x.id===recetaEditando);
   if(!r){recetaEditando=null;pintarVista();return;}
   r.medicamentos=r.medicamentos&&r.medicamentos.length?r.medicamentos:[{}];
+  if(medRxId!==r.id){medRxId=r.id;medAbiertoRx=null;}
   c.innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn chico" onclick="cerrarEditorReceta()">← Volver a recetas</button>
       <button class="btn chico" onclick="vistaPreviaReceta('${r.id}')" title="Mira cómo saldrá la receta antes de imprimirla o enviarla">👁 Vista previa</button></div>
@@ -5026,28 +5039,37 @@ function renderEditorReceta(p,c){
       </div></div>
     <div class="bloque"><div class="barra-tit"><h3>Medicamentos</h3>
       <button class="btn chico der" onclick="agregarMedicamento()">Agregar medicamento</button></div>
-      ${r.medicamentos.map((m,i)=>`
-        <div style="border:1px solid var(--linea);border-radius:9px;padding:12px 14px;margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <b class="mini">Medicamento ${i+1}</b>
-            <button class="btn chico peligro" onclick="quitarMedicamento(${i})">Eliminar</button>
+      ${rxDeshacer&&rxDeshacer.rid===r.id&&Date.now()<rxDeshacer.hasta?`<div class="med-deshacer" id="rxDeshacer"><span>Se quitó <b>${esc(nombreMed(rxDeshacer.m))}</b> de la receta.</span><button class="btn chico" onclick="deshacerQuitarMed()">Deshacer</button></div>`:''}
+      ${r.medicamentos.map((m,i)=>{
+        const lleno=!!(m.dci||'').trim(),abierto=!lleno||medAbiertoRx===i;
+        if(!abierto)return `<div class="med-tarj">
+          <span class="med-num">${i+1}</span>
+          <div class="med-res"><b>${esc(nombreMed(m))}${m.forma?' — '+esc(m.forma):''}</b>
+            <span>${(m.dosis||'').trim()?esc([m.dosis,m.via,m.duracion].filter(Boolean).join(' · ')):'<em class="med-falta">Falta la dosis y frecuencia</em>'}</span>
+            ${m.cantidad?`<span>Cantidad: ${esc(m.cantidad)}</span>`:''}</div>
+          <div class="med-acc"><button class="btn chico" onclick="editarMedicamento(${i})">Editar</button><button class="btn chico peligro" onclick="quitarMedicamento(${i})">Quitar</button></div>
+        </div>`;
+        return `<div class="med-caja ${lleno?'editando':'nuevo'}" id="medCaja${i}">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+            <span><b class="mini">Medicamento ${i+1}</b><span class="med-etq">${lleno?'Editando':'Nuevo · por llenar'}</span></span>
+            <span style="display:flex;gap:6px"><button class="btn chico primario" onclick="listoMedicamento(${i})">Listo</button><button class="btn chico peligro" onclick="quitarMedicamento(${i})">${lleno?'Quitar':'Cancelar'}</button></span>
           </div>
           <label class="campo"><span>Elegir del catálogo (opcional)</span>${selectMedicamentosHTML(i)}</label>
           <label class="campo"><span>Denominación genérica (DCI) — obligatorio, sin nombre comercial</span>
-            <input type="text" data-med="${i}-dci" value="${esc(m.dci||'')}" placeholder="Amoxicilina"></label>
+            <input type="text" data-med="${i}-dci" value="${esc(m.dci||'')}" placeholder="Ej.: Amoxicilina"></label>
           <div class="grid">
-            <label class="campo"><span>Concentración</span><input type="text" data-med="${i}-conc" value="${esc(m.conc||'')}" placeholder="500 mg"></label>
-            <label class="campo"><span>Forma farmacéutica</span><input type="text" data-med="${i}-forma" value="${esc(m.forma||'')}" placeholder="Cápsulas"></label>
+            <label class="campo"><span>Concentración</span><input type="text" data-med="${i}-conc" value="${esc(m.conc||'')}" placeholder="Ej.: 500 mg"></label>
+            <label class="campo"><span>Forma farmacéutica</span><input type="text" data-med="${i}-forma" value="${esc(m.forma||'')}" placeholder="Ej.: Cápsulas"></label>
           </div>
           <div class="grid">
-            <label class="campo"><span>Dosis y frecuencia</span><input type="text" data-med="${i}-dosis" value="${esc(m.dosis||'')}" placeholder="1 cápsula cada 8 horas"></label>
-            <label class="campo"><span>Vía de administración</span><input type="text" data-med="${i}-via" value="${esc(m.via||'')}" placeholder="Oral"></label>
+            <label class="campo"><span>Dosis y frecuencia</span><input type="text" data-med="${i}-dosis" value="${esc(m.dosis||'')}" placeholder="Ej.: 1 cápsula cada 8 horas"></label>
+            <label class="campo"><span>Vía de administración</span><input type="text" data-med="${i}-via" value="${esc(m.via||'')}" placeholder="Ej.: Oral"></label>
           </div>
           <div class="grid">
-            <label class="campo"><span>Duración del tratamiento</span><input type="text" data-med="${i}-duracion" value="${esc(m.duracion||'')}" placeholder="7 días"></label>
-            <label class="campo"><span>Cantidad a dispensar (número y letras)</span><input type="text" data-med="${i}-cantidad" value="${esc(m.cantidad||'')}" placeholder="21 (veintiuno) cápsulas"></label>
+            <label class="campo"><span>Duración del tratamiento</span><input type="text" data-med="${i}-duracion" value="${esc(m.duracion||'')}" placeholder="Ej.: 7 días"></label>
+            <label class="campo"><span>Cantidad a dispensar (número y letras)</span><input type="text" data-med="${i}-cantidad" value="${esc(m.cantidad||'')}" placeholder="Ej.: 21 (veintiuno) cápsulas"></label>
           </div>
-        </div>`).join('')}</div>
+        </div>`;}).join('')}</div>
     <div class="bloque">
       <label class="campo"><span>Indicaciones generales</span><textarea data-rk="indicaciones">${esc(r.indicaciones||'')}</textarea></label>
       <label class="campo"><span>Próximo control (opcional)</span><input type="date" data-rk="proximoControl" value="${esc(r.proximoControl||'')}"></label>
@@ -5069,11 +5091,11 @@ function renderEditorReceta(p,c){
     r.diagnostico=x.n;r.cie=x.c;guardar();pintarVista();
   };
   c.querySelectorAll('[data-med]').forEach(el=>el.onchange=()=>{
-    const [i,campo]=el.dataset.med.split('-');r.medicamentos[i][campo]=el.value;guardar();refrescarAlertasReceta(p,r);
+    const [i,campo]=el.dataset.med.split('-');r.medicamentos[i][campo]=el.value;medAbiertoRx=Number(i);guardar();refrescarAlertasReceta(p,r);
     if(campo==='dosis'||campo==='duracion')recalcularCantidadMedicamento(r,i);});
   c.querySelectorAll('.med-cat-shortcut').forEach(sel=>sel.onchange=()=>{
     if(sel.value==='')return;
-    const m=MEDICAMENTOS_FLAT[Number(sel.value)],i=sel.dataset.idx;
+    const m=MEDICAMENTOS_FLAT[Number(sel.value)],i=sel.dataset.idx;medAbiertoRx=Number(i);
     let cantidad='';
     if(m.vecesPorDia&&m.duracionDias){
       const total=m.vecesPorDia*m.duracionDias;
@@ -5086,14 +5108,38 @@ function renderEditorReceta(p,c){
     guardar();pintarVista();
   });
 }
+/* Medicamentos de la receta: los ya llenos quedan como tarjeta corta; solo se abre el que se está llenando o editando.
+   Quitar uno lleno pide confirmación con su nombre y deja «Deshacer» unos segundos. */
+let medAbiertoRx=null,medRxId=null,rxDeshacer=null;
+const nombreMed=m=>[m.dci,m.conc].filter(Boolean).join(' ')||'Medicamento sin nombre';
+function irAMedicamento(i){setTimeout(()=>{const el=document.getElementById('medCaja'+i);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});
+  const inp=el.querySelector('[data-med$="-dci"]');if(inp&&!inp.value)inp.focus({preventScroll:true});},60);}
 function agregarMedicamento(){
   const p=pac(selId),r=p.recetas.find(x=>x.id===recetaEditando);
-  r.medicamentos.push({});guardar();pintarVista();
+  const vacio=r.medicamentos.findIndex(m=>!(m.dci||'').trim());
+  if(vacio>=0){medAbiertoRx=null;pintarVista();avisar(`Primero llena el medicamento ${vacio+1}`);irAMedicamento(vacio);return;}
+  r.medicamentos.push({});medAbiertoRx=null;guardar();pintarVista();irAMedicamento(r.medicamentos.length-1);
 }
+function editarMedicamento(i){medAbiertoRx=i;pintarVista();irAMedicamento(i);}
+function listoMedicamento(i){
+  const p=pac(selId),r=p.recetas.find(x=>x.id===recetaEditando),m=r&&r.medicamentos[i];
+  if(m&&!(m.dci||'').trim()){avisar('Escribe el nombre del medicamento (DCI)');const el=document.querySelector(`[data-med="${i}-dci"]`);if(el)el.focus();return;}
+  medAbiertoRx=null;pintarVista();}
 function quitarMedicamento(i){
-  const p=pac(selId),r=p.recetas.find(x=>x.id===recetaEditando);
+  const p=pac(selId),r=p.recetas.find(x=>x.id===recetaEditando),m=r.medicamentos[i];
+  const lleno=!!(m&&(m.dci||'').trim());
+  if(lleno&&!confirm(`¿Quitar «${nombreMed(m)}» de la receta?`))return;
   r.medicamentos.splice(i,1);if(!r.medicamentos.length)r.medicamentos.push({});
+  medAbiertoRx=null;
+  if(lleno){const marca=Date.now();rxDeshacer={rid:r.id,i,m,hasta:marca+8000,marca};
+    setTimeout(()=>{if(rxDeshacer&&rxDeshacer.marca===marca){rxDeshacer=null;const b=document.getElementById('rxDeshacer');if(b)b.remove();}},8000);}
   guardar();pintarVista();
+}
+function deshacerQuitarMed(){
+  const p=pac(selId),r=p&&p.recetas.find(x=>x.id===recetaEditando),d=rxDeshacer;
+  if(!r||!d||d.rid!==r.id)return;
+  if(r.medicamentos.length===1&&!(r.medicamentos[0].dci||'').trim()&&!Object.keys(r.medicamentos[0]).length)r.medicamentos=[];
+  r.medicamentos.splice(Math.min(d.i,r.medicamentos.length),0,d.m);rxDeshacer=null;medAbiertoRx=null;guardar();pintarVista();
 }
 function borrarReceta(id){
   if(!confirm('¿Eliminar esta receta?'))return;
