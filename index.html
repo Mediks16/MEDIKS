@@ -486,6 +486,9 @@ body.imprimiendo #impresion{display:block;padding:8px}
 .receta-dos{display:flex;gap:0;align-items:stretch}
 .receta-copia{flex:1;min-width:0;font-size:9px;line-height:1.35}
 .receta-copia:first-child{border-right:1px dashed #999;padding-right:12px;margin-right:12px}
+dialog.ancho{max-width:1060px}
+.rx-previa{background:#eef2f5;border:1px solid var(--linea);border-radius:10px;padding:10px;overflow:hidden;margin-top:10px}
+.rx-previa-hoja{background:#fff;width:1000px;padding:14px;transform-origin:0 0;box-shadow:0 2px 10px rgba(0,0,0,.12)}
 .receta-barra{height:7px;background:linear-gradient(90deg,#0C1B33,#1F5FA8);margin-bottom:4px}
 @media (max-width:760px){
   aside{position:absolute;z-index:5;height:calc(100% - 56px);bottom:0;box-shadow:0 0 40px rgba(0,0,0,.12)}
@@ -5004,7 +5007,8 @@ function renderEditorReceta(p,c){
   if(!r){recetaEditando=null;pintarVista();return;}
   r.medicamentos=r.medicamentos&&r.medicamentos.length?r.medicamentos:[{}];
   c.innerHTML=`
-    <button class="btn chico" style="margin-bottom:12px" onclick="cerrarEditorReceta()">← Volver a recetas</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn chico" onclick="cerrarEditorReceta()">← Volver a recetas</button>
+      <button class="btn chico" onclick="vistaPreviaReceta('${r.id}')" title="Mira cómo saldrá la receta antes de imprimirla o enviarla">👁 Vista previa</button></div>
     <div id="rx_alertas">${htmlAlertasReceta(p,r)}</div>
     <div class="bloque"><div class="barra-tit"><h3>Datos generales</h3></div>
       <div class="grid">
@@ -5049,6 +5053,7 @@ function renderEditorReceta(p,c){
       <label class="campo"><span>Próximo control (opcional)</span><input type="date" data-rk="proximoControl" value="${esc(r.proximoControl||'')}"></label>
       <label class="campo"><span>Hora</span><input type="time" data-rk="proximoControlHora" value="${esc(r.proximoControlHora||'09:00')}"></label></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="vistaPreviaReceta('${r.id}')" title="Mira cómo saldrá la receta antes de imprimirla o enviarla">👁 Vista previa</button>
       <button class="btn primario" onclick="imprimirReceta('${r.id}')">Guardar e imprimir</button>
       <button class="btn" onclick="firmarRecetaElectronica('${r.id}')" title="Firma el PDF con tu firma electrónica (.p12) para enviarlo">Firmar electrónicamente</button>
       <button class="btn" onclick="enviarRecetaWhatsapp('${r.id}')" title="Abre el chat con el número del paciente; no necesita estar en tus contactos">Enviar por WhatsApp</button>
@@ -5220,6 +5225,28 @@ function hojaReceta(r,p,sello){
   const copiaMed=copiaReceta(r,p,g,numeroMostrar,'medicamento',sello);
   const copiaIndic=copiaReceta(r,p,g,numeroMostrar,'indicaciones',sello);
   return `<div class="hoja hoja-receta"><div class="receta-dos">${copiaMed}${copiaIndic}</div></div>`;
+}
+/* Vista previa: muestra la receta tal como saldrá impresa, para revisar antes de imprimir o enviar. No guarda ni imprime nada. */
+function vistaPreviaReceta(id){
+  const p=pac(selId),r=p&&(p.recetas||[]).find(x=>x.id===id);if(!r)return;
+  const faltan=[];
+  if(!(r.medicamentos||[]).some(m=>(m.dci||'').trim()))faltan.push('no hay ningún medicamento escrito');
+  (r.medicamentos||[]).forEach((m,i)=>{if((m.dci||'').trim()&&!(m.dosis||'').trim())faltan.push(`al medicamento ${i+1} le falta la dosis y frecuencia`);});
+  if(!(r.diagnostico||'').trim())faltan.push('falta el diagnóstico');
+  const m=$('#modal');m.classList.add('ancho');
+  $('#modalCont').innerHTML=`<h3>Vista previa de la receta</h3>
+    <p class="mini" style="margin:0">Así saldrá impresa o en PDF. Si algo está mal, toca «Seguir editando» y corrígelo.</p>
+    ${faltan.length?`<div class="bloque" style="background:var(--alerta-claro);border-color:#EBD3CC;margin:10px 0 0"><b style="color:var(--alerta)">Revisa:</b> ${faltan.map(esc).join('; ')}.</div>`:''}
+    ${htmlAlertasReceta(p,r)}
+    <div class="rx-previa" id="rxPrevia"><div class="rx-previa-hoja" id="rxPreviaHoja">${hojaReceta(r,p)}</div></div>
+    <div class="modal-pie"><button class="btn" id="mCancel">Seguir editando</button><button class="btn primario" id="mOk">Imprimir</button></div>`;
+  const ajustar=()=>{const c=$('#rxPrevia'),h=$('#rxPreviaHoja');if(!c||!h)return;
+    const k=Math.min(1,(c.clientWidth-20)/1000);h.style.transform=`scale(${k})`;c.style.height=(h.offsetHeight*k+20)+'px';};
+  const alCerrar=()=>{m.classList.remove('ancho');window.removeEventListener('resize',ajustar);m.removeEventListener('close',alCerrar);};
+  m.addEventListener('close',alCerrar);window.addEventListener('resize',ajustar);
+  m.showModal();ajustar();setTimeout(ajustar,60);$('#rxPreviaHoja').querySelectorAll('img').forEach(i=>{if(!i.complete)i.addEventListener('load',ajustar);});
+  $('#mCancel').onclick=()=>m.close();
+  $('#mOk').onclick=()=>{m.close();imprimirReceta(id);};
 }
 function imprimirReceta(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
