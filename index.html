@@ -5547,17 +5547,9 @@ function abrirMensajeCita(c,plantillaId,alEnviar){
   abrirWhatsappPaciente(p?p.id:null,plantillaId||'recordatorio',alEnviar,{cita:c,pseudo});
 }
 function textoRecetaWhatsapp(r,p){
+  // solo un saludo: los medicamentos e indicaciones van en el PDF de la receta
   const est=datos.config&&datos.config.establecimiento;
-  const meds=(r.medicamentos||[]).filter(m=>m.dci).map(m=>{
-    const base=[m.dci,m.conc,m.forma].filter(Boolean).join(' ');
-    const como=[m.dosis,m.duracion&&('por '+m.duracion)].filter(Boolean).join(' ');
-    return '• '+base+(como?' — '+como:'');
-  });
-  return [`Hola ${p.nombre||''}, te comparto tu receta médica${est?' de '+est:''}.`,
-    r.diagnostico?`Diagnóstico: ${r.diagnostico}`:'',
-    meds.length?'Medicamentos:\n'+meds.join('\n'):'',
-    r.indicaciones?`Indicaciones: ${r.indicaciones}`:'',
-    'Te envío tu receta en PDF.'].filter(Boolean).join('\n\n');
+  return `Hola ${p.nombre||''}, te envío tu receta médica${est?' de '+est:''} en PDF.`;
 }
 /* Enviar receta por WhatsApp con un solo toque: abre WhatsApp Web (o la app en el celular) en el chat del paciente
    con el mensaje y los medicamentos ya escritos, y al mismo tiempo descarga el PDF de la receta.
