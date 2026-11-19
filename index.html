@@ -5571,7 +5571,22 @@ async function enviarRecetaWhatsapp(id){
   const tel=numeroWhatsappPaciente(p);
   if(!tel)return;
   const texto=textoRecetaWhatsapp(r,p),url=urlChatWhatsapp(tel,texto);
-  // se envía el PDF de la receta: con la ventana «Compartir» del equipo (Windows, celular o tablet) se elige WhatsApp y el paciente
+  if(!esCelular()){
+    // computadora: se abre WhatsApp Web en el chat del paciente con el mensaje escrito y se descarga el PDF de la receta.
+    // WhatsApp no deja que una página adjunte el archivo sola: el PDF se arrastra desde las descargas de Chrome al chat.
+    window.open(url,'whatsapp_web');
+    try{
+      const {blob,nombreArchivo}=await generarPDFReceta(id);
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombreArchivo;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+      abrirModal('Enviar receta por WhatsApp',`<p style="margin:0 0 10px;font-size:16px">✓ Se abrió WhatsApp Web y se descargó el PDF <b>${esc(nombreArchivo)}</b>.</p>
+        <p style="margin:0 0 6px">En WhatsApp Web:</p>
+        <ol style="margin:0 0 10px;padding-left:20px"><li>Arrastra el PDF desde las descargas de Chrome (arriba a la derecha) al chat.</li><li>Presiona <b>Enter</b>: se envía el PDF y el mensaje.</li></ol>
+        <p class="mini" style="margin:0">¿No se abrió WhatsApp Web? <a href="${url}" target="whatsapp_web">Ábrelo aquí</a>.</p>`,null);
+    }catch(e){console.error(e);abrirModal('Enviar receta por WhatsApp',`<p style="margin:0">Se abrió WhatsApp Web con el mensaje, pero no se pudo preparar el PDF. Revisa tu conexión e inténtalo de nuevo.</p>`,null);}
+    return;
+  }
+  // celular/tablet: se comparte el PDF directo a WhatsApp (se elige el chat del paciente)
   avisar('Preparando el PDF de la receta…');
   let archivo=null;
   try{const {blob,nombreArchivo}=await generarPDFReceta(id);archivo=new File([blob],nombreArchivo,{type:'application/pdf'});}
@@ -5579,19 +5594,13 @@ async function enviarRecetaWhatsapp(id){
   const compartir=async()=>{try{await navigator.share({files:[archivo],title:'Receta médica',text:texto});return 'ok';}
     catch(e){return e.name==='AbortError'?'ok':e.name;}};
   if(navigator.canShare&&navigator.canShare({files:[archivo]})){
-    const res=await compartir();if(res==='ok')return;
-    // si el navegador pide otro toque (tardó en preparar el PDF), se ofrece un botón
+    if(await compartir()==='ok')return;
     abrirModal('Enviar receta por WhatsApp',`<p style="margin:0 0 12px">El PDF de la receta está listo.</p>
       <button class="btn primario" id="rwEnviar" style="width:100%">Enviar PDF por WhatsApp</button>
       <p class="mini" style="margin:8px 0 0">Elige <b>WhatsApp</b> y luego el chat de <b>${esc(p.nombre||'el paciente')}</b>.</p>`,null);
     $('#rwEnviar').onclick=async()=>{if(await compartir()==='ok')$('#modal').close();};return;
   }
-  // navegador sin «Compartir» (por ejemplo Firefox): se descarga el PDF y se abre el chat con el mensaje
-  const a=document.createElement('a');a.href=URL.createObjectURL(archivo);a.download=archivo.name;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),60000);
-  abrirModal('Enviar receta por WhatsApp',`<p style="margin:0 0 10px">✓ El PDF se descargó: <b>${esc(archivo.name)}</b>.</p>
-    <p style="margin:0 0 12px">Abre el chat y arrastra el PDF dentro (o usa el clip 📎 → Documento).</p>
-    <a class="btn primario" href="${url}" target="whatsapp_web" style="display:block;text-align:center">Abrir chat de WhatsApp</a>`,null);
+  window.open(url,'_blank');
 }
 /* Alternativa en celular/tablet: abre el menú de compartir del sistema directamente. */
 async function compartirRecetaPDF(id){
