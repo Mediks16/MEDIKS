@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-18a">
+<meta name="app-version" content="2026-11-18b">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -4889,7 +4889,18 @@ const CATALOGO_MEDICAMENTOS={
     {dci:'Doxiciclina',conc:'100 mg',forma:'Cápsulas',dosis:'1 cápsula cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
     {dci:'Metronidazol',conc:'250 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'7 días',vecesPorDia:3,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Metronidazol',conc:'250 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
-    {dci:'Espiramicina + Metronidazol',conc:'1 500 000 UI/250 mg',forma:'Tabletas',dosis:'2 tabletas cada 8 horas',via:'Oral',duracion:'7 días',cantidadSugerida:'42 (cuarenta y dos) tabletas'}
+    {dci:'Espiramicina + Metronidazol',conc:'1 500 000 UI/250 mg',forma:'Tabletas',dosis:'2 tabletas cada 8 horas',via:'Oral',duracion:'7 días',cantidadSugerida:'42 (cuarenta y dos) tabletas'},
+    {dci:'Amoxicilina',conc:'1 g',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Amoxicilina',conc:'500 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Amoxicilina',conc:'500 mg',forma:'Cápsulas (profilaxis antibiótica)',dosis:'4 cápsulas (2 g) en una sola toma, 30 a 60 minutos antes del procedimiento',via:'Oral',duracion:'Dosis única',cantidadSugerida:'4 (cuatro) cápsulas'},
+    {dci:'Amoxicilina + Ácido clavulánico',conc:'250/62.5 mg por 5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Clindamicina',conc:'300 mg',forma:'Cápsulas',dosis:'1 cápsula cada 6 horas',via:'Oral',duracion:'7 días',vecesPorDia:4,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Azitromicina',conc:'500 mg',forma:'Tabletas (profilaxis antibiótica)',dosis:'1 tableta en una sola toma, 30 a 60 minutos antes del procedimiento',via:'Oral',duracion:'Dosis única',cantidadSugerida:'1 (una) tableta'},
+    {dci:'Cefalexina',conc:'500 mg',forma:'Cápsulas (profilaxis antibiótica)',dosis:'4 cápsulas (2 g) en una sola toma, 30 a 60 minutos antes del procedimiento',via:'Oral',duracion:'Dosis única',cantidadSugerida:'4 (cuatro) cápsulas'},
+    {dci:'Cefalexina',conc:'1 g',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Cefuroxima',conc:'250 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Doxiciclina',conc:'20 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'3 meses',vecesPorDia:2,duracionDias:90,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Metronidazol',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'}
   ],
   'Antiinflamatorios y analgésicos':[
     {dci:'Ibuprofeno',conc:'400 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
@@ -4916,28 +4927,72 @@ const CATALOGO_MEDICAMENTOS={
     {dci:'Celecoxib',conc:'200 mg',forma:'Cápsulas',dosis:'1 cápsula cada 12 horas',via:'Oral',duracion:'5 días',vecesPorDia:2,duracionDias:5,unidad:'cápsula',unidadPlural:'cápsulas'},
     {dci:'Nimesulida',conc:'100 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'5 días',vecesPorDia:2,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Paracetamol',conc:'1 g',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 a 5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
-    {dci:'Tramadol',conc:'50 mg',forma:'Cápsulas',dosis:'1 cápsula cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'cápsula',unidadPlural:'cápsulas'}
+    {dci:'Tramadol',conc:'50 mg',forma:'Cápsulas',dosis:'1 cápsula cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Ibuprofeno',conc:'400 mg',forma:'Tabletas',dosis:'1 tableta cada 6 horas',via:'Oral',duracion:'3 días',vecesPorDia:4,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ibuprofeno',conc:'400 mg',forma:'Cápsulas blandas',dosis:'1 cápsula cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Ibuprofeno',conc:'600 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'3 días',vecesPorDia:2,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Diclofenaco potásico',conc:'50 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'3 días',vecesPorDia:2,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Diclofenaco sódico',conc:'75 mg/3 ml',forma:'Solución inyectable',dosis:'1 ampolla intramuscular, aplicada en el consultorio',via:'Intramuscular',duracion:'Dosis única',cantidadSugerida:'1 (una) ampolla'},
+    {dci:'Naproxeno sódico',conc:'550 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'5 días',vecesPorDia:2,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Paracetamol',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Paracetamol',conc:'1 g',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'3 días',vecesPorDia:2,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Paracetamol',conc:'160 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'3 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Paracetamol + Tramadol',conc:'325/37.5 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ketorolaco',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 6 horas',via:'Oral',duracion:'3 días',vecesPorDia:4,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ketorolaco',conc:'30 mg/ml',forma:'Solución inyectable',dosis:'1 ampolla intramuscular, aplicada en el consultorio',via:'Intramuscular',duracion:'Dosis única',cantidadSugerida:'1 (una) ampolla'},
+    {dci:'Ketorolaco',conc:'30 mg',forma:'Tabletas sublinguales',dosis:'1 tableta debajo de la lengua cada 8 horas',via:'Sublingual',duracion:'2 días',vecesPorDia:3,duracionDias:2,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Dexametasona',conc:'4 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'3 días',vecesPorDia:1,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Dexametasona',conc:'4 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Dexametasona',conc:'4 mg/ml',forma:'Solución inyectable (ampolla de 2 ml)',dosis:'8 mg intramuscular, aplicada en el consultorio',via:'Intramuscular',duracion:'Dosis única',cantidadSugerida:'1 (una) ampolla'},
+    {dci:'Prednisona',conc:'5 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas, en la mañana',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Meloxicam',conc:'7.5 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Piroxicam',conc:'20 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Etoricoxib',conc:'120 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'3 días',vecesPorDia:1,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Celecoxib',conc:'200 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Metamizol sódico',conc:'1 g',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Metamizol sódico',conc:'250 mg/5 ml',forma:'Jarabe (pediátrico)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'3 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Tramadol',conc:'50 mg',forma:'Cápsulas',dosis:'1 cápsula cada 12 horas',via:'Oral',duracion:'3 días',vecesPorDia:2,duracionDias:3,unidad:'cápsula',unidadPlural:'cápsulas'}
   ],
   'Antivirales':[
     {dci:'Aciclovir',conc:'400 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Aciclovir',conc:'5%',forma:'Crema tópica',dosis:'Aplicar en la lesión 5 veces al día',via:'Tópica',duracion:'5 días',cantidadSugerida:'1 (uno) tubo'},
-    {dci:'Valaciclovir',conc:'1 g',forma:'Tabletas',dosis:'2 tabletas cada 12 horas (solo 1 día)',via:'Oral',duracion:'1 día',cantidadSugerida:'4 (cuatro) tabletas'}
+    {dci:'Valaciclovir',conc:'1 g',forma:'Tabletas',dosis:'2 tabletas cada 12 horas (solo 1 día)',via:'Oral',duracion:'1 día',cantidadSugerida:'4 (cuatro) tabletas'},
+    {dci:'Aciclovir',conc:'200 mg',forma:'Tabletas',dosis:'1 tableta 5 veces al día (cada 4 horas, sin la de la madrugada)',via:'Oral',duracion:'5 días',vecesPorDia:5,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Aciclovir',conc:'800 mg',forma:'Tabletas',dosis:'1 tableta 5 veces al día',via:'Oral',duracion:'7 días',vecesPorDia:5,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Aciclovir',conc:'200 mg/5 ml',forma:'Suspensión oral (pediátrica)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'5 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Valaciclovir',conc:'500 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'5 días',vecesPorDia:2,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Penciclovir',conc:'1%',forma:'Crema tópica',dosis:'Aplicar en la lesión cada 2 horas mientras está despierto',via:'Tópica',duracion:'4 días',cantidadSugerida:'1 (uno) tubo'}
   ],
   'Antifúngicos':[
     {dci:'Fluconazol',conc:'150 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
     {dci:'Miconazol',conc:'2%',forma:'Gel oral',dosis:'Aplicar en la zona afectada 4 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) tubo'},
-    {dci:'Clotrimazol',conc:'1%',forma:'Crema tópica',dosis:'Aplicar en las comisuras 2 a 3 veces al día',via:'Tópica',duracion:'7 a 14 días',cantidadSugerida:'1 (uno) tubo'}
+    {dci:'Clotrimazol',conc:'1%',forma:'Crema tópica',dosis:'Aplicar en las comisuras 2 a 3 veces al día',via:'Tópica',duracion:'7 a 14 días',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Fluconazol',conc:'100 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas (el primer día, 2 cápsulas)',via:'Oral',duracion:'14 días',vecesPorDia:1,duracionDias:14,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Nistatina',conc:'100 000 UI/ml',forma:'Suspensión oral',dosis:'5 ml, mantener en la boca el mayor tiempo posible y tragar, 4 veces al día',via:'Oral',duracion:'14 días',cantidadSugerida:'2 (dos) frascos'},
+    {dci:'Miconazol',conc:'2%',forma:'Gel oral',dosis:'Aplicar 2,5 ml en la zona afectada 4 veces al día, después de las comidas',via:'Tópica (bucal)',duracion:'14 días',cantidadSugerida:'2 (dos) tubos'},
+    {dci:'Ketoconazol',conc:'2%',forma:'Crema tópica',dosis:'Aplicar en las comisuras 2 veces al día',via:'Tópica',duracion:'14 días',cantidadSugerida:'1 (uno) tubo'}
   ],
   'Antihistamínicos':[
     {dci:'Loratadina',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
     {dci:'Cetirizina',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
-    {dci:'Clorfenamina',conc:'4 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'}
+    {dci:'Clorfenamina',conc:'4 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'3 días',vecesPorDia:3,duracionDias:3,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Desloratadina',conc:'5 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Loratadina',conc:'5 mg/5 ml',forma:'Jarabe (pediátrico)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'5 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Cetirizina',conc:'5 mg/5 ml',forma:'Jarabe (pediátrico)',dosis:'Según peso, indicada por el profesional',via:'Oral',duracion:'5 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Fexofenadina',conc:'180 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas',via:'Oral',duracion:'5 días',vecesPorDia:1,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'}
   ],
   'Relajantes musculares':[
-    {dci:'Ciclobenzaprina',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas, en la noche',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'}
+    {dci:'Ciclobenzaprina',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas, en la noche',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ciclobenzaprina',conc:'5 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'7 días',vecesPorDia:3,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Ciclobenzaprina',conc:'10 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Tizanidina',conc:'2 mg',forma:'Tabletas',dosis:'1 tableta cada 12 horas',via:'Oral',duracion:'7 días',vecesPorDia:2,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Orfenadrina + Paracetamol',conc:'35/450 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'5 días',vecesPorDia:3,duracionDias:5,unidad:'tableta',unidadPlural:'tabletas'}
   ],
   'Protección gástrica':[
-    {dci:'Omeprazol',conc:'20 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas, en ayunas',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'}
+    {dci:'Omeprazol',conc:'20 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas, en ayunas',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Omeprazol',conc:'40 mg',forma:'Cápsulas',dosis:'1 cápsula cada 24 horas, en ayunas',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'cápsula',unidadPlural:'cápsulas'},
+    {dci:'Esomeprazol',conc:'20 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas, en ayunas',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'},
+    {dci:'Pantoprazol',conc:'40 mg',forma:'Tabletas',dosis:'1 tableta cada 24 horas, en ayunas',via:'Oral',duracion:'7 días',vecesPorDia:1,duracionDias:7,unidad:'tableta',unidadPlural:'tabletas'}
   ],
   'Otros (tópicos y enjuagues)':[
     {dci:'Clorhexidina',conc:'0.12%',forma:'Enjuague bucal',dosis:'Enjuagar 15 ml por 30 segundos, 2 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) frasco de 120 ml'},
@@ -4953,9 +5008,20 @@ const CATALOGO_MEDICAMENTOS={
     {dci:'Clorhexidina',conc:'0.2%',forma:'Gel bucal',dosis:'Aplicar en la zona 2 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) tubo'},
     {dci:'Ácido hialurónico',conc:'0.2%',forma:'Gel bucal',dosis:'Aplicar en la zona 3 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) tubo'},
     {dci:'Fluoruro de sodio',conc:'1.1% (5000 ppm)',forma:'Pasta dental',dosis:'Cepillar 1 vez al día, en la noche',via:'Tópica (bucal)',duracion:'30 días',cantidadSugerida:'1 (uno) tubo'},
-    {dci:'Nitrato de potasio',conc:'5%',forma:'Pasta dental desensibilizante',dosis:'Cepillar 2 veces al día',via:'Tópica (bucal)',duracion:'30 días',cantidadSugerida:'1 (uno) tubo'}
+    {dci:'Nitrato de potasio',conc:'5%',forma:'Pasta dental desensibilizante',dosis:'Cepillar 2 veces al día',via:'Tópica (bucal)',duracion:'30 días',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Cloruro de cetilpiridinio',conc:'0.05%',forma:'Enjuague bucal',dosis:'Enjuagar 15 ml por 30 segundos, 2 veces al día',via:'Tópica (bucal)',duracion:'14 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Bencidamina',conc:'0.15%',forma:'Spray bucal',dosis:'4 pulverizaciones en la zona, 3 veces al día',via:'Tópica (bucal)',duracion:'7 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Lidocaína',conc:'2%',forma:'Solución viscosa',dosis:'5 ml, enjuagar y escupir antes de las comidas, hasta 4 veces al día',via:'Tópica (bucal)',duracion:'Según necesidad',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Clobetasol',conc:'0.05%',forma:'Gel o ungüento',dosis:'Aplicar una capa fina en la lesión 2 veces al día',via:'Tópica (bucal)',duracion:'14 días',cantidadSugerida:'1 (uno) tubo'},
+    {dci:'Fluoruro de sodio',conc:'0.2%',forma:'Enjuague bucal',dosis:'Enjuagar 10 ml por 1 minuto, 1 vez por semana',via:'Tópica (bucal)',duracion:'Según control',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Fluoruro de sodio',conc:'5% (22 600 ppm)',forma:'Barniz (aplicación en consultorio)',dosis:'Aplicación profesional en el consultorio',via:'Tópica (bucal)',duracion:'Según control',cantidadSugerida:'Aplicación en consultorio'},
+    {dci:'Saliva artificial (carboximetilcelulosa)',conc:'—',forma:'Spray bucal',dosis:'2 pulverizaciones en la boca cuando haya sequedad',via:'Tópica (bucal)',duracion:'30 días',cantidadSugerida:'1 (uno) frasco'},
+    {dci:'Pilocarpina',conc:'5 mg',forma:'Tabletas',dosis:'1 tableta cada 8 horas',via:'Oral',duracion:'30 días',vecesPorDia:3,duracionDias:30,unidad:'tableta',unidadPlural:'tabletas'}
   ]
 };
+// cada grupo ordenado por nombre y luego por concentración (de menor a mayor), para encontrar rápido cada presentación
+{const mg=t=>{const a=parseFloat(t)||0;return /^\s*[\d.]+\s*g\b/.test(t)?a*1000:a;};
+ Object.values(CATALOGO_MEDICAMENTOS).forEach(l=>l.sort((a,b)=>a.dci.localeCompare(b.dci,'es')||mg(a.conc)-mg(b.conc)));}
 const MEDICAMENTOS_FLAT=Object.values(CATALOGO_MEDICAMENTOS).flat();
 function numeroALetras(n){
   n=Math.round(Number(n)||0);
@@ -4986,7 +5052,7 @@ function selectMedicamentosHTML(idx){
   return `<select class="med-cat-shortcut" data-idx="${idx}">
     <option value="">— Elegir del catálogo —</option>
     ${Object.entries(CATALOGO_MEDICAMENTOS).map(([cat,lista])=>`<optgroup label="${esc(cat)}">
-      ${lista.map(m=>`<option value="${n++}">${esc(m.dci)} ${esc(m.conc)}</option>`).join('')}
+      ${lista.map(m=>`<option value="${n++}">${esc(m.dci)} ${esc(m.conc)} · ${esc(m.forma)} · ${esc(m.dosis)} · ${esc(m.duracion)}</option>`).join('')}
     </optgroup>`).join('')}
   </select>`;
 }
@@ -5491,53 +5557,58 @@ function textoRecetaWhatsapp(r,p){
     r.diagnostico?`Diagnóstico: ${r.diagnostico}`:'',
     meds.length?'Medicamentos:\n'+meds.join('\n'):'',
     r.indicaciones?`Indicaciones: ${r.indicaciones}`:'',
-    'Te adjunto la receta en PDF.'].filter(Boolean).join('\n\n');
+    'Te envío tu receta.'].filter(Boolean).join('\n\n');
 }
-/* Enviar receta: WhatsApp no deja que una página web adjunte un archivo a un número por sí sola, así que son 2 pasos:
-   1) abrir el chat con el número del paciente (sin guardarlo como contacto) con el mensaje ya escrito;
-   2) mandar el PDF — con el menú de compartir del celular/tablet (el chat ya abierto aparece en «recientes»)
-      o descargándolo para adjuntarlo con el clip (📎) en el chat. El PDF se prepara al abrir esta ventana. */
+/* Enviar receta por WhatsApp con un solo toque: abre WhatsApp Web (o la app en el celular) en el chat del paciente
+   con el mensaje y los medicamentos ya escritos, y al mismo tiempo descarga el PDF de la receta.
+   WhatsApp no permite que una página adjunte un archivo sola: el PDF descargado se arrastra al chat si se quiere enviar. */
+const esCelular=()=>/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
+function urlChatWhatsapp(tel,texto){const t=encodeURIComponent(texto);
+  return esCelular()?`https://wa.me/${tel}?text=${t}`:`https://web.whatsapp.com/send?phone=${tel}&text=${t}`;}
+/* Imagen PNG de la receta (la misma hoja que se imprime) para pegarla en WhatsApp Web. */
+async function imagenRecetaBlob(id){
+  const p=pac(selId),r=p.recetas.find(x=>x.id===id);
+  $('#impresion').innerHTML=hojaReceta(r,p);document.body.classList.add('imprimiendo');
+  try{const c=await html2canvas($('#impresion').querySelector('.hoja'),{scale:2,backgroundColor:'#ffffff',windowWidth:1200});
+    return await new Promise((ok,mal)=>c.toBlob(b=>b?ok(b):mal(new Error('imagen')),'image/png'));}
+  finally{document.body.classList.remove('imprimiendo');}
+}
+function modalEnvioWhatsapp(url,copiada){
+  abrirModal('Enviar receta por WhatsApp',copiada
+    ?`<p style="margin:0 0 10px;font-size:16px">✓ <b>La receta ya está copiada.</b></p>
+      <p style="margin:0">En el chat de WhatsApp presiona <b>Ctrl + V</b> y luego <b>Enter</b>: se envía la receta con el mensaje.</p>
+      <p class="mini" style="margin:10px 0 0">¿No se abrió WhatsApp? <a href="${url}" target="whatsapp_web">Ábrelo aquí</a>.</p>`
+    :`<p style="margin:0">Se abrió WhatsApp con el mensaje escrito, pero no se pudo copiar la receta. Usa «Guardar e imprimir» → PDF, o <a href="${url}" target="whatsapp_web">abre el chat aquí</a>.</p>`,null);
+}
 async function enviarRecetaWhatsapp(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
   if(!confirmarAlertasReceta(p,r))return;
   const tel=numeroWhatsappPaciente(p);
   if(!tel)return;
-  abrirModal('Enviar receta por WhatsApp',`
-    <p class="mini" style="margin-top:0">Para <b>${esc(p.nombre||'')}</b> · ${esc(p.telefono||tel)}. No necesita estar en tus contactos.</p>
-    <div class="bloque" style="margin-bottom:10px">
-      <b>Paso 1 · Abrir el chat</b>
-      <p class="mini" style="margin:4px 0 8px">Abre WhatsApp con el mensaje y los medicamentos ya escritos. Envíalo.</p>
-      <button class="btn primario" type="button" id="rw_chat">Abrir chat y mensaje</button></div>
-    <div class="bloque" style="margin-bottom:0">
-      <b>Paso 2 · Enviar el PDF de la receta</b>
-      <p class="mini" id="rw_estado" style="margin:4px 0 8px">Preparando el PDF…</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn primario" type="button" id="rw_compartir" disabled style="display:none">Enviar PDF por WhatsApp</button>
-        <button class="btn" type="button" id="rw_descargar" disabled>Descargar PDF</button></div>
-      <p class="mini" id="rw_ayuda" style="margin:8px 0 0"></p></div>`,null);
-  $('#rw_chat').onclick=()=>window.open(`https://wa.me/${tel}?text=${encodeURIComponent(textoRecetaWhatsapp(r,p))}`,'_blank');
-  let resultado;
-  try{ resultado=await generarPDFReceta(id); }
-  catch(e){ console.error(e); $('#rw_estado').textContent='No se pudo generar el PDF. Revisa tu conexión a internet e inténtalo de nuevo.'; return; }
-  const {blob,nombreArchivo}=resultado;
-  const archivo=new File([blob],nombreArchivo,{type:'application/pdf'});
-  const puedeCompartir=!!(navigator.canShare&&navigator.canShare({files:[archivo]}));
-  $('#rw_estado').textContent='✓ PDF listo: '+nombreArchivo;
-  const btnDesc=$('#rw_descargar'),btnComp=$('#rw_compartir');
-  btnDesc.disabled=false;
-  btnDesc.onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombreArchivo;a.click();
-    avisar('PDF descargado. Adjúntalo en el chat con el clip (📎) → Documento.');};
-  if(puedeCompartir){
-    btnComp.style.display='';btnComp.disabled=false;
-    $('#rw_ayuda').textContent='Al tocar «Enviar PDF por WhatsApp» elige WhatsApp y luego el chat de este paciente (aparece en «Recientes» después del paso 1).';
-    btnComp.onclick=async()=>{
-      try{await navigator.share({files:[archivo],title:'Receta médica'});}
-      catch(e){if(e.name!=='AbortError'){console.error(e);avisar('No se pudo abrir el menú de compartir; usa «Descargar PDF».');}}
-    };
-  }else{
-    $('#rw_ayuda').textContent='En computadora: descarga el PDF y arrástralo al chat de WhatsApp (o usa el clip 📎 → Documento).';
+  const url=urlChatWhatsapp(tel,textoRecetaWhatsapp(r,p));
+  if(esCelular()){
+    // celular/tablet: se comparte el PDF de la receta directo a WhatsApp (se elige el chat del paciente)
+    avisar('Preparando la receta…');
+    let archivo=null;
+    try{const {blob,nombreArchivo}=await generarPDFReceta(id);archivo=new File([blob],nombreArchivo,{type:'application/pdf'});}catch(e){console.error(e);}
+    const compartir=async()=>{try{await navigator.share({files:[archivo],text:textoRecetaWhatsapp(r,p)});return true;}catch(e){return e.name==='AbortError';}};
+    if(archivo&&navigator.canShare&&navigator.canShare({files:[archivo]})){
+      if(await compartir())return;
+      // si el celular pide otro toque, se ofrece un botón
+      abrirModal('Enviar receta por WhatsApp',`<button class="btn primario" id="rwEnviar" style="width:100%">Enviar receta</button><p class="mini" style="margin:8px 0 0">Elige WhatsApp y el chat del paciente.</p>`,null);
+      $('#rwEnviar').onclick=async()=>{if(await compartir())$('#modal').close();};return;
+    }
+    window.open(url,'_blank');return;
   }
+  // computadora: se copia la receta como imagen y se abre WhatsApp Web en el chat del paciente con el mensaje escrito;
+  // allí basta Ctrl+V y Enter (WhatsApp no deja que una página adjunte el archivo sola)
+  avisar('Preparando la receta…');
+  let copiada=false;
+  try{const png=await imagenRecetaBlob(id);await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);copiada=true;}catch(e){console.error(e);}
+  modalEnvioWhatsapp(url,copiada);
+  window.open(url,'whatsapp_web');
 }
+function avisarLargo(t){const a=$('#aviso');a.textContent=t;a.classList.add('ver');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('ver'),6000);}
 /* Alternativa en celular/tablet: abre el menú de compartir del sistema directamente. */
 async function compartirRecetaPDF(id){
   const p=pac(selId);
