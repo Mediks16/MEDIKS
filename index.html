@@ -5557,7 +5557,7 @@ function textoRecetaWhatsapp(r,p){
     r.diagnostico?`Diagnóstico: ${r.diagnostico}`:'',
     meds.length?'Medicamentos:\n'+meds.join('\n'):'',
     r.indicaciones?`Indicaciones: ${r.indicaciones}`:'',
-    'Te envío tu receta.'].filter(Boolean).join('\n\n');
+    'Te envío tu receta en PDF.'].filter(Boolean).join('\n\n');
 }
 /* Enviar receta por WhatsApp con un solo toque: abre WhatsApp Web (o la app en el celular) en el chat del paciente
    con el mensaje y los medicamentos ya escritos, y al mismo tiempo descarga el PDF de la receta.
@@ -5565,50 +5565,34 @@ function textoRecetaWhatsapp(r,p){
 const esCelular=()=>/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
 function urlChatWhatsapp(tel,texto){const t=encodeURIComponent(texto);
   return esCelular()?`https://wa.me/${tel}?text=${t}`:`https://web.whatsapp.com/send?phone=${tel}&text=${t}`;}
-/* Imagen PNG de la receta (la misma hoja que se imprime) para pegarla en WhatsApp Web. */
-async function imagenRecetaBlob(id){
-  const p=pac(selId),r=p.recetas.find(x=>x.id===id);
-  $('#impresion').innerHTML=hojaReceta(r,p);document.body.classList.add('imprimiendo');
-  try{const c=await html2canvas($('#impresion').querySelector('.hoja'),{scale:2,backgroundColor:'#ffffff',windowWidth:1200});
-    return await new Promise((ok,mal)=>c.toBlob(b=>b?ok(b):mal(new Error('imagen')),'image/png'));}
-  finally{document.body.classList.remove('imprimiendo');}
-}
-function modalEnvioWhatsapp(url,copiada){
-  abrirModal('Enviar receta por WhatsApp',copiada
-    ?`<p style="margin:0 0 10px;font-size:16px">✓ <b>La receta ya está copiada.</b></p>
-      <p style="margin:0">En el chat de WhatsApp presiona <b>Ctrl + V</b> y luego <b>Enter</b>: se envía la receta con el mensaje.</p>
-      <p class="mini" style="margin:10px 0 0">¿No se abrió WhatsApp? <a href="${url}" target="whatsapp_web">Ábrelo aquí</a>.</p>`
-    :`<p style="margin:0">Se abrió WhatsApp con el mensaje escrito, pero no se pudo copiar la receta. Usa «Guardar e imprimir» → PDF, o <a href="${url}" target="whatsapp_web">abre el chat aquí</a>.</p>`,null);
-}
 async function enviarRecetaWhatsapp(id){
   const p=pac(selId),r=p.recetas.find(x=>x.id===id);
   if(!confirmarAlertasReceta(p,r))return;
   const tel=numeroWhatsappPaciente(p);
   if(!tel)return;
-  const url=urlChatWhatsapp(tel,textoRecetaWhatsapp(r,p));
-  if(esCelular()){
-    // celular/tablet: se comparte el PDF de la receta directo a WhatsApp (se elige el chat del paciente)
-    avisar('Preparando la receta…');
-    let archivo=null;
-    try{const {blob,nombreArchivo}=await generarPDFReceta(id);archivo=new File([blob],nombreArchivo,{type:'application/pdf'});}catch(e){console.error(e);}
-    const compartir=async()=>{try{await navigator.share({files:[archivo],text:textoRecetaWhatsapp(r,p)});return true;}catch(e){return e.name==='AbortError';}};
-    if(archivo&&navigator.canShare&&navigator.canShare({files:[archivo]})){
-      if(await compartir())return;
-      // si el celular pide otro toque, se ofrece un botón
-      abrirModal('Enviar receta por WhatsApp',`<button class="btn primario" id="rwEnviar" style="width:100%">Enviar receta</button><p class="mini" style="margin:8px 0 0">Elige WhatsApp y el chat del paciente.</p>`,null);
-      $('#rwEnviar').onclick=async()=>{if(await compartir())$('#modal').close();};return;
-    }
-    window.open(url,'_blank');return;
+  const texto=textoRecetaWhatsapp(r,p),url=urlChatWhatsapp(tel,texto);
+  // se envía el PDF de la receta: con la ventana «Compartir» del equipo (Windows, celular o tablet) se elige WhatsApp y el paciente
+  avisar('Preparando el PDF de la receta…');
+  let archivo=null;
+  try{const {blob,nombreArchivo}=await generarPDFReceta(id);archivo=new File([blob],nombreArchivo,{type:'application/pdf'});}
+  catch(e){console.error(e);abrirModal('Enviar receta por WhatsApp',`<p style="margin:0">No se pudo preparar el PDF. Revisa tu conexión a internet e inténtalo de nuevo.</p>`,null);return;}
+  const compartir=async()=>{try{await navigator.share({files:[archivo],title:'Receta médica',text:texto});return 'ok';}
+    catch(e){return e.name==='AbortError'?'ok':e.name;}};
+  if(navigator.canShare&&navigator.canShare({files:[archivo]})){
+    const res=await compartir();if(res==='ok')return;
+    // si el navegador pide otro toque (tardó en preparar el PDF), se ofrece un botón
+    abrirModal('Enviar receta por WhatsApp',`<p style="margin:0 0 12px">El PDF de la receta está listo.</p>
+      <button class="btn primario" id="rwEnviar" style="width:100%">Enviar PDF por WhatsApp</button>
+      <p class="mini" style="margin:8px 0 0">Elige <b>WhatsApp</b> y luego el chat de <b>${esc(p.nombre||'el paciente')}</b>.</p>`,null);
+    $('#rwEnviar').onclick=async()=>{if(await compartir()==='ok')$('#modal').close();};return;
   }
-  // computadora: se copia la receta como imagen y se abre WhatsApp Web en el chat del paciente con el mensaje escrito;
-  // allí basta Ctrl+V y Enter (WhatsApp no deja que una página adjunte el archivo sola)
-  avisar('Preparando la receta…');
-  let copiada=false;
-  try{const png=await imagenRecetaBlob(id);await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);copiada=true;}catch(e){console.error(e);}
-  modalEnvioWhatsapp(url,copiada);
-  window.open(url,'whatsapp_web');
+  // navegador sin «Compartir» (por ejemplo Firefox): se descarga el PDF y se abre el chat con el mensaje
+  const a=document.createElement('a');a.href=URL.createObjectURL(archivo);a.download=archivo.name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+  abrirModal('Enviar receta por WhatsApp',`<p style="margin:0 0 10px">✓ El PDF se descargó: <b>${esc(archivo.name)}</b>.</p>
+    <p style="margin:0 0 12px">Abre el chat y arrastra el PDF dentro (o usa el clip 📎 → Documento).</p>
+    <a class="btn primario" href="${url}" target="whatsapp_web" style="display:block;text-align:center">Abrir chat de WhatsApp</a>`,null);
 }
-function avisarLargo(t){const a=$('#aviso');a.textContent=t;a.classList.add('ver');clearTimeout(a._t);a._t=setTimeout(()=>a.classList.remove('ver'),6000);}
 /* Alternativa en celular/tablet: abre el menú de compartir del sistema directamente. */
 async function compartirRecetaPDF(id){
   const p=pac(selId);
