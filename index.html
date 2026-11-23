@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-23d">
+<meta name="app-version" content="2026-11-23e">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -22,12 +22,12 @@
 <style>
 :root{
   color-scheme:light;
-  --porcelana:#EEF2F1;--papel:#fff;--tinta:#15302A;--tinta-suave:#5A706A;
-  --linea:#D6DEDB;--clinico:#0E7C6B;--clinico-claro:#E2F0ED;
+  --porcelana:#EEF2F6;--papel:#fff;--tinta:#132A3E;--tinta-suave:#56677A;
+  --linea:#D6DEE6;--clinico:#1F5FA8;--clinico-claro:#E6EEF8;
   --alerta:#B24A35;--alerta-claro:#F7E9E5;--azul:#1F5FA8;--r:10px;--r-lg:16px;
   --acento:#3E7BE0;--dorado:#C9962B;
-  --sombra-sm:0 1px 2px rgba(15,40,35,.05),0 2px 8px rgba(15,40,35,.05);
-  --sombra-md:0 6px 20px rgba(15,40,35,.09),0 1px 3px rgba(15,40,35,.06);
+  --sombra-sm:0 1px 2px rgba(15,30,50,.05),0 2px 8px rgba(15,30,50,.05);
+  --sombra-md:0 6px 20px rgba(15,30,50,.09),0 1px 3px rgba(15,30,50,.06);
   --sombra-navy:0 10px 26px rgba(10,25,48,.22);
 }
 *{box-sizing:border-box}
@@ -63,13 +63,13 @@ header.top .btn.chico:hover{background:rgba(255,255,255,.18)}
 .spacer{flex:1}
 .cuerpo{display:flex;flex:1;min-height:0}
 aside{width:310px;flex:none;background:var(--papel);border-right:1px solid var(--linea);display:flex;flex-direction:column;
-  min-height:0;box-shadow:2px 0 10px rgba(15,40,35,.03)}
+  min-height:0;box-shadow:2px 0 10px rgba(15,30,50,.03)}
 .buscador{padding:11px;border-bottom:1px solid var(--linea);display:flex;gap:8px}
 .lista{overflow:auto;flex:1}
 .item{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--linea);
   padding:10px 13px;cursor:pointer;border-left:3px solid transparent}
 .item:hover{background:var(--porcelana)}
-.item[aria-current="true"]{background:var(--clinico-claro);border-left-color:var(--clinico);box-shadow:inset 0 0 0 1px rgba(14,124,107,.12)}
+.item[aria-current="true"]{background:var(--clinico-claro);border-left-color:var(--clinico);box-shadow:inset 0 0 0 1px rgba(31,95,168,.12)}
 .item .nom{font-weight:600}
 .item .meta{font-size:12.5px;color:var(--tinta-suave);display:flex;gap:8px;margin-top:1px}
 .item .deuda{color:var(--alerta);font-weight:600}
@@ -82,12 +82,12 @@ aside{width:310px;flex:none;background:var(--papel);border-right:1px solid var(-
 .kpi-card::before{position:absolute;top:12px;right:14px;font-size:19px;opacity:.55;line-height:1}
 .kpi-card span{font-size:12.5px;color:var(--tinta-suave);font-weight:500}
 .kpi-card b{display:block;font-family:Newsreader,serif;font-size:30px;font-weight:600;margin-top:5px}
-.kpi-verde{background:linear-gradient(135deg,#E3F3E9,#F5FBF7)}.kpi-verde b{color:#2F7A3C}.kpi-verde::before{content:"📅"}
+.kpi-verde{background:linear-gradient(135deg,#E3EEFA,#F5F9FD)}.kpi-verde b{color:#1F5FA8}.kpi-verde::before{content:"📅"}
 .kpi-azul{background:linear-gradient(135deg,#E3EEFB,#F4F9FD)}.kpi-azul b{color:#1F5FA8}.kpi-azul::before{content:"✅"}
 .kpi-naranja{background:linear-gradient(135deg,#FBEDDD,#FDF7EE)}.kpi-naranja b{color:#B98A2E}.kpi-naranja::before{content:"🩺"}
 .kpi-rojo{background:linear-gradient(135deg,#FBE4DF,#FDF3F0)}.kpi-rojo b{color:#B24A35}.kpi-rojo::before{content:"✕"}
 .kpi-morado{background:linear-gradient(135deg,#EEE6FB,#F8F5FD)}.kpi-morado b{color:#7A4FB5}.kpi-morado::before{content:"🆕"}
-.kpi-teal{background:linear-gradient(135deg,#E2F0ED,#F3F9F8)}.kpi-teal b{color:#0E7C6B}.kpi-teal::before{content:"📋"}
+.kpi-teal{background:linear-gradient(135deg,#E6EEF8,#F4F7FC)}.kpi-teal b{color:#174A85}.kpi-teal::before{content:"📋"}
 .kpi-rosa{background:linear-gradient(135deg,#FBE4EF,#FDF3F8)}.kpi-rosa b{color:#B5457E}.kpi-rosa::before{content:"💰"}
 .kpi-indigo{background:linear-gradient(135deg,#E6E9FB,#F6F7FD)}.kpi-indigo b{color:#45539E}.kpi-indigo::before{content:"👥"}
 /* portada de inicio */
@@ -333,7 +333,7 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .ag-slot:hover{background:var(--clinico-claro)}
 .ag-cita{position:absolute;left:4px;right:4px;border-radius:9px;padding:5px 9px;font-size:11.5px;
   overflow:hidden;cursor:pointer;border:1px solid transparent;line-height:1.32;z-index:2;
-  box-shadow:0 1px 2px rgba(15,40,35,.06)}
+  box-shadow:0 1px 2px rgba(15,30,50,.06)}
 .ag-cita:hover{filter:brightness(0.97)}
 .ag-cita .hn{display:flex;align-items:baseline;gap:5px;min-width:0}
 .ag-cita .hora{flex:none;font-size:10.5px;font-weight:600;opacity:.8;letter-spacing:.01em}
@@ -366,13 +366,13 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 /* radiografías */
 .rx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .rx-card{border:1px solid var(--linea);border-radius:9px;overflow:hidden;background:var(--papel);cursor:pointer}
-.rx-card .thumb{width:100%;aspect-ratio:4/3;background:#0b1f1b url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22><text y=%2216%22 font-size=%2214%22>...</text></svg>') center/24px no-repeat;
-  display:flex;align-items:center;justify-content:center;color:#8fb0a9;font-size:12px}
+.rx-card .thumb{width:100%;aspect-ratio:4/3;background:#0B1626 url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22><text y=%2216%22 font-size=%2214%22>...</text></svg>') center/24px no-repeat;
+  display:flex;align-items:center;justify-content:center;color:#9FB0C3;font-size:12px}
 .rx-card img{width:100%;height:100%;object-fit:cover;display:block}
 .rx-card .info{padding:7px 9px;font-size:12.5px}
 .rx-card .info b{display:block;font-size:13px}
 .rx-card .info span{color:var(--tinta-suave)}
-.rx-full{width:100%;max-height:62vh;object-fit:contain;border-radius:8px;background:#0b1f1b;display:block;margin-bottom:12px}
+.rx-full{width:100%;max-height:62vh;object-fit:contain;border-radius:8px;background:#0B1626;display:block;margin-bottom:12px}
 .subir{display:block;border:1.5px dashed var(--linea);border-radius:10px;padding:22px;text-align:center;color:var(--tinta-suave);cursor:pointer}
 .subir:hover{border-color:var(--clinico);color:var(--clinico)}
 .subir input{display:none}
@@ -404,8 +404,8 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .saldo.debe b{color:var(--alerta)}
 .barra{height:8px;background:var(--clinico);border-radius:4px;min-width:2px}
 /* presupuesto (plan de pagos) */
-.presu-card{background:linear-gradient(135deg,#0E7C6B 0%,#0a5a4d 100%);color:#fff;border-radius:16px;
-  padding:22px 24px;margin-bottom:14px;box-shadow:0 4px 14px rgba(14,124,107,.25)}
+.presu-card{background:linear-gradient(135deg,#1F5FA8 0%,#174A85 100%);color:#fff;border-radius:16px;
+  padding:22px 24px;margin-bottom:14px;box-shadow:0 4px 14px rgba(31,95,168,.25)}
 .presu-card .mini{color:rgba(255,255,255,.78)}
 .presu-card b.monto{font-family:Newsreader,serif;font-size:34px;font-weight:500;display:block;margin:4px 0 14px;letter-spacing:-.01em}
 .presu-barra{height:10px;background:rgba(255,255,255,.28);border-radius:99px;overflow:hidden;margin-bottom:7px}
@@ -438,8 +438,8 @@ td.der,th.der{text-align:right;padding-right:0;font-variant-numeric:tabular-nums
 .orden-fila button:hover{border-color:var(--clinico);color:var(--clinico)}
 .orden-fila button:disabled{opacity:.3;cursor:default}
 .orden-fila button:disabled:hover{border-color:var(--linea);color:var(--tinta-suave)}
-dialog{border:0;border-radius:14px;padding:0;max-width:620px;width:calc(100% - 28px);box-shadow:0 18px 50px rgba(10,40,35,.22)}
-dialog::backdrop{background:rgba(18,45,40,.42)}
+dialog{border:0;border-radius:14px;padding:0;max-width:620px;width:calc(100% - 28px);box-shadow:0 18px 50px rgba(10,25,45,.22)}
+dialog::backdrop{background:rgba(12,27,51,.42)}
 .modal-cont{padding:20px}
 .modal-cont h3{font-family:Newsreader,serif;font-size:21px;font-weight:500;margin-bottom:12px}
 .modal-pie{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
@@ -524,7 +524,7 @@ header.top #logoConsultorio{border-radius:50%;background:#000}
 .pieza-card.sel{border-color:var(--acento);box-shadow:0 0 0 2px var(--acento),var(--sombra-sm)}
 .odonto .arcada .cuadrante{padding:6px;border-radius:14px}
 .odonto .arcada .cuadrante:nth-child(1){background:rgba(62,123,224,.07)}
-.odonto .arcada .cuadrante:nth-child(2){background:rgba(14,124,107,.07)}
+.odonto .arcada .cuadrante:nth-child(2){background:rgba(31,95,168,.07)}
 .odonto{gap:34px}
 .arcada::after{background:#B6C1BD;width:2px}
 .hint-pieza{background:var(--clinico-claro);color:var(--clinico);border:1px dashed var(--clinico);border-radius:8px;padding:7px 10px;font-weight:600}
@@ -533,7 +533,7 @@ header.top #logoConsultorio{border-radius:50%;background:#000}
 .pv-datos span{font-size:12.5px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.08);border-radius:8px;padding:6px 9px;overflow-wrap:anywhere}
 .pv-datos .al{background:rgba(224,86,74,.25);color:#FFD9D3;font-weight:600}
 .pv-datos .deu{background:rgba(201,150,43,.28);color:#FFE9B5;font-weight:600}
-.pv-datos .ok{background:rgba(14,124,107,.3);color:#C9F0E8}
+.pv-datos .ok{background:rgba(31,95,168,.3);color:#CFE2FA}
 .hoja h1{letter-spacing:.03em}
 .hoja>img:first-child{border-radius:50%}
 .bottom-nav{display:none}
@@ -558,20 +558,20 @@ header.top #logoConsultorio{border-radius:50%;background:#000}
 }
 :root[data-tema="oscuro"]{
   color-scheme:dark;
-  --porcelana:#0E1613;--papel:#16211D;--tinta:#E6EFEC;--tinta-suave:#9FB3AD;--linea:#2B3A35;
-  --clinico-claro:#183A33;--alerta-claro:#3A1F1A;
+  --porcelana:#0D1520;--papel:#152030;--tinta:#E6EDF5;--tinta-suave:#9FB0C3;--linea:#2A3A4E;
+  --clinico-claro:#1A2E4A;--alerta-claro:#3A1F1A;
   --sombra-sm:0 1px 2px rgba(0,0,0,.4);--sombra-md:0 6px 20px rgba(0,0,0,.45);
 }
 :root[data-tema="oscuro"] .pieza-card:hover{background:#1D2C27}
 
-:root[data-tema="oscuro"] input,:root[data-tema="oscuro"] select,:root[data-tema="oscuro"] textarea{background:#0F1A16;color:var(--tinta);border-color:var(--linea)}
+:root[data-tema="oscuro"] input,:root[data-tema="oscuro"] select,:root[data-tema="oscuro"] textarea{background:#0F1824;color:var(--tinta);border-color:var(--linea)}
 :root[data-tema="oscuro"] .btn{background:#1B2A25;color:var(--tinta);border-color:var(--linea)}
 :root[data-tema="oscuro"] .btn.primario{background:var(--clinico);color:#fff}
 :root[data-tema="oscuro"] .bloque{background:var(--papel)}
 :root[data-tema="oscuro"] details.bloque>summary b,:root[data-tema="oscuro"] .barra-tit b,:root[data-tema="oscuro"] .odonto-tabs button[aria-pressed="true"],:root[data-tema="oscuro"] .modo-pendiente button[aria-pressed="true"],:root[data-tema="oscuro"] .aviso{color:#0E1613}
-:root[data-tema="oscuro"] .hint-pieza{background:#183A33;color:#8FE8D4;border-color:#2F8F7B}
-:root[data-tema="oscuro"] .estado-dot:not([style*="background"]){background:#0F1A16}
-:root[data-tema="oscuro"] .estado-dots .estado-dot[title="Sano"]{background:#0F1A16}
+:root[data-tema="oscuro"] .hint-pieza{background:#1A2E4A;color:#A8CCF5;border-color:#3E7BE0}
+:root[data-tema="oscuro"] .estado-dot:not([style*="background"]){background:#0F1824}
+:root[data-tema="oscuro"] .estado-dots .estado-dot[title="Sano"]{background:#0F1824}
 
 .ag-cita{touch-action:pan-x pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 .ag-cita.arrastrando{opacity:.9;box-shadow:0 8px 22px rgba(10,25,45,.35);z-index:20;cursor:grabbing;outline:2px solid var(--acento)}
@@ -1411,7 +1411,7 @@ async function arrancar(){
   inicializarGoogleCalendar();
   await cargar(); // primero lo que haya localmente, para no mostrar la app vacía
   aplicarTema();
-  pintar();
+  restaurarLugar();
   if(nubeAuth){
     await new Promise(resolver=>{
       let resuelto=false;
@@ -1433,6 +1433,7 @@ async function arrancar(){
   }else{
     actualizarBotonNube();
   }
+  restaurarLugar(true);   // con los datos de la nube ya cargados, se vuelve a abrir donde estabas
   revisarCitaEnlace();
 }
 
@@ -1527,7 +1528,7 @@ const SIMB_GENERAL={
   lesion:{s:'◉',c:'#E0564A',n:'Lesión'},
   sellante_nec:{s:'✳',c:'#E0564A',n:'Sellante necesario'},
   sellante_real:{s:'✳',c:'#3E7BE0',n:'Sellante realizado'},
-  otro:{s:'?',c:'#5A706A',n:'Otro (ver nota de la pieza)'}
+  otro:{s:'?',c:'#56677A',n:'Otro (ver nota de la pieza)'}
 };
 const ESTADO_GRUPOS=[
   {clave:'ausente',nombre:'Ausente',nombreInd:'Exodoncia indicada',nombreReal:'Diente ausente',color:'#8C97A3',ind:'extraccion',real:'perdida_caries'},
@@ -1540,7 +1541,7 @@ const ESTADO_GRUPOS=[
   {clave:'sellante',nombre:'Sellante',nombreInd:'Sellante indicado',nombreReal:'Sellante realizado',color:'#49B6C9',colorInd:'#E0564A',colorReal:'#3E7BE0',ind:'sellante_nec',real:'sellante_real'},
   {clave:'fractura',nombre:'Fractura',color:'#E0564A',ind:'fractura',real:'fractura'},
   {clave:'lesion',nombre:'Lesión',color:'#E0564A',ind:'lesion',real:'lesion'},
-  {clave:'otro',nombre:'Otro / Preexistencia',color:'#5A706A',ind:'otro',real:'otro'}
+  {clave:'otro',nombre:'Otro / Preexistencia',color:'#56677A',ind:'otro',real:'otro'}
 ];
 /* Etiqueta del botón según el modo elegido (pendiente/realizado) — ej. "Ausente" se lee
    "Exodoncia indicada" mientras está pendiente, y "Diente ausente" una vez realizada. */
@@ -1672,6 +1673,7 @@ function pintarVista(){
 }
 function pintarVistaInterna(){
   const v=$('#vista'),p=pac(selId);
+  anotarLugar(p?{v:'paciente',sel:selId,pest:pestana,rx:pestana==='receta'?recetaEditando:null}:{v:'inicio'});
   if(!p){
     const totalPac=datos.pacientes.length;
     const citasHoyN=(datos.citas||[]).filter(c=>c.fecha===hoy()).length;
@@ -1790,7 +1792,7 @@ function tabCitas(p,c){
   const prox=todas.filter(x=>x.fecha>=f&&x.estado!=='Cancelada'&&x.estado!=='No asistió');
   const pas=todas.filter(x=>!prox.includes(x)).reverse();
   const fila=x=>{
-    const col=(typeof COLOR_ESTADO!=='undefined'&&COLOR_ESTADO[x.estado])||'#5A706A';
+    const col=(typeof COLOR_ESTADO!=='undefined'&&COLOR_ESTADO[x.estado])||'#56677A';
     const d=diasEntre(f,x.fecha);
     const cuando=x.fecha===f?'Hoy':(d>0?'en '+d+' día'+(d===1?'':'s'):'hace '+(-d)+' día'+(d===-1?'':'s'));
     return `<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--linea)">
@@ -3786,7 +3788,7 @@ function verConsentimiento(id){
     const ratio=window.devicePixelRatio||1,rect=cv.getBoundingClientRect();
     cv.width=rect.width*ratio;cv.height=rect.height*ratio;
     ctxFirma=cv.getContext('2d');ctxFirma.scale(ratio,ratio);
-    ctxFirma.lineWidth=2.2;ctxFirma.lineCap='round';ctxFirma.strokeStyle='#15302A';
+    ctxFirma.lineWidth=2.2;ctxFirma.lineCap='round';ctxFirma.strokeStyle='#132A3E';
     huboTrazo=false;
     let dibujando=false,x0=0,y0=0;
     const pos=e=>{const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return [t.clientX-r.left,t.clientY-r.top];};
@@ -7474,7 +7476,7 @@ function abrirOrto(id){selId=id;pestana='orto';recetaEditando=null;vistaOdontoIn
 /* ---------- agenda de citas ---------- */
 const ESTADOS_CITA=['Agendada','Confirmada','Atendida','No asistió','Cancelada'];
 const CLASE_ESTADO={Agendada:'agendada',Confirmada:'confirmada',Atendida:'atendida','No asistió':'no_asistio',Cancelada:'cancelada'};
-const COLOR_ESTADO={Agendada:'#5DB3DE',Confirmada:'#0284C7',Atendida:'#5A706A','No asistió':'#B24A35',Cancelada:'#9aa6a3'};
+const COLOR_ESTADO={Agendada:'#5DB3DE',Confirmada:'#0284C7',Atendida:'#56677A','No asistió':'#B24A35',Cancelada:'#9aa6a3'};
 const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS_SEM=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 let agendaFecha=hoy(), agendaVista='semana';
@@ -7956,9 +7958,9 @@ function abrirCita(id,prefill){
 }
 
 /* ---------- personalización: color, logo, orden de pestañas ---------- */
-const COLORES_PRESET=['#0E7C6B','#1F5FA8','#7A4FB5','#B24A35','#B98A2E','#2F7A3C','#0B4F6C','#8A2E5C'];
+const COLORES_PRESET=['#1F5FA8','#0B4F6C','#3E7BE0','#7A4FB5','#B24A35','#B98A2E','#8A2E5C','#0F3D6E'];
 function aclararColor(hex,factor){
-  hex=(hex||'#0E7C6B').replace('#','');
+  hex=(hex||'#1F5FA8').replace('#','');
   if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
   const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
   const mezc=(c)=>Math.round(c+(255-c)*factor);
@@ -7968,7 +7970,8 @@ const LOGO_DEFECTO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAA
 function logoActual(){return (datos.config&&datos.config.logo)||LOGO_DEFECTO;}
 function aplicarTema(){
   const cfg=datos.config||{};
-  const color=cfg.colorPrimario||'#0E7C6B';
+  // el verde de antes ya no se usa: si estaba el verde de fábrica, se usa el azul de la marca
+  const color=(!cfg.colorPrimario||String(cfg.colorPrimario).toUpperCase()==='#0E7C6B')?'#1F5FA8':cfg.colorPrimario;
   document.documentElement.style.setProperty('--clinico',color);
   document.documentElement.style.setProperty('--clinico-claro',aclararColor(color,.87));
   const logoImg=document.getElementById('logoConsultorio');
@@ -8014,9 +8017,9 @@ function abrirPersonalizar(){
     </div>
     <p class="mini">Color principal</p>
     <div class="colores" id="pz_colores">
-      ${COLORES_PRESET.map(c=>`<button type="button" data-color="${c}" style="background:${c}" aria-pressed="${(cfg.colorPrimario||'#0E7C6B')===c}"></button>`).join('')}
+      ${COLORES_PRESET.map(c=>`<button type="button" data-color="${c}" style="background:${c}" aria-pressed="${((cfg.colorPrimario&&String(cfg.colorPrimario).toUpperCase()!=='#0E7C6B'?cfg.colorPrimario:'#1F5FA8'))===c}"></button>`).join('')}
       <label class="personalizado" title="Elegir otro color">
-        <input type="color" id="pz_colorLibre" value="${cfg.colorPrimario||'#0E7C6B'}" style="opacity:0;width:32px;height:32px;cursor:pointer">
+        <input type="color" id="pz_colorLibre" value="${(cfg.colorPrimario&&String(cfg.colorPrimario).toUpperCase()!=='#0E7C6B'?cfg.colorPrimario:'#1F5FA8')}" style="opacity:0;width:32px;height:32px;cursor:pointer">
       </label>
     </div>
     <p class="mini">Orden de las pestañas del paciente</p>
@@ -8028,7 +8031,7 @@ function abrirPersonalizar(){
       </div>`).join('')}
     </div>`,
   ()=>{avisar('Cambios guardados');});
-  let colorElegido=cfg.colorPrimario||'#0E7C6B';
+  let colorElegido=(cfg.colorPrimario&&String(cfg.colorPrimario).toUpperCase()!=='#0E7C6B'?cfg.colorPrimario:'#1F5FA8');
   const marcarColorActivo=()=>{
     $('#pz_colores').querySelectorAll('[data-color]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.color===colorElegido)));
   };
@@ -8820,10 +8823,10 @@ async function componerComparacion(rA,rB,urlA,urlB){
   const cv=document.createElement('canvas');cv.width=wa+wb+gap*3;cv.height=H+top+pie+gap;
   const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);
   x.drawImage(a,gap,top,wa,H);x.drawImage(b,gap*2+wa,top,wb,H);
-  x.fillStyle='#15302A';x.font='bold 26px sans-serif';x.textBaseline='middle';
+  x.fillStyle='#132A3E';x.font='bold 26px sans-serif';x.textBaseline='middle';
   const t=r=>`${r.tipo||'Imagen'} · ${fechaCorta(r.fecha)}`;
   x.fillText(t(rA),gap,top/2);x.fillText(t(rB),gap*2+wa,top/2);
-  x.fillStyle='#5A706A';x.font='18px sans-serif';
+  x.fillStyle='#56677A';x.font='18px sans-serif';
   x.fillText((datos.config&&datos.config.establecimiento)||'',gap,top+H+pie/2+4);
   return cv;
 }
@@ -9660,6 +9663,29 @@ function aplicarModoOscuro(on){
     if(x.dataset.bn==='btnGestion'){ev.stopPropagation();$('#gestionLista').classList.toggle('abierto');encuadrarMenu();return;}
     $('#gestionLista').classList.remove('abierto');const t=document.getElementById(x.dataset.bn);if(t)t.click();});
 })();
+/* ---------- al recargar la página, se vuelve a donde estabas (paciente y pestaña, agenda, recetas…) en vez del inicio ----------
+   Se guarda en sessionStorage: dura mientras esté abierta esa pestaña del navegador (también tras la actualización automática). */
+const LS_LUGAR='mediks-lugar';let lugarListo=false;
+function anotarLugar(l){if(!lugarListo)return;try{const prev=JSON.parse(sessionStorage.getItem(LS_LUGAR)||'{}');
+  sessionStorage.setItem(LS_LUGAR,JSON.stringify({...l,agFecha:agendaFecha,agVista:agendaVista,sy:prev.v===l.v&&prev.sel===l.sel?prev.sy:0}));}catch(e){}}
+const VISTAS_RECORDABLES=['verResumen','verAgenda','verTareas','verRecetas','verListaPacientes','verProfesionales','verProdProfesional','verGastos',
+  'verInventario','verTodosControles','verConfig','verRespaldo','verReporte','verCaja','verCitasLinea','verSolicitudes'];
+VISTAS_RECORDABLES.forEach(nombre=>{const f=window[nombre];if(typeof f!=='function')return;
+  window[nombre]=function(...a){const r=f.apply(this,a);anotarLugar({v:nombre,a:a.filter(x=>typeof x==='string'||typeof x==='number')});return r;};});
+function restaurarLugar(final){
+  let l=null;try{l=JSON.parse(sessionStorage.getItem(LS_LUGAR)||'null');}catch(e){}
+  try{
+    if(l&&l.agFecha)agendaFecha=l.agFecha;if(l&&l.agVista)agendaVista=l.agVista;
+    if(l&&l.v==='paciente'&&pac(l.sel)){selId=l.sel;pestana=l.pest||'ficha';recetaEditando=l.rx&&(pac(l.sel).recetas||[]).some(r=>r.id===l.rx)?l.rx:null;pintar();}
+    else if(l&&VISTAS_RECORDABLES.includes(l.v)&&typeof window[l.v]==='function'){pintarLista();window[l.v](...(l.a||[]));}
+    else pintar();
+    if(l&&l.sy)setTimeout(()=>{const m=document.querySelector('main');if(m&&m.scrollHeight>m.clientHeight)m.scrollTop=l.sy;else window.scrollTo(0,l.sy);},80);
+  }catch(e){console.error(e);pintar();}
+  if(final)lugarListo=true;
+}
+// también se recuerda hasta dónde bajaste en la pantalla
+addEventListener('pagehide',()=>{try{const l=JSON.parse(sessionStorage.getItem(LS_LUGAR)||'null');if(!l)return;
+  const m=document.querySelector('main');l.sy=(m&&m.scrollTop)||window.scrollY||0;sessionStorage.setItem(LS_LUGAR,JSON.stringify(l));}catch(e){}});
 arrancar();
 setTimeout(copiaAutomatica,6000);
 </script>
