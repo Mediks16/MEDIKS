@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-18b">
+<meta name="app-version" content="2026-11-23a">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -7848,7 +7848,7 @@ function abrirCita(id,prefill){
     <label class="campo"><span>Motivo / tratamiento</span><input type="text" id="ci_motivo" value="${esc(c.motivo||'')}" placeholder="Control, resina pieza 16, limpieza…"></label>
     <label class="campo"><span>Nota</span><textarea id="ci_nota">${esc(c.nota||'')}</textarea></label>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${c.pacienteId?'<button class="btn chico" type="button" id="ci_ir">Ver ficha del paciente</button>':''}
+      ${c.pacienteId?'<button class="btn chico" type="button" id="ci_ir">Ver ficha del paciente</button>':'<button class="btn chico primario" type="button" id="ci_crearFicha">Crear ficha del paciente</button>'}
       ${c.pacienteId&&id?'<button class="btn chico" type="button" id="ci_sesion">Registrar sesión de esta cita</button>':''}
       <button class="btn chico" type="button" id="ci_wsp">Enviar recordatorio por WhatsApp</button>
       ${id?'<button class="btn peligro chico" type="button" id="ci_borrar">Eliminar cita</button>':''}
@@ -7905,6 +7905,20 @@ function abrirCita(id,prefill){
     const ps=document.getElementById('ci_prof'),prof=(ps&&ps.value)||c.profesionalId||null;
     $('#modal').close();selId=c.pacienteId;pestana='trat';ocultarPanel();pintar();
     editarTrat(null,{fecha:c.fecha,dx:c.motivo||'',profesionalId:prof});};}
+  /* cita sin ficha (por ejemplo, pedida en línea): crea la ficha con el nombre y teléfono de la cita, la enlaza y la abre */
+  if(!c.pacienteId){const bf=document.getElementById('ci_crearFicha');if(bf)bf.onclick=()=>{
+    const nombre=$('#ci_pac').value.trim(),tel=$('#ci_tel').value.trim();
+    if(!nombre){avisar('Escribe el nombre del paciente');$('#ci_pac').focus();return;}
+    let p=datos.pacientes.find(x=>(x.nombre||'').trim().toLowerCase()===nombre.toLowerCase());
+    if(p){if(!confirm(`Ya existe una ficha de «${p.nombre}». ¿Enlazar esta cita a esa ficha?`))return;
+      if(!p.telefono&&tel)p.telefono=tel;}
+    else{p={id:uid(),nombre,cedula:'',hc:'',telefono:tel,nacimiento:'',sexo:'',apertura:hoy(),
+      hc033:{},odontograma:{},indic:{filas:{}},tratamientos:[],abonos:[],consentimientos:[],fotografias:[]};
+      datos.pacientes.push(p);}
+    if(id){const real=(datos.citas||[]).find(x=>x.id===id);if(real){real.pacienteId=p.id;real.nombre=nombre;if(tel)real.telefono=tel;}}
+    guardar();$('#modal').close();refrescarTrasCita();
+    selId=p.id;pestana='ficha';ocultarPanel();pintar();
+    avisar('Ficha de '+nombre+' lista: completa sus datos');};}
   if(c.pacienteId){const btn=document.getElementById('ci_ir');if(btn)btn.onclick=()=>{
     $('#modal').close();selId=c.pacienteId;pestana='ficha';ocultarPanel();pintar();};}
   if(id){const btn=document.getElementById('ci_borrar');if(btn)btn.onclick=()=>{
