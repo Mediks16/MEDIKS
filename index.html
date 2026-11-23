@@ -2765,7 +2765,7 @@ function sugerenciasSesion(p){
   Object.keys(o).sort((a,b)=>+a-+b).forEach(n=>{
     const d=o[n];if(!d||!PIEZA_VALIDA(n))return;
     const caries=carasConCaries(p,n);
-    if(caries.length)out.push({pieza:n,trat:tratamientoParaCaries(caries.length),caras:caries,texto:`${n} · Caries (${caries.join(', ')})`});
+    if(caries.length)out.push({pieza:n,trat:tratamientoParaCaries(caries.length),caras:caries,texto:`${n} · Caries (${caries.map(k=>letraCara(k,n)).join(', ')})`});
     codigosEstado(d).forEach(cod=>{
       if(!esPendienteSegunCodigo(cod))return;
       const trat=cod==='endo_nec'?endodonciaSugerida(n):TRAT_SUGERIDO[cod];
