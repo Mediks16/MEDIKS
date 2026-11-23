@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-23b">
+<meta name="app-version" content="2026-11-23c">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -691,7 +691,8 @@ tr.anulado td{color:#999}tr.anulado td.der{text-decoration:line-through}
 .oi-p{width:38px;display:flex;flex-direction:column;align-items:center;border:1px solid #d5dbe0;border-radius:5px;padding:3px 1px 2px}
 .oi-p.con{border-width:1.5px}
 .oi-g{position:relative;display:grid;grid-template-columns:repeat(3,10px);grid-template-rows:repeat(3,10px);border:1.2px solid #8a979c;border-radius:5px;overflow:hidden}
-.oi-g i{display:block;border:.5px solid #b6c1bd}.oi-g i.e{border-color:transparent;background:transparent!important}
+.oi-g i{display:block;border:.5px solid #b6c1bd}
+.occ-grid polygon.franja{stroke:#fff;stroke-width:.4}.oi-g i.e{border-color:transparent;background:transparent!important}
 .oi-g.aus{opacity:.65}
 .oi-x{position:absolute;inset:0}.oi-x:before,.oi-x:after{content:"";position:absolute;top:50%;left:50%;width:140%;height:1.5px;background:#5a6670;transform:translate(-50%,-50%) rotate(45deg)}
 .oi-x:after{transform:translate(-50%,-50%) rotate(-45deg)}
@@ -2031,11 +2032,23 @@ function cuerpoPiezaHTML(n,d,size){
 }
 const NOMBRE_CARA=Object.fromEntries(CARAS.map(([k,n])=>[k,n]));
 /* La cara «L» se guarda igual para todos, pero en los dientes superiores se llama Palatina (P) y en los inferiores Lingual (L). */
-function letraCara(k,pieza){return (k==='L'&&pieza&&esSuperiorPieza(String(pieza).match(/\d{2}/)?String(pieza).match(/\d{2}/)[0]:pieza))?'P':k;}
+function letraCara(k,pieza){
+  const pz=String(pieza||'').match(/\d{2}/),sup=pz&&esSuperiorPieza(pz[0]);
+  if(k==='L')return sup?'P':'L';
+  if(k==='O')return pz&&esAnteriorPieza(pz[0])?'I':'O';
+  if(k==='CL')return sup?'CP':'CL';
+  return k;
+}
+/* Incisivos y caninos: su cara central es incisal (I), no oclusal, y pueden marcar el borde incisal. */
+function esAnteriorPieza(n){return ['1','2','3'].includes(String(n).slice(-1));}
+/* Caras que se pueden marcar en una pieza: las 5 de siempre, el borde incisal (solo anteriores) y los cuellos (cervical). */
+function carasDePieza(n){return [...CARAS,...(esAnteriorPieza(n)?[['BI','Borde incisal']]:[]),['CV','Cuello vestibular'],['CL','Cuello palatino / lingual']];}
 function nombreCara(k,pieza){
   const pz=String(pieza||'').match(/\d{2}/);
   if(k==='L'){if(!pz)return 'Lingual (inferiores) / Palatina (superiores)';return esSuperiorPieza(pz[0])?'Palatina':'Lingual';}
-  return ({V:'Vestibular',M:'Mesial',O:'Oclusal / Incisal',D:'Distal'})[k]||k;
+  if(k==='O'&&pz)return esAnteriorPieza(pz[0])?'Incisal':'Oclusal';
+  if(k==='CL'){if(!pz)return 'Cuello palatino / lingual';return esSuperiorPieza(pz[0])?'Cuello palatino':'Cuello lingual';}
+  return ({V:'Vestibular',M:'Mesial',O:'Oclusal / Incisal',D:'Distal',BI:'Borde incisal',CV:'Cuello vestibular'})[k]||k;
 }
 /* ---- Reubicar caras mesial/distal ya marcadas en los cuadrantes derechos (1, 4, 5 y 8) ----
    Antes de corregir el dibujo, mesial iba siempre a la izquierda. Lo que se marcó tocando el dibujo se ve ahora en la cara contraria:
@@ -2080,8 +2093,15 @@ function occlusalHTML(n,d,ausente){
   const formas=[[sup,'1,1 39,1 27,13 13,13'],[inf,'1,39 39,39 27,27 13,27'],[izq,'1,1 13,13 13,27 1,39'],[der,'39,1 27,13 27,27 39,39'],['O','13,13 27,13 27,27 13,27']];
   const pol=([k,pts])=>`<polygon data-ofcara="${k}" class="${elegida(k)?'csel':''}" points="${pts}" fill="${col(k)}"><title>${esc(nombreCara(k,n))}</title></polygon>`;
   const orden=[...formas.filter(x=>!elegida(x[0])),...formas.filter(x=>elegida(x[0]))];
+  /* franjas finas: cuello (junto al borde externo de la cara V o P/L) y borde incisal (en el centro, del lado vestibular); solo se dibujan si están marcadas o elegidas */
+  const vArriba=esSuperiorPieza(n);
+  const franjas=[['CV',vArriba?'1.6,1.6 38.4,1.6 35.4,4.6 4.6,4.6':'1.6,38.4 38.4,38.4 35.4,35.4 4.6,35.4'],
+    ['CL',vArriba?'1.6,38.4 38.4,38.4 35.4,35.4 4.6,35.4':'1.6,1.6 38.4,1.6 35.4,4.6 4.6,4.6'],
+    ...(esAnteriorPieza(n)?[['BI',vArriba?'13,13 27,13 27,16.5 13,16.5':'13,27 27,27 27,23.5 13,23.5']]:[])]
+    .filter(([k])=>caras[k]||elegida(k));
+  const franja=([k,pts])=>`<polygon data-ofcara="${k}" class="franja${elegida(k)?' csel':''}" points="${pts}" fill="${caras[k]&&SIMB_CARA[caras[k]]?col(k):'#BFD3E6'}"><title>${esc(nombreCara(k,n))}</title></polygon>`;
   return `<div class="occ-grid${ausente?' ausente':''}" data-pieza="${n}" title="Toca una cara para marcarla">
-    <svg viewBox="0 0 40 40" width="100%" height="100%">${orden.map(pol).join('')}
+    <svg viewBox="0 0 40 40" width="100%" height="100%">${orden.map(pol).join('')}${franjas.map(franja).join('')}
     <rect x="1" y="1" width="38" height="38" class="og-borde"/>
     ${ausente?'<line x1="2" y1="2" x2="38" y2="38" class="og-x"/><line x1="38" y1="2" x2="2" y2="38" class="og-x"/>':''}</svg>
   </div>`;
@@ -2131,10 +2151,10 @@ function panelPiezaHTML(p,n,verInicial){
     <p class="mini" style="margin:10px 0 4px;font-weight:600;color:var(--tinta)">Superficie</p>
     <p class="mini" style="margin:0 0 6px">Toca una o <b>varias</b> caras (quedan marcadas) y luego elige Caries o Restaurado: se pintan todas las que elegiste.</p>
     <div class="cara-grid">
-      ${CARAS.map(([k,nombreLargo])=>{
+      ${carasDePieza(n).map(([k,nombreLargo])=>{
         const col=d.caras&&d.caras[k]&&SIMB_CARA[d.caras[k]]?SIMB_CARA[d.caras[k]].c:null;
         return `<button data-caratog="${k}" aria-pressed="${carasSel().includes(k)}" class="${carasSel().includes(k)?'csel':''}" style="${col?`background:${col};color:#fff;border-color:${col}`:''}">
-          <b>${letraCara(k,n)}</b><small>${esc(nombreCara(k,n).split('/')[0].split(' ')[0])}</small></button>`;
+          <b>${letraCara(k,n)}</b><small>${esc(['BI','CV','CL'].includes(k)?(k==='BI'?'Borde':'Cuello'):nombreCara(k,n).split('/')[0].split(' ')[0])}</small></button>`;
       }).join('')}
     </div>
     ${carasSel().length?`<p class="mini" style="margin:-2px 0 6px;color:var(--tinta)">Elegidas: <b>${carasSel().map(k=>letraCara(k,n)).join(', ')}</b> · <a href="#" data-carasninguna>quitar selección</a></p><div class="paleta" style="margin-bottom:12px">
@@ -2198,7 +2218,7 @@ function generarPresupuestoDesdeOdontograma(p){
         if(SIMB_CARA[est]&&SIMB_CARA[est].c==='#E0564A')porEstado[est]=(porEstado[est]||[]).concat(cara);
       });
       Object.entries(porEstado).forEach(([est,caras])=>{
-        items.push({tratamiento:`${SIMB_CARA[est].n} (${caras.join('')})`,pieza:n,precio:''});
+        items.push({tratamiento:`${SIMB_CARA[est].n} (${caras.map(k=>letraCara(k,n)).join(', ')})`,pieza:n,precio:''});
       });
     }
   });
@@ -8124,9 +8144,10 @@ function odontoImpresionHTML(od){
     ests.forEach(e=>usados.set('g:'+e.cod,{c:e.color,n:e.nombre,s:e.simbolo,pend:e.pendiente}));
     const col=k=>caras[k]&&SIMB_CARA[caras[k]]?SIMB_CARA[caras[k]].c:'#fff';
     const derPac=['1','4','5','8'].includes(String(n).charAt(0)),izq=derPac?'D':'M',der=derPac?'M':'D',sup=esSuperiorPieza(n);
-    const c=k=>`<i style="background:${col(k)}"></i>`,e='<i class="e"></i>';
+    const fr=(k,lado)=>caras[k]&&SIMB_CARA[caras[k]]?`box-shadow:inset 0 ${lado}px 0 ${SIMB_CARA[caras[k]].c};`:'';
+    const c=(k,extra)=>`<i style="background:${col(k)};${extra||''}"></i>`,e='<i class="e"></i>';
     return `<div class="oi-p${ests.length?' con':''}"${ests[0]?` style="border-color:${ests[0].color}"`:''}>
-      <div class="oi-g${aus?' aus':''}">${e}${c(sup?'V':'L')}${e}${c(izq)}${c('O')}${c(der)}${e}${c(sup?'L':'V')}${e}${aus?'<b class="oi-x"></b>':''}</div>
+      <div class="oi-g${aus?' aus':''}">${e}${c(sup?'V':'L',fr(sup?'CV':'CL',3))}${e}${c(izq)}${c('O',fr('BI',sup?3:-3))}${c(der)}${e}${c(sup?'L':'V',fr(sup?'CL':'CV',-3))}${e}${aus?'<b class="oi-x"></b>':''}</div>
       <span class="oi-n">${n}</span>
       <span class="oi-s">${ests.map(x=>`<em style="color:${x.color};${x.pendiente?'border:1px dashed '+x.color:'background:'+x.color+';color:#fff'}">${esc(x.simbolo||'•')}</em>`).join('')}${d.mov?`<em class="t">M${esc(d.mov)}</em>`:''}${d.rec?`<em class="t">R${esc(d.rec)}</em>`:''}</span></div>`;};
   const fila=(a,b)=>`<div class="oi-fila"><div class="oi-q">${a.map(pieza).join('')}</div><div class="oi-q">${b.map(pieza).join('')}</div></div>`;
@@ -8149,7 +8170,7 @@ function imprimir033(){
       const c=q.map(n=>{const d=p.odontograma?.[n];if(!d)return '';
         const partes=[];
         codigosEstado(d).forEach(cod=>{if(SIMB_GENERAL[cod])partes.push(SIMB_GENERAL[cod].n);});
-        Object.entries(d.caras||{}).forEach(([cara,est])=>partes.push(`${cara}:${SIMB_CARA[est].n}`));
+        Object.entries(d.caras||{}).forEach(([cara,est])=>partes.push(`${letraCara(cara,n)}:${SIMB_CARA[est]?SIMB_CARA[est].n:est}`));
         if(!partes.length)return '';
         return `${n}: ${partes.join(', ')}${d.mov?' M'+d.mov:''}${d.rec?' R'+d.rec:''}`;}).filter(Boolean);
       if(c.length)filas.push(c.join(' · '));}));
