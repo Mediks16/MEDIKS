@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="2026-11-23c">
+<meta name="app-version" content="2026-11-23d">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
@@ -2042,7 +2042,7 @@ function letraCara(k,pieza){
 /* Incisivos y caninos: su cara central es incisal (I), no oclusal, y pueden marcar el borde incisal. */
 function esAnteriorPieza(n){return ['1','2','3'].includes(String(n).slice(-1));}
 /* Caras que se pueden marcar en una pieza: las 5 de siempre, el borde incisal (solo anteriores) y los cuellos (cervical). */
-function carasDePieza(n){return [...CARAS,...(esAnteriorPieza(n)?[['BI','Borde incisal']]:[]),['CV','Cuello vestibular'],['CL','Cuello palatino / lingual']];}
+function carasDePieza(n){const pz=String(n||'').match(/\d{2}/);return [...CARAS,...(pz&&esAnteriorPieza(pz[0])?[['BI','Borde incisal']]:[]),['CV','Cuello vestibular'],['CL','Cuello palatino / lingual']];}
 function nombreCara(k,pieza){
   const pz=String(pieza||'').match(/\d{2}/);
   if(k==='L'){if(!pz)return 'Lingual (inferiores) / Palatina (superiores)';return esSuperiorPieza(pz[0])?'Palatina':'Lingual';}
@@ -2445,7 +2445,7 @@ function completarInicialDesdeLineas(dientes,lineas){
       if(Object.keys(nd.caras||{}).length||nd.general)return;
       nd.caras=nd.caras||{};
       const tp=tipoPieza(n),cs=mapa.tipo==='cara'?((l.caras||[]).length?l.caras:[(tp==='molar'||tp==='premolar')?'O':'V']):['V','M','O','D','L'];
-      cs.forEach(c=>{if(['V','M','O','D','L'].includes(c))nd.caras[c]='caries';});
+      cs.forEach(c=>{if(['V','M','O','D','L','BI','CV','CL'].includes(c))nd.caras[c]='caries';});
       dientes[n]=nd;
     });
   });
@@ -2663,7 +2663,7 @@ function renderEditorPresupuesto(p,c){
         </div>
         ${tipo==='general'?'<p class="mini" style="margin:2px 0 8px">Este tratamiento es de diente completo — no necesita cara.</p>':`
         <span class="mini">${etiquetaCaras}</span>
-        <div class="caras-mini">${CARAS.map(([k,n])=>`<label><input type="checkbox" class="cara-item-chk" data-idx="${i}" value="${k}" ${it.caras.includes(k)?'checked':''}> ${letraCara(k,it.pieza)}</label>`).join('')}</div>`}
+        <div class="caras-mini">${carasDePieza(it.pieza).map(([k,n])=>`<label><input type="checkbox" class="cara-item-chk" data-idx="${i}" value="${k}" ${it.caras.includes(k)?'checked':''}> ${letraCara(k,it.pieza)}</label>`).join('')}</div>`}
         <div style="display:flex;margin-top:6px">
           <button class="btn chico peligro" style="margin-left:auto" onclick="quitarItemPresupuesto(${i})">Eliminar</button></div>
         </div>`;}).join('')}</div>
@@ -2723,7 +2723,7 @@ function borrarPresupuestoEditor(id){
 }
 function imprimirPresupuesto(id){
   const p=pac(selId),x=p.presupuestos.find(y=>y.id===id),g=datos.config,t=totalPresupuesto(x);
-  const filas=(x.items||[]).filter(it=>it.tratamiento).map(it=>`<tr><td>${esc(it.tratamiento)}${it.caras&&it.caras.length?' ('+esc(it.caras.join(''))+')':''}</td><td>${esc(it.pieza||'—')}</td><td style="text-align:right">${usd(it.precio)}</td></tr>`).join('');
+  const filas=(x.items||[]).filter(it=>it.tratamiento).map(it=>`<tr><td>${esc(it.tratamiento)}${it.caras&&it.caras.length?' ('+esc(it.caras.map(k=>letraCara(k,it.pieza)).join(', '))+')':''}</td><td>${esc(it.pieza||'—')}</td><td style="text-align:right">${usd(it.precio)}</td></tr>`).join('');
   $('#impresion').innerHTML=`<div class="hoja">${encabezadoHoja(p)}
     <section><h4 style="text-align:center">PRESUPUESTO — PLAN DE TRATAMIENTO N.º ${esc(x.numero||'')}</h4>
       <div class="fila"><div><span class="rot">Fecha</span>${fechaCorta(x.fecha)}</div>
@@ -2755,7 +2755,7 @@ const TRAT_SUGERIDO={extraccion:'Exodoncia simple',corona_ind:'Corona',puente_in
   total_ind:'Prótesis total',implante_ind:'Colocación de implante',sellante_nec:'Sellante'};
 function carasConCaries(p,n){
   const d=(p.odontograma||{})[n];
-  return d&&d.caras?['V','M','O','D','L'].filter(k=>d.caras[k]==='caries'):[];
+  return d&&d.caras?Object.keys(d.caras).filter(k=>d.caras[k]==='caries'):[];
 }
 function tratamientoParaCaries(nCaras){return nCaras<=1?'Restauración simple':nCaras===2?'Restauración compuesta':'Restauración compleja';}
 /* Qué le falta hacer a este paciente, según su odontograma: cada sugerencia se convierte en una línea con un toque. */
@@ -2788,7 +2788,7 @@ function procSesion(t){
 }
 function nombreSesion(t){return procSesion(t)||(t.dx||'').trim();}
 function textoLinea(l){
-  const caras=(l.caras||[]).length?' ('+l.caras.join('')+')':'';
+  const caras=(l.caras||[]).length?' ('+l.caras.map(k=>letraCara(k,l.pieza)).join(', ')+')':'';
   return `${l.trat}${caras}${(l.pieza||'').trim()?' — pieza '+l.pieza.trim():''}`;
 }
 /* Aplica una línea al odontograma. Devuelve un texto si algo quedó pendiente de completar. */
@@ -3173,7 +3173,7 @@ function editarTrat(id,pre){
       return `<div class="t-linea" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;padding:6px;border:1px solid var(--linea);border-radius:9px">
         <input type="text" data-l="${i}-pieza" value="${esc(l.pieza||'')}" placeholder="Pieza" style="width:70px" title="Número FDI de la pieza (ej. 16)">
         <input type="text" list="dl_cat_trat" data-l="${i}-trat" value="${esc(l.trat||'')}" placeholder="Tratamiento (elige o escribe)" style="flex:1;min-width:240px">
-        ${tipo==='cara'?`<span class="chks" style="display:flex;gap:4px;align-items:center"><span class="mini">Caras:</span>${CARAS.map(([k,n])=>
+        ${tipo==='cara'?`<span class="chks" style="display:flex;gap:4px;align-items:center"><span class="mini">Caras:</span>${carasDePieza(l.pieza).map(([k,n])=>
           `<label class="chk" title="${esc(nombreCara(k,l.pieza))}"><input type="checkbox" data-lc="${i}" value="${k}" ${(l.caras||[]).includes(k)?'checked':''}> ${letraCara(k,l.pieza)}</label>`).join('')}</span>`:''}
         <button type="button" class="btn chico peligro" data-lx="${i}" title="Quitar esta línea">✕</button></div>`;
     }).join(''):'<p class="mini" style="margin:0">Aún no agregaste tratamientos. Usa una sugerencia o «+ Agregar tratamiento».</p>';
@@ -3185,7 +3185,7 @@ function editarTrat(id,pre){
         const l=lineas[i];if(!l)return;
         l[campo]=el.value;
         const tipo=tipoTratamiento(l.trat);
-        let repintar=tipo!==l._tipo;
+        let repintar=tipo!==l._tipo||(campo==='pieza'&&tipo==='cara');
         if(tipo==='cara'&&!(l.caras||[]).length&&piezasDeTexto(l.pieza).length===1){
           const cc=carasConCaries(p,piezasDeTexto(l.pieza)[0]);
           if(cc.length){l.caras=cc;repintar=true;}
